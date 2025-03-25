@@ -6,8 +6,11 @@ import { mkdir, rm } from 'fs/promises';
 
 const execAsync = promisify(exec);
 
-// URL for the cvwonder binary - replace with actual URL
-const CVWONDER_DOWNLOAD_URL = 'https://github.com/germainlefebvre4/cvwonder/releases/latest/download/cvwonder-linux-amd64';
+// Build the cvwonder binary URL with version support
+const CVWONDER_VERSION = process.env.CVWONDER_VERSION || 'v0.3.0';
+const CVWONDER_BASE_URL = 'https://github.com/germainlefebvre4/cvwonder/releases';
+const CVWONDER_DOWNLOAD_URL = `${CVWONDER_BASE_URL}/download/${CVWONDER_VERSION}/cvwonder_linux_amd64`;
+
 const BINARY_PATH = join(process.cwd(), 'bin');
 const CVWONDER_BINARY_PATH = join(BINARY_PATH, 'cvwonder');
 const THEMES_DIR = join(process.cwd(), 'themes');
@@ -54,13 +57,13 @@ export async function downloadCVWonderBinary() {
       console.log('CVWonder binary downloaded and made executable at:', CVWONDER_BINARY_PATH);
       
       // Test that the binary works
-      try {
-        const { stdout } = await execAsync(`${CVWONDER_BINARY_PATH} --version`);
-        console.log('CVWonder version:', stdout.trim());
-      } catch (versionError) {
-        console.warn('Could not verify CVWonder version:', versionError);
-        // Don't throw here, as the binary might still work for our purposes
-      }
+      // try {
+      //   const { stdout } = await execAsync(`${CVWONDER_BINARY_PATH} --version`);
+      //   console.log('CVWonder version:', stdout.trim());
+      // } catch (versionError) {
+      //   console.warn('Could not verify CVWonder version:', versionError);
+      //   // Don't throw here, as the binary might still work for our purposes
+      // }
     }
     
     // Create the themes directory if it doesn't exist
