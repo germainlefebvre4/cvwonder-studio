@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { mkdir, writeFile, readFile, readdir, stat } from 'fs/promises';
+import { mkdir, writeFile, readFile, readdir, stat, unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import crypto from 'crypto';
 import { Session, CreateSessionRequest, UpdateSessionRequest } from './types';
@@ -7,11 +7,33 @@ import { defaultCV } from './defaultCV';
 
 // Directory to store all sessions
 const SESSIONS_DIR = join(process.cwd(), 'sessions');
+const THEMES_DIR = join(process.cwd(), 'themes');
+
+// Validate theme existence
+const validateTheme = async (theme: string = 'default'): Promise<boolean> => {
+  const themePath = join(THEMES_DIR, theme);
+  const themeYamlPath = join(themePath, 'theme.yaml');
+  return existsSync(themePath) && existsSync(themeYamlPath);
+};
 
 // Ensure sessions directory exists
 export const ensureSessionsDir = async (): Promise<void> => {
-  if (!existsSync(SESSIONS_DIR)) {
-    await mkdir(SESSIONS_DIR, { recursive: true });
+  try {
+    if (!existsSync(SESSIONS_DIR)) {
+      await mkdir(SESSIONS_DIR, { recursive: true });
+    }
+    // Verify write permissions by attempting to create and remove a test file
+    const testFile = join(SESSIONS_DIR, '.test');
+    await writeFile(testFile, '');
+    await readFile(testFile);
+    const stats = await stat(testFile);
+    if (!stats.isFile()) {
+      throw new Error('Failed to create test file');
+    }
+    await unlink(testFile);
+  } catch (error) {
+    console.error('Sessions directory setup failed:', error);
+    throw new Error('Failed to setup sessions directory: ' + (error instanceof Error ? error.message : 'Unknown error'));
   }
 };
 
@@ -37,36 +59,63 @@ export const getSessionMetadataPath = (sessionId: string): string => {
 
 // Create a new session
 export const createSession = async (params: CreateSessionRequest = {}): Promise<Session> => {
-  await ensureSessionsDir();
-  
-  const sessionId = generateSessionId();
-  const sessionDir = getSessionDir(sessionId);
-  
-  // Create session directory
-  await mkdir(sessionDir, { recursive: true });
-  
-  const now = new Date();
-  const session: Session = {
-    id: sessionId,
-    createdAt: now,
-    updatedAt: now,
-    cvContent: params.initialContent || defaultCV,
-    selectedTheme: params.theme || 'default',
-  };
-  
-  // Write session metadata
-  await writeFile(
-    getSessionMetadataPath(sessionId),
-    JSON.stringify(session, null, 2)
-  );
-  
-  // Write initial CV content
-  await writeFile(
-    getSessionCVPath(sessionId),
-    session.cvContent
-  );
-  
-  return session;
+  try {
+    // Ensure sessions directory exists and is writable
+    await ensureSessionsDir();
+    
+    // Validate theme
+    const theme = params.theme || 'default';
+    const isThemeValid = await validateTheme(theme);
+    if (!isThemeValid) {
+      throw new Error(`Invalid theme: ${theme}`);
+    }
+    
+    const sessionId = generateSessionId();
+    const sessionDir = getSessionDir(sessionId);
+    
+    // Create session directory
+    await mkdir(sessionDir, { recursive: true });
+    
+    const now = new Date();
+    const session: Session = {
+      id: sessionId,
+      createdAt: now,
+      updatedAt: now,
+      cvContent: params.initialContent || defaultCV,
+      selectedTheme: theme,
+    };
+    
+    // Validate CV content
+    if (!session.cvContent || typeof session.cvContent !== 'string') {
+      throw new Error('Invalid CV content');
+    }
+    
+    // Write session metadata
+    const metadataPath = getSessionMetadataPath(sessionId);
+    await writeFile(
+      metadataPath,
+      JSON.stringify(session, null, 2)
+    );
+    
+    // Verify metadata was written correctly
+    const writtenMetadata = await readFile(metadataPath, 'utf-8');
+    JSON.parse(writtenMetadata); // Validate JSON
+    
+    // Write initial CV content
+    const cvPath = getSessionCVPath(sessionId);
+    await writeFile(cvPath, session.cvContent);
+    
+    // Verify CV content was written correctly
+    const writtenContent = await readFile(cvPath, 'utf-8');
+    if (writtenContent !== session.cvContent) {
+      throw new Error('CV content verification failed');
+    }
+    
+    return session;
+  } catch (error) {
+    console.error('Failed to create session:', error);
+    throw error;
+  }
 };
 
 // Get a session by ID

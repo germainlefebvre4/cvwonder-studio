@@ -1,21 +1,15 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import Image from 'next/image';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Loader2, FileJson, Plus, Github, FileText, Check } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileJson, Download, FileDown, Loader2, AlertCircle, RefreshCw, Plus } from 'lucide-react';
-import dynamic from 'next/dynamic';
-import yaml from 'js-yaml';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { defaultCV } from '@/lib/defaultCV';
+import defaultCV from '@/lib/defaultCV';
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
-
-const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
-  ssr: false,
-});
+import yaml from 'js-yaml';
 
 const themes = [
   { id: 'default', name: 'Default Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-default' },
@@ -25,42 +19,22 @@ const themes = [
 export default function Home() {
   const router = useRouter();
   const { toast } = useToast();
-  const [cv, setCV] = useState(defaultCV);
-  const [error, setError] = useState<string | null>(null);
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [selectedTheme, setSelectedTheme] = useState('default');
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
-  const [renderHtml, setRenderHtml] = useState<string | null>(null);
-  const [yamlValid, setYamlValid] = useState(true);
-  const previewFrameRef = useRef<HTMLIFrameElement>(null);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const currentYamlRef = useRef(defaultCV);
-
+  const [selectedTheme, setSelectedTheme] = useState('default');
+  
   // Function to create a new session
   const createNewSession = async () => {
-    // Check YAML validity before creating a session
-    const isValid = validateYaml(currentYamlRef.current);
-    if (!isValid) {
-      toast({
-        title: "Invalid YAML",
-        description: "Cannot create a session with invalid YAML content.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     try {
       setIsCreatingSession(true);
       
-      // Call the API to create a new session
+      // Call the API to create a new session with defaultCV
       const response = await fetch('/api/sessions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          initialContent: currentYamlRef.current,
+          initialContent: defaultCV,
           theme: selectedTheme,
         }),
       });
@@ -90,331 +64,210 @@ export default function Home() {
     }
   };
 
-  // Generate the CV preview using the API
-  const generatePreview = async (yamlContent: string, theme: string) => {
-    if (!yamlValid) {
-      setApiError("Cannot generate preview with invalid YAML");
-      return;
-    }
-    
-    try {
-      setIsGenerating(true);
-      setApiError(null);
-      
-      // Check if yamlContent is valid before sending
-      if (!yamlContent || yamlContent.trim() === '') {
-        throw new Error("Cannot generate preview with empty YAML content");
-      }
-      
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          cv: yamlContent,
-          theme,
-          format: 'html',
-        }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        const errorMsg = errorData?.message || 'Failed to generate preview';
-        throw new Error(errorMsg);
-      }
-      const htmlContent = await response.text();
-      setRenderHtml(htmlContent);
-    } catch (err) {
-      console.error('Error generating preview:', err);
-      setApiError(err instanceof Error ? err.message : 'Failed to generate preview');
-      // Keep the previous render if there was an error
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  // Manual refresh function for the preview
-  const handleRefreshPreview = () => {
-    // Check YAML validity before refreshing
-    const isValid = validateYaml(currentYamlRef.current);
-    if (!isValid) {
-      setApiError("Cannot refresh with invalid YAML");
-      return;
-    }
-    
-    // Clear any previous errors
-    setApiError(null);
-    
-    // Generate preview with current YAML and selected theme
-    generatePreview(currentYamlRef.current, selectedTheme);
-  };
-
-  // Effect to update the iframe content when renderHtml changes
-  useEffect(() => {
-    if (renderHtml && previewFrameRef.current) {
-      const iframe = previewFrameRef.current;
-      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-      
-      if (iframeDoc) {
-        iframeDoc.open();
-        iframeDoc.write(renderHtml);
-        iframeDoc.close();
-      }
-    }
-  }, [renderHtml]);
-
-  // Generate preview when component mounts
-  useEffect(() => {
-    // Validate initial YAML before generating
-    const isValid = validateYaml(cv);
-    if (isValid) {
-      generatePreview(cv, selectedTheme);
-    } else {
-      setYamlValid(false);
-      setError('Invalid YAML format');
-      setApiError("Cannot generate preview with invalid YAML");
-    }
-  }, []);
-
-  // When theme changes, regenerate the preview
-  useEffect(() => {
-    // Validate YAML before regenerating preview on theme change
-    const isValid = validateYaml(currentYamlRef.current);
-    if (isValid) {
-      generatePreview(currentYamlRef.current, selectedTheme);
-    } else {
-      // If not valid, set an appropriate error without attempting generation
-      setApiError("Cannot generate preview with invalid YAML");
-    }
-  }, [selectedTheme]);
-
-  const validateYaml = (value: string): boolean => {
-    try {
-      if (!value || value.trim() === '') {
-        return false;
-      }
-      yaml.load(value);
-      return true;
-    } catch (e) {
-      console.error('YAML validation error:', e);
-      return false;
-    }
-  };
-
-  const handleEditorChange = (value: string | undefined) => {
-    if (!value) return;
-    
-    // Store current YAML in the ref for immediate access
-    currentYamlRef.current = value;
-    
-    // Validate YAML
-    const isValid = validateYaml(value);
-    setYamlValid(isValid);
-    
-    if (isValid) {
-      setCV(value);
-      setError(null);
-      
-      // Debounce the preview generation to avoid too many requests
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-      
-      debounceTimerRef.current = setTimeout(() => {
-        generatePreview(value, selectedTheme);
-      }, 1000); // 1 second debounce
-    } else {
-      setError('Invalid YAML format');
-    }
-  };
-
-  const handleDownload = async (format: 'yaml' | 'pdf') => {
-    if (format === 'yaml') {
-      const blob = new Blob([cv], { type: 'text/yaml' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'cv.yml';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } else {
-      try {
-        setIsGenerating(true);
-        const response = await fetch('/api/generate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            cv,
-            theme: selectedTheme,
-            format: 'pdf',
-          }),
-        });
-        if (!response.ok) {
-          throw new Error('Failed to generate PDF');
-        }
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'cv.pdf';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } catch (err) {
-        console.error('Error generating PDF:', err);
-        setError('Failed to generate PDF');
-      } finally {
-        setIsGenerating(false);
-      }
-    }
-  };
-
   return (
-    <div className="h-screen flex flex-col">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+    <div className="min-h-screen flex flex-col">
+      {/* Hero Section */}
+      <header className="border-b bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
+        <div className="container mx-auto px-4 py-6 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <FileJson className="h-6 w-6" />
-            <h1 className="text-xl font-bold">CV Wonder Online</h1>
+            <FileJson className="h-8 w-8" />
+            <h1 className="text-2xl font-bold">CV Wonder Online</h1>
           </div>
           <div className="flex items-center space-x-4">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={createNewSession}
-              className="flex items-center space-x-1"
-              disabled={isCreatingSession || !yamlValid}
-            >
-              {isCreatingSession ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Plus className="h-4 w-4" />
-              )}
-              <span>{isCreatingSession ? 'Creating...' : 'Create Session'}</span>
-            </Button>
-            <Select value={selectedTheme} onValueChange={setSelectedTheme}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select theme" />
-              </SelectTrigger>
-              <SelectContent>
-                {themes.map(theme => (
-                  <SelectItem key={theme.id} value={theme.id}>
-                    {theme.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleDownload('yaml')}
-                className="flex items-center space-x-1"
-                disabled={isGenerating}
-              >
-                <Download className="h-4 w-4" />
-                <span>Download YAML</span>
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => handleDownload('pdf')}
-                className="flex items-center space-x-1"
-                disabled={isGenerating}
-              >
-                {isGenerating ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <FileDown className="h-4 w-4" />
-                )}
-                <span>{isGenerating ? 'Generating...' : 'Generate PDF'}</span>
-              </Button>
-            </div>
+            <Link href="https://cvwonder.readthedocs.io/" target="_blank" className="text-white hover:text-blue-200 transition">
+              <FileText className="h-5 w-5 inline mr-1" />
+              <span>Docs</span>
+            </Link>
+            <Link href="https://github.com/germainlefebvre4/cvwonder" target="_blank" className="text-white hover:text-blue-200 transition">
+              <Github className="h-5 w-5 inline mr-1" />
+              <span>GitHub</span>
+            </Link>
           </div>
         </div>
       </header>
-      {apiError && (
-        <Alert variant="destructive" className="m-2">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{apiError}</AlertDescription>
-        </Alert>
-      )}
-      <ResizablePanelGroup direction="horizontal" className="flex-1">
-        <ResizablePanel defaultSize={50}>
-          <div className="h-full flex flex-col">
-            <div className="p-3 border-b bg-muted/50 flex justify-between items-center">
-              <h2 className="text-sm font-medium">YAML Editor</h2>
-              {error && (
-                <p className="text-sm text-destructive">{error}</p>
-              )}
+      
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="bg-gradient-to-b from-blue-50 to-white py-20 px-4">
+          <div className="container mx-auto max-w-6xl flex flex-col md:flex-row items-center gap-12">
+            <div className="md:w-1/2 space-y-6">
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
+                Create Professional CVs <span className="text-blue-600">Effortlessly</span>
+              </h1>
+              <p className="text-xl text-gray-600">
+                CV Wonder transforms your YAML data into beautifully formatted resumes ready to impress employers.
+              </p>
+              <div className="pt-4 flex flex-col sm:flex-row gap-4">
+                <div>
+                  <Select value={selectedTheme} onValueChange={setSelectedTheme}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="Select theme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {themes.map(theme => (
+                        <SelectItem key={theme.id} value={theme.id}>
+                          {theme.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  size="lg"
+                  onClick={createNewSession}
+                  className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
+                  disabled={isCreatingSession}
+                >
+                  {isCreatingSession ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Plus className="h-5 w-5" />
+                  )}
+                  <span>{isCreatingSession ? 'Creating...' : 'Create Your CV Now'}</span>
+                </Button>
+              </div>
             </div>
-            <div className="flex-1">
-              <MonacoEditor
-                height="100%"
-                defaultLanguage="yaml"
-                value={cv}
-                onChange={handleEditorChange}
-                theme="vs-dark"
-                options={{
-                  minimap: { enabled: false },
-                  fontSize: 14,
-                  wordWrap: 'on',
-                  lineNumbers: 'on',
-                  renderValidationDecorations: 'on',
-                  scrollBeyondLastLine: false,
-                }}
-              />
+            <div className="md:w-1/2 relative">
+              <div className="bg-white rounded-lg shadow-2xl p-2 transform rotate-2">
+                <div className="bg-white border rounded-lg overflow-hidden">
+                  <div className="p-4 border-b bg-gray-50">
+                    <div className="flex items-center space-x-2">
+                      <div className="h-3 w-3 rounded-full bg-red-500"></div>
+                      <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
+                      <div className="h-3 w-3 rounded-full bg-green-500"></div>
+                      <div className="ml-2 text-sm text-gray-600">CV Wonder Editor</div>
+                    </div>
+                  </div>
+                  <div className="p-4 text-sm font-mono text-gray-800 bg-gray-50">
+                    <pre className="whitespace-pre-wrap">
+{`name: John Doe
+title: Senior Software Engineer
+contact:
+  email: john.doe@example.com
+  phone: +1 (123) 456-7890
+summary: >
+  Experienced developer with a passion 
+  for building elegant solutions.`}
+                    </pre>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </ResizablePanel>
-        
-        <ResizableHandle />
-        
-        <ResizablePanel defaultSize={50}>
-          <div className="h-full flex flex-col">
-            <div className="p-3 border-b bg-muted/50 flex justify-between items-center">
-              <h2 className="text-sm font-medium">
-                Preview ({themes.find(t => t.id === selectedTheme)?.name})
-              </h2>
-              {isGenerating && (
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                  Rendering...
+        </section>
+
+        {/* Features section */}
+        <section className="py-16 px-4 bg-white">
+          <div className="container mx-auto max-w-6xl">
+            <h2 className="text-3xl font-bold text-center mb-12">Why Choose CV Wonder?</h2>
+            
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition">
+                <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                  <Check className="h-6 w-6 text-blue-600" />
                 </div>
-              )}
+                <h3 className="text-xl font-semibold mb-2">Simple YAML Format</h3>
+                <p className="text-gray-600">
+                  Write your CV in a clean, structured YAML format that's easy to maintain and version control.
+                </p>
+              </div>
+              
+              <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition">
+                <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                  <Check className="h-6 w-6 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Beautiful Themes</h3>
+                <p className="text-gray-600">
+                  Choose from multiple professionally designed themes to make your CV stand out from the crowd.
+                </p>
+              </div>
+              
+              <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition">
+                <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                  <Check className="h-6 w-6 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Export Options</h3>
+                <p className="text-gray-600">
+                  Generate your CV in PDF format ready to share with potential employers or download in YAML format.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* How it works section */}
+        <section className="py-16 px-4 bg-gray-50">
+          <div className="container mx-auto max-w-6xl">
+            <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
+            
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-blue-600 text-white text-2xl font-bold mb-4">1</div>
+                <h3 className="text-xl font-semibold mb-2">Create a Session</h3>
+                <p className="text-gray-600">
+                  Start a new CV session with our simple editor interface.
+                </p>
+              </div>
+              
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-blue-600 text-white text-2xl font-bold mb-4">2</div>
+                <h3 className="text-xl font-semibold mb-2">Edit Your CV</h3>
+                <p className="text-gray-600">
+                  Add your personal details, work experience, education, and skills in YAML format.
+                </p>
+              </div>
+              
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-blue-600 text-white text-2xl font-bold mb-4">3</div>
+                <h3 className="text-xl font-semibold mb-2">Generate & Share</h3>
+                <p className="text-gray-600">
+                  Export your CV as a styled PDF ready to send to employers.
+                </p>
+              </div>
+            </div>
+            
+            <div className="mt-12 text-center">
               <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRefreshPreview}
-                disabled={isGenerating}
-                className="flex items-center text-xs gap-1"
+                size="lg"
+                onClick={createNewSession}
+                className="flex items-center space-x-2 mx-auto bg-blue-600 hover:bg-blue-700"
+                disabled={isCreatingSession}
               >
-                <RefreshCw className="h-3 w-3" />
-                Refresh
+                {isCreatingSession ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Plus className="h-5 w-5" />
+                )}
+                <span>{isCreatingSession ? 'Creating...' : 'Start Building Your CV'}</span>
               </Button>
             </div>
-            <div className="flex-1 relative overflow-auto">
-              {renderHtml ? (
-                <iframe 
-                  ref={previewFrameRef}
-                  className="absolute inset-0 w-full h-full border-0"
-                  title="CV Preview"
-                  style={{ height: '100%', width: '100%' }}
-                />
-              ) : (
-                <div className="flex justify-center items-center h-full">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              )}
+          </div>
+        </section>
+      </main>
+
+      <footer className="bg-gray-900 text-white py-8">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="flex items-center space-x-2 mb-4 md:mb-0">
+              <FileJson className="h-6 w-6" />
+              <h2 className="text-xl font-bold">CV Wonder</h2>
+            </div>
+            <div className="flex space-x-6">
+              <Link href="https://github.com/germainlefebvre4/cvwonder" target="_blank" className="text-gray-300 hover:text-white transition">
+                <Github className="h-5 w-5 inline mr-1" />
+                <span>GitHub</span>
+              </Link>
+              <Link href="https://cvwonder.readthedocs.io/" target="_blank" className="text-gray-300 hover:text-white transition">
+                <FileText className="h-5 w-5 inline mr-1" />
+                <span>Documentation</span>
+              </Link>
             </div>
           </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+          <div className="mt-4 text-center text-gray-400 text-sm">
+            &copy; {new Date().getFullYear()} CV Wonder. All rights reserved.
+          </div>
+        </div>
+      </footer>
       <Toaster />
     </div>
   );
