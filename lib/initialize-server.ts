@@ -24,7 +24,7 @@ const CVWONDER_DOWNLOAD_URL = `${CVWONDER_BASE_URL}/${CVWONDER_VERSION}/download
 
 const BINARY_PATH = join(getWritableBaseDir(), 'bin');
 const CVWONDER_BINARY_PATH = join(BINARY_PATH, 'cvwonder');
-const THEMES_DIR = join(process.cwd(), 'themes');
+const THEMES_DIR = join(getWritableBaseDir(), 'themes');
 
 // Official theme repository URLs
 const DEFAULT_THEME_REPO = 'https://github.com/germainlefebvre4/cvwonder-theme-default';
@@ -237,7 +237,7 @@ export async function installCVWonderTheme(themeName: string) {
 // Function to get the full path to the cvwonder binary
 export function getCVWonderBinaryPath() {
   // Make sure the path is properly formed for the OS
-  const binaryPath = join(process.cwd(), 'bin', 'cvwonder');
+  const binaryPath = join(getWritableBaseDir(), 'bin', 'cvwonder');
   
   // Log the binary path for debugging purposes
   console.log('CVWonder binary path:', binaryPath);

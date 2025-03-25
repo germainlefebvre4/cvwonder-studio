@@ -12,6 +12,17 @@ const MIME_TYPES: Record<string, string> = {
   '.svg': 'image/svg+xml',
 };
 
+// Get writable base directory depending on environment
+const getWritableBaseDir = () => {
+  // Check if we're running on AWS Lambda
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
+    console.log('Using /tmp directory for binary storage (Lambda/production environment)');
+    return '/tmp';
+  }
+  console.log('Using local directory for binary storage (development environment)');
+  return process.cwd();
+};
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string; path: string[] } }
@@ -25,12 +36,12 @@ export async function GET(
     // List of possible locations to look for the image
     const possiblePaths = [
       // 1. Session-specific images
-      join(process.cwd(), 'sessions', id, 'images', imagePath),
+      join(getWritableBaseDir(), 'sessions', id, 'images', imagePath),
       // 2. Theme-specific images
-      join(process.cwd(), 'themes/default/images', imagePath),
-      join(process.cwd(), 'themes/basic/images', imagePath),
+      join(getWritableBaseDir(), 'themes/default/images', imagePath),
+      join(getWritableBaseDir(), 'themes/basic/images', imagePath),
       // 3. Original session images directory
-      join(process.cwd(), 'sessions', id, imagePath),
+      join(getWritableBaseDir(), 'sessions', id, imagePath),
     ];
     
     // Try each possible path until we find the image

@@ -13,6 +13,17 @@ const MIME_TYPES: Record<string, string> = {
   '.yml': 'text/yaml',
 };
 
+// Get writable base directory depending on environment
+const getWritableBaseDir = () => {
+  // Check if we're running on AWS Lambda
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
+    console.log('Using /tmp directory for binary storage (Lambda/production environment)');
+    return '/tmp';
+  }
+  console.log('Using local directory for binary storage (development environment)');
+  return process.cwd();
+};
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string; path: string[] } }
@@ -26,16 +37,16 @@ export async function GET(
     // List of possible locations to look for the file
     const possiblePaths = [
       // 1. Session-specific files
-      join(process.cwd(), 'sessions', id, 'static', filePath),
-      join(process.cwd(), 'sessions', id, filePath),
+      join(getWritableBaseDir(), 'sessions', id, 'static', filePath),
+      join(getWritableBaseDir(), 'sessions', id, filePath),
       // 2. Theme-specific files from default theme
-      join(process.cwd(), 'themes/default', filePath),
-      join(process.cwd(), 'themes/default/css', filePath),
-      join(process.cwd(), 'themes/default/js', filePath),
+      join(getWritableBaseDir(), 'themes/default', filePath),
+      join(getWritableBaseDir(), 'themes/default/css', filePath),
+      join(getWritableBaseDir(), 'themes/default/js', filePath),
       // 3. Theme-specific files from basic theme
-      join(process.cwd(), 'themes/basic', filePath),
-      join(process.cwd(), 'themes/basic/css', filePath),
-      join(process.cwd(), 'themes/basic/js', filePath),
+      join(getWritableBaseDir(), 'themes/basic', filePath),
+      join(getWritableBaseDir(), 'themes/basic/css', filePath),
+      join(getWritableBaseDir(), 'themes/basic/js', filePath),
     ];
     
     // Try each possible path until we find the file

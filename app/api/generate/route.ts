@@ -8,6 +8,17 @@ import { downloadCVWonderBinary, getCVWonderBinaryPath, installCVWonderTheme } f
 
 const execAsync = promisify(exec);
 
+// Get writable base directory depending on environment
+const getWritableBaseDir = () => {
+  // Check if we're running on AWS Lambda
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
+    console.log('Using /tmp directory for binary storage (Lambda/production environment)');
+    return '/tmp';
+  }
+  console.log('Using local directory for binary storage (development environment)');
+  return process.cwd();
+};
+
 // Download cvwonder binary when server initializes - wrapped in a try/catch
 try {
   downloadCVWonderBinary();
@@ -16,7 +27,7 @@ try {
 }
 
 async function ensureSessionFiles(sessionId: string, themeDir: string) {
-  const sessionDir = join(process.cwd(), 'sessions', sessionId);
+  const sessionDir = join(getWritableBaseDir(), 'sessions', sessionId);
 
   try {
     // Create session directories if they don't exist
@@ -106,7 +117,7 @@ export async function POST(req: NextRequest) {
     }
     
     // Create temp directory if it doesn't exist
-    const tempDir = join(process.cwd(), 'tmp');
+    const tempDir = join(getWritableBaseDir(), 'tmp');
     if (!existsSync(tempDir)) {
       await mkdir(tempDir, { recursive: true });
     }
@@ -140,7 +151,7 @@ export async function POST(req: NextRequest) {
     // Make sure the selected theme is installed and files are copied to session
     try {
       await installCVWonderTheme(theme);
-      const themeDir = join(process.cwd(), 'themes', theme);
+      const themeDir = join(getWritableBaseDir(), 'themes', theme);
       await ensureSessionFiles(sessionId, themeDir);
     } catch (themeError) {
       console.error(`Error setting up theme ${theme}:`, themeError);
