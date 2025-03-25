@@ -19,6 +19,19 @@ export async function POST(req: NextRequest) {
   try {
     const { cv, theme, format = 'html' } = await req.json();
     
+    // Input validation
+    if (!cv || typeof cv !== 'string' || cv.trim() === '') {
+      return NextResponse.json({ error: 'CV content is required and must be a non-empty string' }, { status: 400 });
+    }
+    
+    if (!theme || typeof theme !== 'string') {
+      return NextResponse.json({ error: 'Theme is required and must be a string' }, { status: 400 });
+    }
+    
+    if (format !== 'html' && format !== 'pdf') {
+      return NextResponse.json({ error: 'Format must be either "html" or "pdf"' }, { status: 400 });
+    }
+    
     // Create temp directory if it doesn't exist
     const tempDir = join(process.cwd(), 'tmp');
     if (!existsSync(tempDir)) {
@@ -34,7 +47,23 @@ export async function POST(req: NextRequest) {
     // Make sure the cvwonder binary exists
     const cvwonderPath = getCVWonderBinaryPath();
     if (!existsSync(cvwonderPath)) {
-      throw new Error('CVWonder binary not found. Please ensure it is properly installed.');
+      // If binary doesn't exist, try to download it
+      try {
+        await downloadCVWonderBinary();
+      } catch (downloadError) {
+        console.error('Failed to download CVWonder binary:', downloadError);
+        return NextResponse.json({ 
+          error: 'CVWonder binary not found and could not be downloaded.', 
+          message: downloadError instanceof Error ? downloadError.message : 'Unknown error' 
+        }, { status: 500 });
+      }
+      
+      // Verify again after download attempt
+      if (!existsSync(cvwonderPath)) {
+        return NextResponse.json({ 
+          error: 'CVWonder binary not found after download attempt.' 
+        }, { status: 500 });
+      }
     }
 
     // Make sure the selected theme is installed before generation
@@ -58,21 +87,32 @@ export async function POST(req: NextRequest) {
       console.log(`CV file written successfully to ${cvPath}`);
     } catch (writeError) {
       console.error('Error writing CV file:', writeError);
-      throw new Error(`Failed to write CV file: ${writeError instanceof Error ? writeError.message : 'Unknown error'}`);
+      return NextResponse.json({ 
+        error: 'Failed to write CV file', 
+        message: writeError instanceof Error ? writeError.message : 'Unknown error' 
+      }, { status: 500 });
     }
 
     // Generate CV using cvwonder with proper directory for output
-    // The cvwonder tool expects:
-    // 1. The theme to be a directory name in themes/
-    // 2. The output to be a directory where it will create index.html or cv.pdf
     const command = `${cvwonderPath} generate --input=${cvPath} --theme=${theme} --format=${format} --output=${outputDir}`;
     
     console.log('Executing command:', command);
-    const { stdout, stderr } = await execAsync(command);
     
-    console.log('Command stdout:', stdout);
-    if (stderr) {
-      console.warn('CVWonder command stderr:', stderr);
+    try {
+      const { stdout, stderr } = await execAsync(command);
+      
+      console.log('Command stdout:', stdout);
+      if (stderr) {
+        console.warn('CVWonder command stderr:', stderr);
+      }
+    } catch (execError) {
+      console.error('Error executing CVWonder command:', execError);
+      return NextResponse.json({ 
+        error: 'Failed to generate CV', 
+        message: execError instanceof Error ? 
+          (execError.message + (execError as any).stderr ? `: ${(execError as any).stderr}` : '') : 
+          'Unknown error during generation'
+      }, { status: 500 });
     }
 
     // The output file will be named based on the format
@@ -82,26 +122,27 @@ export async function POST(req: NextRequest) {
     
     // Check if the output file was actually created
     if (!existsSync(outputPath)) {
-      // List files in the output directory for debugging
-      const outputDirFiles = await readFile(outputDir, { withFileTypes: true });
-      console.log('Files in output directory:', outputDirFiles.map(f => f.name).join(', '));
-      throw new Error(`CVWonder failed to generate the output file at ${outputPath}`);
+      return NextResponse.json({ 
+        error: 'CVWonder failed to generate the output file', 
+        path: outputPath
+      }, { status: 500 });
     }
 
     // Read the generated file
-    const fileContent = await readFile(outputPath);
+    let fileContent;
+    try {
+      fileContent = await readFile(outputPath);
+    } catch (readError) {
+      console.error('Error reading generated file:', readError);
+      return NextResponse.json({ 
+        error: 'Failed to read generated file', 
+        message: readError instanceof Error ? readError.message : 'Unknown error' 
+      }, { status: 500 });
+    }
+    
     const content = new Blob([fileContent], { 
       type: format === 'pdf' ? 'application/pdf' : 'text/html' 
     });
-
-    // Clean up temp files (but keep the directories)
-    try {
-      // Don't remove the files for debugging purposes
-      // await rm(cvPath, { force: true });
-      // await rm(outputPath, { force: true });
-    } catch (cleanupError) {
-      console.warn('Error cleaning up temp files:', cleanupError);
-    }
 
     // Return the generated content with appropriate headers
     return new NextResponse(content, {

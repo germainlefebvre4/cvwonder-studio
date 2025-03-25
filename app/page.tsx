@@ -9,75 +9,11 @@ import { FileJson, Download, FileDown, Loader2, AlertCircle, RefreshCw } from 'l
 import dynamic from 'next/dynamic';
 import yaml from 'js-yaml';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import defaultCV from '@/lib/defaultCV';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
 });
-
-const defaultCV = `# CV Wonder YAML Format
-basics:
-  name: "John Smith"
-  title: "Senior Software Engineer"
-  email: "john.smith@email.com"
-  phone: "+1 234 567 890"
-  summary: "Experienced software engineer with a strong background in cloud technologies and distributed systems."
-  location:
-    address: "123 Tech Street"
-    postalCode: "12345"
-    city: "San Francisco"
-    countryCode: "US"
-    region: "California"
-  profiles:
-    - network: "LinkedIn"
-      url: "https://linkedin.com/in/johnsmith"
-    - network: "GitHub"
-      url: "https://github.com/johnsmith"
-
-work:
-  - company: "Tech Corp"
-    position: "Senior Software Engineer"
-    startDate: "2020-01"
-    endDate: "Present"
-    summary: "Lead developer for cloud-native applications"
-    highlights:
-      - "Architected and implemented microservices architecture"
-      - "Reduced system latency by 40%"
-      - "Mentored junior developers"
-
-education:
-  - institution: "University of Technology"
-    area: "Computer Science"
-    studyType: "Bachelor"
-    startDate: "2012-09"
-    endDate: "2016-06"
-    gpa: "3.8"
-
-skills:
-  - name: "Programming Languages"
-    level: "Advanced"
-    keywords:
-      - "Python"
-      - "JavaScript"
-      - "Go"
-  - name: "Cloud Technologies"
-    level: "Expert"
-    keywords:
-      - "AWS"
-      - "Docker"
-      - "Kubernetes"
-
-languages:
-  - language: "English"
-    fluency: "Native"
-  - language: "Spanish"
-    fluency: "Professional"
-
-interests:
-  - name: "Open Source"
-    keywords:
-      - "Contributing to community projects"
-      - "Building developer tools"
-`;
 
 const themes = [
   { id: 'default', name: 'Default Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-default' },
@@ -106,6 +42,11 @@ export default function Home() {
     try {
       setIsGenerating(true);
       setApiError(null);
+      
+      // Check if yamlContent is valid before sending
+      if (!yamlContent || yamlContent.trim() === '') {
+        throw new Error("Cannot generate preview with empty YAML content");
+      }
       
       const response = await fetch('/api/generate', {
         method: 'POST',
@@ -138,6 +79,17 @@ export default function Home() {
 
   // Manual refresh function for the preview
   const handleRefreshPreview = () => {
+    // Check YAML validity before refreshing
+    const isValid = validateYaml(currentYamlRef.current);
+    if (!isValid) {
+      setApiError("Cannot refresh with invalid YAML");
+      return;
+    }
+    
+    // Clear any previous errors
+    setApiError(null);
+    
+    // Generate preview with current YAML and selected theme
     generatePreview(currentYamlRef.current, selectedTheme);
   };
 
@@ -167,9 +119,13 @@ export default function Home() {
 
   const validateYaml = (value: string): boolean => {
     try {
+      if (!value || value.trim() === '') {
+        return false;
+      }
       yaml.load(value);
       return true;
     } catch (e) {
+      console.error('YAML validation error:', e);
       return false;
     }
   };
@@ -350,22 +306,31 @@ export default function Home() {
                   Rendering...
                 </div>
               )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefreshPreview}
+                disabled={isGenerating}
+                className="flex items-center text-xs gap-1"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Refresh
+              </Button>
             </div>
-            <ScrollArea className="flex-1">
-              <div className="p-4 h-full">
-                {renderHtml ? (
-                  <iframe 
-                    ref={previewFrameRef}
-                    className="w-full h-full min-h-[800px] border-0"
-                    title="CV Preview"
-                  />
-                ) : (
-                  <div className="flex justify-center items-center h-full">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
+            <div className="flex-1 relative overflow-auto">
+              {renderHtml ? (
+                <iframe 
+                  ref={previewFrameRef}
+                  className="absolute inset-0 w-full h-full border-0"
+                  title="CV Preview"
+                  style={{ height: '100%', width: '100%' }}
+                />
+              ) : (
+                <div className="flex justify-center items-center h-full">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </div>
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
