@@ -109,12 +109,27 @@ export default function Home() {
 
   // Generate preview when component mounts
   useEffect(() => {
-    generatePreview(cv, selectedTheme);
+    // Validate initial YAML before generating
+    const isValid = validateYaml(cv);
+    if (isValid) {
+      generatePreview(cv, selectedTheme);
+    } else {
+      setYamlValid(false);
+      setError('Invalid YAML format');
+      setApiError("Cannot generate preview with invalid YAML");
+    }
   }, []);
 
   // When theme changes, regenerate the preview
   useEffect(() => {
-    generatePreview(currentYamlRef.current, selectedTheme);
+    // Validate YAML before regenerating preview on theme change
+    const isValid = validateYaml(currentYamlRef.current);
+    if (isValid) {
+      generatePreview(currentYamlRef.current, selectedTheme);
+    } else {
+      // If not valid, set an appropriate error without attempting generation
+      setApiError("Cannot generate preview with invalid YAML");
+    }
   }, [selectedTheme]);
 
   const validateYaml = (value: string): boolean => {

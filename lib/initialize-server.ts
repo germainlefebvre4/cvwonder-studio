@@ -222,5 +222,11 @@ export async function installCVWonderTheme(themeName: string) {
 
 // Function to get the full path to the cvwonder binary
 export function getCVWonderBinaryPath() {
-  return CVWONDER_BINARY_PATH;
+  // Make sure the path is properly formed for the OS
+  const binaryPath = join(process.cwd(), 'bin', 'cvwonder');
+  
+  // Log the binary path for debugging purposes
+  console.log('CVWonder binary path:', binaryPath);
+  
+  return binaryPath;
 }

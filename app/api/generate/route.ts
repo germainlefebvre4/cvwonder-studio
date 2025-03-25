@@ -94,24 +94,51 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate CV using cvwonder with proper directory for output
-    const command = `${cvwonderPath} generate --input=${cvPath} --theme=${theme} --format=${format} --output=${outputDir}`;
+    // Use proper argument format and ensure paths are quoted to handle potential spaces
+    const command = `"${cvwonderPath}" generate --input "${cvPath}" --theme "${theme}" --format "${format}" --output "${outputDir}"`;
     
-    console.log('Executing command:', command);
+    console.info('Executing command:', command);
     
     try {
       const { stdout, stderr } = await execAsync(command);
       
-      console.log('Command stdout:', stdout);
+      console.info('Command stdout:', stdout);
       if (stderr) {
         console.warn('CVWonder command stderr:', stderr);
+        
+        // Check for specific error messages that might indicate command line issues
+        if (stderr.includes('invalid argument')) {
+          console.error('Invalid argument detected in command. Command was:', command);
+          // Try an alternate command format as fallback
+          const fallbackCommand = `${cvwonderPath} generate -i "${cvPath}" -t "${theme}" -f "${format}" -o "${outputDir}"`;
+          console.log('Trying fallback command:', fallbackCommand);
+          
+          try {
+            const fallbackResult = await execAsync(fallbackCommand);
+            console.log('Fallback command stdout:', fallbackResult.stdout);
+            if (fallbackResult.stderr) {
+              console.warn('Fallback command stderr:', fallbackResult.stderr);
+            }
+          } catch (fallbackError) {
+            console.error('Fallback command also failed:', fallbackError);
+            throw fallbackError;
+          }
+        }
       }
     } catch (execError) {
       console.error('Error executing CVWonder command:', execError);
+      
+      // Log more detailed error information for debugging
+      if ((execError as any).stderr) {
+        console.error('Command stderr:', (execError as any).stderr);
+      }
+      
       return NextResponse.json({ 
         error: 'Failed to generate CV', 
         message: execError instanceof Error ? 
-          (execError.message + (execError as any).stderr ? `: ${(execError as any).stderr}` : '') : 
-          'Unknown error during generation'
+          (execError.message + ((execError as any).stderr ? `: ${(execError as any).stderr}` : '')) : 
+          'Unknown error during generation',
+        command: command // Include the command in the error response for debugging
       }, { status: 500 });
     }
 
