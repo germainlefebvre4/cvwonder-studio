@@ -4,6 +4,7 @@ import { existsSync } from 'fs';
 import crypto from 'crypto';
 import { Session, CreateSessionRequest, UpdateSessionRequest } from './types';
 import defaultCV from './defaultCV';
+import { installCVWonderTheme } from './initialize-server';
 
 // Directory to store all sessions
 const SESSIONS_DIR = join(process.cwd(), 'sessions');
@@ -14,8 +15,7 @@ const MAX_RETENTION_DAYS = 7;
 // Validate theme existence
 const validateTheme = async (theme: string = 'default'): Promise<boolean> => {
   const themePath = join(THEMES_DIR, theme);
-  const themeYamlPath = join(themePath, 'theme.yaml');
-  return existsSync(themePath) && existsSync(themeYamlPath);
+  return existsSync(themePath) && existsSync(join(themePath, 'index.html'));
 };
 
 // Ensure sessions directory exists
@@ -73,11 +73,18 @@ export const createSession = async (params: CreateSessionRequest = {}): Promise<
     // Ensure sessions directory exists and is writable
     await ensureSessionsDir();
     
-    // Validate theme
+    // Validate theme and install if necessary
     const theme = params.theme || 'default';
+    try {
+      await installCVWonderTheme(theme);
+    } catch (themeError) {
+      console.error(`Failed to install theme ${theme}:`, themeError);
+      throw new Error(`Failed to setup theme: ${theme}`);
+    }
+    
     const isThemeValid = await validateTheme(theme);
     if (!isThemeValid) {
-      throw new Error(`Invalid theme: ${theme}`);
+      throw new Error(`Theme validation failed: ${theme}`);
     }
     
     const sessionId = generateSessionId();
