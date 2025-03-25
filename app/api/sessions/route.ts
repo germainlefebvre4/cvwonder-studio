@@ -5,18 +5,35 @@ import { join } from 'path';
 import { cp, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 
-async function copyDefaultImages(sessionId: string) {
-  const defaultImagesPath = join(process.cwd(), 'themes/default/images');
-  const sessionImagesPath = join(process.cwd(), 'sessions', sessionId, 'images');
+async function copyThemeAssets(sessionId: string, theme: string = 'default') {
+  const themeDir = join(process.cwd(), 'themes', theme);
+  const sessionDir = join(process.cwd(), 'sessions', sessionId);
 
-  // Create session images directory
-  if (!existsSync(sessionImagesPath)) {
-    await mkdir(sessionImagesPath, { recursive: true });
+  // List of directories to copy
+  const assetDirs = ['images', 'css', 'js'];
+
+  for (const dir of assetDirs) {
+    const sourceDir = join(themeDir, dir);
+    const targetDir = join(sessionDir, dir);
+
+    if (existsSync(sourceDir)) {
+      // Create target directory
+      if (!existsSync(targetDir)) {
+        await mkdir(targetDir, { recursive: true });
+      }
+
+      // Copy directory contents
+      await cp(sourceDir, targetDir, { recursive: true });
+    }
   }
 
-  // Copy default theme images if they exist
-  if (existsSync(defaultImagesPath)) {
-    await cp(defaultImagesPath, sessionImagesPath, { recursive: true });
+  // Copy any root-level static files (like theme.yaml)
+  const staticFiles = ['theme.yaml', 'styles.css'];
+  for (const file of staticFiles) {
+    const sourcePath = join(themeDir, file);
+    if (existsSync(sourcePath)) {
+      await cp(sourcePath, join(sessionDir, file));
+    }
   }
 }
 
@@ -29,8 +46,8 @@ export async function POST(req: NextRequest) {
       theme: body.theme,
     });
 
-    // Copy default images to the session directory
-    await copyDefaultImages(session.id);
+    // Copy all theme assets to the session directory
+    await copyThemeAssets(session.id, body.theme);
     
     return NextResponse.json(session, { status: 201 });
   } catch (error) {

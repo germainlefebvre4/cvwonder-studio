@@ -15,27 +15,61 @@ try {
   console.error('Error during cvwonder binary initialization:', error);
 }
 
-async function ensureSessionImages(sessionId: string, themeDir: string) {
-  const sessionImagesDir = join(process.cwd(), 'sessions', sessionId, 'images');
-  const themeImagesDir = join(themeDir, 'images');
+async function ensureSessionFiles(sessionId: string, themeDir: string) {
+  const sessionDir = join(process.cwd(), 'sessions', sessionId);
 
   try {
-    // Create session images directory if it doesn't exist
-    if (!existsSync(sessionImagesDir)) {
-      await mkdir(sessionImagesDir, { recursive: true });
+    // Create session directories if they don't exist
+    const dirsToCreate = ['images', 'static', 'css', 'js'].map(dir => join(sessionDir, dir));
+    for (const dir of dirsToCreate) {
+      if (!existsSync(dir)) {
+        await mkdir(dir, { recursive: true });
+      }
     }
 
-    // Copy theme images to session directory if theme images exist
-    if (existsSync(themeImagesDir)) {
-      await cp(themeImagesDir, sessionImagesDir, { recursive: true });
+    // Copy theme files to session directory
+    const filesToCopy = [
+      { src: join(themeDir, 'styles.css'), dest: join(sessionDir, 'static', 'styles.css') },
+      { src: join(themeDir, 'theme.yaml'), dest: join(sessionDir, 'static', 'theme.yaml') }
+    ];
+
+    // Copy theme directories
+    const dirsToCopy = ['images', 'css', 'js'];
+    
+    // Copy individual files
+    for (const file of filesToCopy) {
+      if (existsSync(file.src)) {
+        await cp(file.src, file.dest);
+      }
+    }
+
+    // Copy directories
+    for (const dir of dirsToCopy) {
+      const srcDir = join(themeDir, dir);
+      const destDir = join(sessionDir, dir);
+      if (existsSync(srcDir)) {
+        await cp(srcDir, destDir, { recursive: true });
+      }
     }
   } catch (error) {
-    console.error('Error setting up session images:', error);
+    console.error('Error setting up session files:', error);
   }
 }
 
-function updateImagePaths(html: string, sessionId: string): string {
-  // Remove any existing /api/sessions or /session prefixes from image paths
+function updatePaths(html: string, sessionId: string): string {
+  // Update CSS file paths
+  html = html.replace(
+    /href=["'](?:\/styles\.css|styles\.css)["']/g,
+    `href="/api/sessions/${sessionId}/static/styles.css"`
+  );
+
+  // Update other static file paths (CSS, JS)
+  html = html.replace(
+    /(href|src)=["']((?:css|js)\/[^"']+)["']/g,
+    `$1="/api/sessions/${sessionId}/static/$2"`
+  );
+  
+  // Update image paths
   html = html.replace(
     /src=["'](?:\/api\/sessions\/[^\/]+\/images\/|\/session\/[^\/]+\/images\/|\/images\/|)(.*?\.(?:png|jpe?g|gif|webp|svg))["']/g,
     `src="/api/sessions/${sessionId}/images/$1"`
@@ -103,16 +137,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Make sure the selected theme is installed
+    // Make sure the selected theme is installed and files are copied to session
     try {
       await installCVWonderTheme(theme);
+      const themeDir = join(process.cwd(), 'themes', theme);
+      await ensureSessionFiles(sessionId, themeDir);
     } catch (themeError) {
-      console.error(`Error installing theme ${theme}:`, themeError);
+      console.error(`Error setting up theme ${theme}:`, themeError);
     }
-
-    // Set up session images directory and copy theme images
-    const themeDir = join(process.cwd(), 'themes', theme);
-    await ensureSessionImages(sessionId, themeDir);
 
     // Write CV YAML to temp file
     const cvPath = join(tempDir, 'cv.yml');
@@ -182,9 +214,9 @@ export async function POST(req: NextRequest) {
     try {
       fileContent = await readFile(outputPath, format === 'pdf' ? null : 'utf-8');
       
-      // If it's HTML, update image paths to use our API endpoint
+      // If it's HTML, update paths to use our API endpoints
       if (format === 'html' && typeof fileContent === 'string') {
-        fileContent = updateImagePaths(fileContent, sessionId);
+        fileContent = updatePaths(fileContent, sessionId);
       }
     } catch (readError) {
       console.error('Error reading generated file:', readError);
