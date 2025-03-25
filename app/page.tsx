@@ -1,15 +1,17 @@
 'use client';
-
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileJson, Download, FileDown, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { FileJson, Download, FileDown, Loader2, AlertCircle, RefreshCw, Plus } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import yaml from 'js-yaml';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import defaultCV from '@/lib/defaultCV';
+import { defaultCV } from '@/lib/defaultCV';
+import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/hooks/use-toast";
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -21,16 +23,72 @@ const themes = [
 ];
 
 export default function Home() {
+  const router = useRouter();
+  const { toast } = useToast();
   const [cv, setCV] = useState(defaultCV);
   const [error, setError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [selectedTheme, setSelectedTheme] = useState('default');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [renderHtml, setRenderHtml] = useState<string | null>(null);
   const [yamlValid, setYamlValid] = useState(true);
   const previewFrameRef = useRef<HTMLIFrameElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const currentYamlRef = useRef(defaultCV);
+
+  // Function to create a new session
+  const createNewSession = async () => {
+    // Check YAML validity before creating a session
+    const isValid = validateYaml(currentYamlRef.current);
+    if (!isValid) {
+      toast({
+        title: "Invalid YAML",
+        description: "Cannot create a session with invalid YAML content.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      setIsCreatingSession(true);
+      
+      // Call the API to create a new session
+      const response = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          initialContent: currentYamlRef.current,
+          theme: selectedTheme,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create session');
+      }
+      
+      const session = await response.json();
+      
+      // Navigate to the new session page
+      router.push(`/session/${session.id}`);
+      
+      toast({
+        title: "Session Created",
+        description: "Your CV editing session has been created.",
+      });
+    } catch (err) {
+      console.error('Error creating session:', err);
+      toast({
+        title: "Session Creation Failed",
+        description: "Failed to create a new session. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingSession(false);
+    }
+  };
 
   // Generate the CV preview using the API
   const generatePreview = async (yamlContent: string, theme: string) => {
@@ -59,13 +117,11 @@ export default function Home() {
           format: 'html',
         }),
       });
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         const errorMsg = errorData?.message || 'Failed to generate preview';
         throw new Error(errorMsg);
       }
-
       const htmlContent = await response.text();
       setRenderHtml(htmlContent);
     } catch (err) {
@@ -197,11 +253,9 @@ export default function Home() {
             format: 'pdf',
           }),
         });
-
         if (!response.ok) {
           throw new Error('Failed to generate PDF');
         }
-
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -229,6 +283,20 @@ export default function Home() {
             <h1 className="text-xl font-bold">CV Wonder Online</h1>
           </div>
           <div className="flex items-center space-x-4">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={createNewSession}
+              className="flex items-center space-x-1"
+              disabled={isCreatingSession || !yamlValid}
+            >
+              {isCreatingSession ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+              <span>{isCreatingSession ? 'Creating...' : 'Create Session'}</span>
+            </Button>
             <Select value={selectedTheme} onValueChange={setSelectedTheme}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Select theme" />
@@ -270,14 +338,12 @@ export default function Home() {
           </div>
         </div>
       </header>
-
       {apiError && (
         <Alert variant="destructive" className="m-2">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{apiError}</AlertDescription>
         </Alert>
       )}
-
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         <ResizablePanel defaultSize={50}>
           <div className="h-full flex flex-col">
@@ -349,6 +415,7 @@ export default function Home() {
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
+      <Toaster />
     </div>
   );
 }
