@@ -31,6 +31,16 @@ export async function PATCH(req: NextRequest, { params }: SessionParams) {
     const { id } = params;
     const body: UpdateSessionRequest = await req.json();
     
+    // Validate retention days if provided
+    if (body.retentionDays !== undefined) {
+      if (typeof body.retentionDays !== 'number' || body.retentionDays < 1 || body.retentionDays > 7) {
+        return NextResponse.json({ 
+          error: 'Invalid retention period', 
+          message: 'Retention period must be between 1 and 7 days' 
+        }, { status: 400 });
+      }
+    }
+    
     const session = await updateSession(id, body);
     
     if (!session) {

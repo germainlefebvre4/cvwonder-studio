@@ -152,21 +152,32 @@ export default function Home() {
                 </div>
                 <div className="code-content">
                   <pre className="whitespace-pre-wrap">
-{`name: John Doe
-title: Senior Software Engineer
-experience:
-  - company: Tech Innovators
-    position: Lead Developer
-    period: 2020 - Present
-    highlights:
-      - Architected scalable solutions
-      - Led team of 10 engineers
-      
-skills:
-  - JavaScript
-  - Python
-  - Cloud Architecture
-  - Team Leadership`}
+{`person:
+  name: Germain
+  profession: Bâtisseur de Plateformes et de Nuages
+  citizenship: FR
+  location: Lille
+  site: http://germainlefebvre.fr
+
+career:
+  - companyName: Zatsit
+    companyLogo: images/zatsit-logo.webp
+    duration: 10 mois
+    missions:
+      - position: Platform Engineer
+        company: Adeo
+        location: Ronchin, France
+        dates: 2024, mars - 2024, décembre
+        summary: Construire une IDP managée.
+
+technicalSkills:
+  domains:
+    - name: Cloud
+      competencies:
+        - name: AWS
+          level: 80
+        - name: GCP
+          level: 70`}
                   </pre>
                 </div>
               </div>

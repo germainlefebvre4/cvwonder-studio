@@ -21,6 +21,7 @@ import { AlertCircle, FileDown, RefreshCw, Share2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
+import { ShareDialog } from '@/components/ui/share-dialog';
 
 const themes = [
   { id: 'default', name: 'Default Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-default' },
@@ -43,6 +44,7 @@ export default function SessionPage() {
   const previewFrameRef = useRef<HTMLIFrameElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const currentYamlRef = useRef(defaultCV);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
   // Load session data when component mounts
   useEffect(() => {
@@ -256,23 +258,42 @@ export default function SessionPage() {
     }
   };
 
-  // Function to share the session URL
-  const handleShareSession = () => {
+  // Function to share the session URL with retention period
+  const handleShare = async (retentionDays: number) => {
     if (!id) return;
     
-    const url = `${window.location.origin}/session/${id}`;
-    navigator.clipboard.writeText(url).then(() => {
-      toast({
-        title: "URL Copied",
-        description: "The session URL has been copied to your clipboard.",
+    try {
+      // Update the session with new retention period
+      await fetch(`/api/sessions/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          retentionDays
+        }),
       });
-    }).catch(() => {
+      
       toast({
-        title: "Copy Failed",
-        description: "Failed to copy URL. Please try again.",
+        title: "Session Updated",
+        description: `Session will be available for ${retentionDays} days.`,
+      });
+
+      // Close the dialog
+      setIsShareDialogOpen(false);
+    } catch (err) {
+      console.error('Error updating session:', err);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update session retention. Please try again.",
         variant: "destructive",
       });
-    });
+    }
+  };
+
+  // Open share dialog
+  const openShareDialog = () => {
+    setIsShareDialogOpen(true);
   };
 
   // Function to download the CV as PDF
@@ -368,7 +389,7 @@ export default function SessionPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={handleShareSession}>
+            <Button variant="outline" onClick={openShareDialog}>
               <Share2 className="mr-2 h-4 w-4" />
               Share
             </Button>
@@ -446,6 +467,12 @@ export default function SessionPage() {
           </div>
         </div>
       </div>
+      <ShareDialog
+        isOpen={isShareDialogOpen}
+        onClose={() => setIsShareDialogOpen(false)}
+        onShare={handleShare}
+        sessionUrl={`${window.location.origin}/session/${id}`}
+      />
       <Toaster />
     </div>
   );

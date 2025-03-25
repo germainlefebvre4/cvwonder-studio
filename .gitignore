@@ -38,4 +38,4 @@ next-env.d.ts
 /bin/cvwonder
 /themes/
 /tmp/
-/sessions/
+/sessions/*/

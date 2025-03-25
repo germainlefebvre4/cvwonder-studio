@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { mkdir, writeFile, readFile, readdir, stat, unlink } from 'fs/promises';
+import { mkdir, writeFile, readFile, readdir, stat, unlink, rm } from 'fs/promises';
 import { existsSync } from 'fs';
 import crypto from 'crypto';
 import { Session, CreateSessionRequest, UpdateSessionRequest } from './types';
@@ -8,6 +8,8 @@ import defaultCV from './defaultCV';
 // Directory to store all sessions
 const SESSIONS_DIR = join(process.cwd(), 'sessions');
 const THEMES_DIR = join(process.cwd(), 'themes');
+const DEFAULT_RETENTION_DAYS = 7;
+const MAX_RETENTION_DAYS = 7;
 
 // Validate theme existence
 const validateTheme = async (theme: string = 'default'): Promise<boolean> => {
@@ -35,6 +37,14 @@ export const ensureSessionsDir = async (): Promise<void> => {
     console.error('Sessions directory setup failed:', error);
     throw new Error('Failed to setup sessions directory: ' + (error instanceof Error ? error.message : 'Unknown error'));
   }
+};
+
+// Calculate expiration date based on retention days
+const calculateExpirationDate = (retentionDays: number = DEFAULT_RETENTION_DAYS): Date => {
+  const maxDays = Math.min(retentionDays, MAX_RETENTION_DAYS);
+  const date = new Date();
+  date.setDate(date.getDate() + maxDays);
+  return date;
 };
 
 // Generate a random session ID
@@ -81,6 +91,7 @@ export const createSession = async (params: CreateSessionRequest = {}): Promise<
       id: sessionId,
       createdAt: now,
       updatedAt: now,
+      expiresAt: calculateExpirationDate(params.retentionDays),
       cvContent: params.initialContent || defaultCV,
       selectedTheme: theme,
     };
@@ -111,6 +122,11 @@ export const createSession = async (params: CreateSessionRequest = {}): Promise<
       throw new Error('CV content verification failed');
     }
     
+    // Schedule cleanup for this session
+    setTimeout(async () => {
+      await deleteExpiredSession(sessionId);
+    }, session.expiresAt.getTime() - now.getTime());
+    
     return session;
   } catch (error) {
     console.error('Failed to create session:', error);
@@ -118,7 +134,7 @@ export const createSession = async (params: CreateSessionRequest = {}): Promise<
   }
 };
 
-// Get a session by ID
+// Get a session by ID with expiration check
 export const getSession = async (sessionId: string): Promise<Session | null> => {
   const metadataPath = getSessionMetadataPath(sessionId);
   
@@ -130,15 +146,51 @@ export const getSession = async (sessionId: string): Promise<Session | null> => 
     const metadataJson = await readFile(metadataPath, 'utf-8');
     const metadata = JSON.parse(metadataJson);
     
-    // Convert string dates back to Date objects
-    return {
+    const session = {
       ...metadata,
       createdAt: new Date(metadata.createdAt),
       updatedAt: new Date(metadata.updatedAt),
+      expiresAt: new Date(metadata.expiresAt),
     };
+
+    // Check if session has expired
+    if (new Date() > session.expiresAt) {
+      await deleteExpiredSession(sessionId);
+      return null;
+    }
+    
+    return session;
   } catch (error) {
     console.error(`Error retrieving session ${sessionId}:`, error);
     return null;
+  }
+};
+
+// Delete an expired session
+export const deleteExpiredSession = async (sessionId: string): Promise<void> => {
+  try {
+    const sessionDir = getSessionDir(sessionId);
+    if (existsSync(sessionDir)) {
+      await rm(sessionDir, { recursive: true });
+    }
+  } catch (error) {
+    console.error(`Error deleting expired session ${sessionId}:`, error);
+  }
+};
+
+// Cleanup expired sessions
+export const cleanupExpiredSessions = async (): Promise<void> => {
+  try {
+    const sessions = await listSessions(undefined); // Get all sessions
+    const now = new Date();
+    
+    for (const session of sessions) {
+      if (now > session.expiresAt) {
+        await deleteExpiredSession(session.id);
+      }
+    }
+  } catch (error) {
+    console.error('Error cleaning up expired sessions:', error);
   }
 };
 
@@ -158,6 +210,9 @@ export const updateSession = async (
     updatedAt: new Date(),
     ...(updates.cvContent !== undefined && { cvContent: updates.cvContent }),
     ...(updates.selectedTheme !== undefined && { selectedTheme: updates.selectedTheme }),
+    ...(updates.retentionDays !== undefined && { 
+      expiresAt: calculateExpirationDate(updates.retentionDays) 
+    }),
   };
   
   // Update metadata
