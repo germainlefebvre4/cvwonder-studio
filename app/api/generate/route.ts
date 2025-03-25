@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { writeFile, mkdir, rm, readFile } from 'fs/promises';
+import { writeFile, mkdir, rm, readFile, cp } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import { downloadCVWonderBinary, getCVWonderBinaryPath, installCVWonderTheme } from '@/lib/initialize-server';
@@ -15,9 +15,44 @@ try {
   console.error('Error during cvwonder binary initialization:', error);
 }
 
+async function ensureSessionImages(sessionId: string, themeDir: string) {
+  const sessionImagesDir = join(process.cwd(), 'sessions', sessionId, 'images');
+  const themeImagesDir = join(themeDir, 'images');
+
+  try {
+    // Create session images directory if it doesn't exist
+    if (!existsSync(sessionImagesDir)) {
+      await mkdir(sessionImagesDir, { recursive: true });
+    }
+
+    // Copy theme images to session directory if theme images exist
+    if (existsSync(themeImagesDir)) {
+      await cp(themeImagesDir, sessionImagesDir, { recursive: true });
+    }
+  } catch (error) {
+    console.error('Error setting up session images:', error);
+  }
+}
+
+function updateImagePaths(html: string, sessionId: string): string {
+  // Remove any existing /api/sessions or /session prefixes from image paths
+  html = html.replace(
+    /src=["'](?:\/api\/sessions\/[^\/]+\/images\/|\/session\/[^\/]+\/images\/|\/images\/|)(.*?\.(?:png|jpe?g|gif|webp|svg))["']/g,
+    `src="/api/sessions/${sessionId}/images/$1"`
+  );
+  
+  // Handle paths that start with just 'images/'
+  html = html.replace(
+    /src=["'](images\/.*?\.(?:png|jpe?g|gif|webp|svg))["']/g,
+    `src="/api/sessions/${sessionId}/images/$1"`
+  );
+  
+  return html;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { cv, theme, format = 'html' } = await req.json();
+    const { cv, theme, format = 'html', sessionId } = await req.json();
     
     // Input validation
     if (!cv || typeof cv !== 'string' || cv.trim() === '') {
@@ -30,6 +65,10 @@ export async function POST(req: NextRequest) {
     
     if (format !== 'html' && format !== 'pdf') {
       return NextResponse.json({ error: 'Format must be either "html" or "pdf"' }, { status: 400 });
+    }
+
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
     }
     
     // Create temp directory if it doesn't exist
@@ -47,7 +86,6 @@ export async function POST(req: NextRequest) {
     // Make sure the cvwonder binary exists
     const cvwonderPath = getCVWonderBinaryPath();
     if (!existsSync(cvwonderPath)) {
-      // If binary doesn't exist, try to download it
       try {
         await downloadCVWonderBinary();
       } catch (downloadError) {
@@ -58,7 +96,6 @@ export async function POST(req: NextRequest) {
         }, { status: 500 });
       }
       
-      // Verify again after download attempt
       if (!existsSync(cvwonderPath)) {
         return NextResponse.json({ 
           error: 'CVWonder binary not found after download attempt.' 
@@ -66,24 +103,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Make sure the selected theme is installed before generation
+    // Make sure the selected theme is installed
     try {
       await installCVWonderTheme(theme);
     } catch (themeError) {
       console.error(`Error installing theme ${theme}:`, themeError);
-      // Continue anyway, as we've implemented a fallback in the theme installation
     }
 
-    // Write CV YAML to temp file - using cv.yml for consistency
+    // Set up session images directory and copy theme images
+    const themeDir = join(process.cwd(), 'themes', theme);
+    await ensureSessionImages(sessionId, themeDir);
+
+    // Write CV YAML to temp file
     const cvPath = join(tempDir, 'cv.yml');
     try {
       await writeFile(cvPath, cv);
-      
-      // Verify the file was created
       if (!existsSync(cvPath)) {
         throw new Error(`Failed to create CV file at ${cvPath}`);
       }
-      
       console.log(`CV file written successfully to ${cvPath}`);
     } catch (writeError) {
       console.error('Error writing CV file:', writeError);
@@ -93,26 +130,18 @@ export async function POST(req: NextRequest) {
       }, { status: 500 });
     }
 
-    // Generate CV using cvwonder with proper directory for output
-    // Use proper argument format and ensure paths are quoted to handle potential spaces
+    // Generate CV
     const command = `"${cvwonderPath}" generate --input "${cvPath}" --theme "${theme}" --format "${format}" --output "${outputDir}"`;
-    
     console.info('Executing command:', command);
     
     try {
       const { stdout, stderr } = await execAsync(command);
-      
       console.info('Command stdout:', stdout);
       if (stderr) {
         console.warn('CVWonder command stderr:', stderr);
-        
-        // Check for specific error messages that might indicate command line issues
         if (stderr.includes('invalid argument')) {
-          console.error('Invalid argument detected in command. Command was:', command);
-          // Try an alternate command format as fallback
           const fallbackCommand = `${cvwonderPath} generate -i "${cvPath}" -t "${theme}" -f "${format}" -o "${outputDir}"`;
           console.log('Trying fallback command:', fallbackCommand);
-          
           try {
             const fallbackResult = await execAsync(fallbackCommand);
             console.log('Fallback command stdout:', fallbackResult.stdout);
@@ -127,27 +156,21 @@ export async function POST(req: NextRequest) {
       }
     } catch (execError) {
       console.error('Error executing CVWonder command:', execError);
-      
-      // Log more detailed error information for debugging
       if ((execError as any).stderr) {
         console.error('Command stderr:', (execError as any).stderr);
       }
-      
       return NextResponse.json({ 
         error: 'Failed to generate CV', 
         message: execError instanceof Error ? 
           (execError.message + ((execError as any).stderr ? `: ${(execError as any).stderr}` : '')) : 
           'Unknown error during generation',
-        command: command // Include the command in the error response for debugging
+        command: command
       }, { status: 500 });
     }
 
-    // The output file will be named based on the format
-    // cvwonder creates cv.html and cv.pdf, not index.html
     const outputFile = format === 'pdf' ? 'cv.pdf' : 'cv.html';
     const outputPath = join(outputDir, outputFile);
     
-    // Check if the output file was actually created
     if (!existsSync(outputPath)) {
       return NextResponse.json({ 
         error: 'CVWonder failed to generate the output file', 
@@ -155,10 +178,14 @@ export async function POST(req: NextRequest) {
       }, { status: 500 });
     }
 
-    // Read the generated file
     let fileContent;
     try {
-      fileContent = await readFile(outputPath);
+      fileContent = await readFile(outputPath, format === 'pdf' ? null : 'utf-8');
+      
+      // If it's HTML, update image paths to use our API endpoint
+      if (format === 'html' && typeof fileContent === 'string') {
+        fileContent = updateImagePaths(fileContent, sessionId);
+      }
     } catch (readError) {
       console.error('Error reading generated file:', readError);
       return NextResponse.json({ 
@@ -171,7 +198,6 @@ export async function POST(req: NextRequest) {
       type: format === 'pdf' ? 'application/pdf' : 'text/html' 
     });
 
-    // Return the generated content with appropriate headers
     return new NextResponse(content, {
       headers: {
         'Content-Type': format === 'pdf' ? 'application/pdf' : 'text/html',

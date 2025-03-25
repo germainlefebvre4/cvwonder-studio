@@ -124,8 +124,8 @@ export default function SessionPage() {
 
   // Generate the CV preview using the API
   const generatePreview = async (yamlContent: string, theme: string) => {
-    if (!yamlValid) {
-      setApiError("Cannot generate preview with invalid YAML");
+    if (!yamlValid || !id) {
+      setApiError("Cannot generate preview with invalid YAML or missing session ID");
       return;
     }
     
@@ -147,6 +147,7 @@ export default function SessionPage() {
           cv: yamlContent,
           theme,
           format: 'html',
+          sessionId: id,
         }),
       });
 
@@ -161,7 +162,6 @@ export default function SessionPage() {
     } catch (err) {
       console.error('Error generating preview:', err);
       setApiError(err instanceof Error ? err.message : 'Failed to generate preview');
-      // Keep the previous render if there was an error
     } finally {
       setIsGenerating(false);
     }
@@ -277,8 +277,8 @@ export default function SessionPage() {
 
   // Function to download the CV as PDF
   const handleDownloadPDF = async () => {
-    if (!yamlValid) {
-      setApiError("Cannot download with invalid YAML");
+    if (!yamlValid || !id) {
+      setApiError("Cannot download with invalid YAML or missing session ID");
       return;
     }
     
@@ -296,6 +296,7 @@ export default function SessionPage() {
           cv: currentYamlRef.current,
           theme: selectedTheme,
           format: 'pdf',
+          sessionId: id,
         }),
       });
 
@@ -393,7 +394,9 @@ export default function SessionPage() {
       <div className="flex-1 grid grid-cols-1 md:grid-cols-2 overflow-hidden">
         <div className="flex flex-col h-full">
           <div className="p-2 border-b bg-muted/50 flex justify-between items-center">
-            <h2 className="text-sm font-medium">CV Content (YAML)</h2>
+            <h2 className="text-sm font-medium">
+                YAML Editor
+            </h2>
             {error && (
               <div className="text-red-500 text-sm flex items-center">
                 <AlertCircle className="h-4 w-4 mr-1" />
