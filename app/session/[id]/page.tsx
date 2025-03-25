@@ -351,10 +351,10 @@ export default function SessionPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col">
-      <header className="border-b p-4 bg-background">
+    <div className="h-screen flex flex-col overflow-hidden">
+      <header className="flex-none border-b p-4 bg-background">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">CV Editor Session</h1>
+          <h1 className="text-2xl font-bold">CV Wonder Online</h1>
           <div className="flex items-center space-x-4">
             <Select value={selectedTheme} onValueChange={setSelectedTheme}>
               <SelectTrigger className="w-[180px]">
@@ -385,17 +385,17 @@ export default function SessionPage() {
       </header>
       
       {apiError && (
-        <Alert variant="destructive" className="mx-4 my-2">
+        <Alert variant="destructive" className="mx-4 my-2 flex-none">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{apiError}</AlertDescription>
         </Alert>
       )}
       
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 overflow-hidden">
-        <div className="flex flex-col h-full">
-          <div className="p-2 border-b bg-muted/50 flex justify-between items-center">
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 min-h-0">
+        <div className="flex flex-col overflow-hidden">
+          <div className="flex-none h-12 p-2 border-b bg-muted/50 flex justify-between items-center">
             <h2 className="text-sm font-medium">
-                YAML Editor
+              YAML Editor
             </h2>
             {error && (
               <div className="text-red-500 text-sm flex items-center">
@@ -404,7 +404,7 @@ export default function SessionPage() {
               </div>
             )}
           </div>
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 min-h-0">
             <Editor
               height="100%"
               defaultLanguage="yaml"
@@ -420,8 +420,8 @@ export default function SessionPage() {
           </div>
         </div>
         
-        <div className="flex flex-col h-full border-l">
-          <div className="p-2 border-b bg-muted/50 flex justify-between items-center">
+        <div className="flex flex-col overflow-hidden border-l">
+          <div className="flex-none h-12 p-2 border-b bg-muted/50 flex justify-between items-center">
             <h2 className="text-sm font-medium">
               Preview ({themes.find(t => t.id === selectedTheme)?.name})
             </h2>
@@ -436,7 +436,7 @@ export default function SessionPage() {
               Refresh
             </Button>
           </div>
-          <div className="flex-1 relative overflow-auto">
+          <div className="flex-1 min-h-0 relative">
             <iframe
               ref={previewFrameRef}
               title="CV Preview"
