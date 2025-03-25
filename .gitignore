@@ -36,6 +36,6 @@ next-env.d.ts
 
 # CV Wonder
 /bin/cvwonder
-/themes/
+/themes/*/
 /tmp/
 /sessions/*/
