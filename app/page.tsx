@@ -211,7 +211,7 @@ export default function Home() {
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <FileJson className="h-6 w-6" />
-            <h1 className="text-xl font-bold">CV Wonder</h1>
+            <h1 className="text-xl font-bold">CV Wonder Online</h1>
           </div>
           <div className="flex items-center space-x-4">
             <Select value={selectedTheme} onValueChange={setSelectedTheme}>
@@ -266,10 +266,10 @@ export default function Home() {
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         <ResizablePanel defaultSize={50}>
           <div className="h-full flex flex-col">
-            <div className="p-3 border-b bg-muted/50">
+            <div className="p-3 border-b bg-muted/50 flex justify-between items-center">
               <h2 className="text-sm font-medium">YAML Editor</h2>
               {error && (
-                <p className="text-sm text-destructive mt-1">{error}</p>
+                <p className="text-sm text-destructive">{error}</p>
               )}
             </div>
             <div className="flex-1">
