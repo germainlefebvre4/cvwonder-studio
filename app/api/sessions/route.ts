@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSession } from '@/lib/sessions';
+import { createSession, getSessionDir } from '@/lib/sessions';
 import { CreateSessionRequest } from '@/lib/types';
 import { join } from 'path';
 import { cp, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 
+// Get base directory for themes based on environment
+const getThemesDir = () => {
+  return join(process.cwd(), 'themes');
+};
+
 async function copyThemeAssets(sessionId: string, theme: string = 'default') {
   try {
     console.log(`Copying theme assets for theme: ${theme} to session: ${sessionId}`);
-    const themeDir = join(process.cwd(), 'themes', theme);
-    const sessionDir = join(process.cwd(), 'sessions', sessionId);
+    const themeDir = join(getThemesDir(), theme);
+    const sessionDir = getSessionDir(sessionId); // Use the same function that's used elsewhere
     
     if (!existsSync(themeDir)) {
       console.error(`Theme directory does not exist: ${themeDir}`);

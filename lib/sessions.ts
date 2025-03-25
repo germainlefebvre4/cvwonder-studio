@@ -6,9 +6,20 @@ import { Session, CreateSessionRequest, UpdateSessionRequest } from './types';
 import defaultCV from './defaultCV';
 import { installCVWonderTheme } from './initialize-server';
 
+// Get base directory for sessions based on environment
+const getBaseDir = () => {
+  // Check if we're running on AWS Lambda
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
+    console.log('Using /tmp directory for session storage (Lambda/production environment)');
+    return '/tmp';
+  }
+  console.log('Using local directory for session storage (development environment)');
+  return process.cwd();
+};
+
 // Directory to store all sessions
-const SESSIONS_DIR = join(process.cwd(), 'sessions');
-const THEMES_DIR = join(process.cwd(), 'themes');
+const SESSIONS_DIR = join(getBaseDir(), 'sessions');
+const THEMES_DIR = join(getBaseDir(), 'themes'); // themes are still read from codebase
 const DEFAULT_RETENTION_DAYS = 7;
 const MAX_RETENTION_DAYS = 7;
 
