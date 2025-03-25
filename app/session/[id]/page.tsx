@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import Editor from '@monaco-editor/react';
 import * as yaml from 'js-yaml';
@@ -17,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Session } from '@/lib/types';
 import defaultCV from '@/lib/defaultCV';
-import { AlertCircle, FileDown, RefreshCw, Share2 } from 'lucide-react';
+import { AlertCircle, FileDown, RefreshCw, Share2, Github } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
@@ -375,7 +376,7 @@ export default function SessionPage() {
     <div className="h-screen flex flex-col scroll-disabled main-session">
       <header className="flex-none border-b p-4 bg-background">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">CV Wonder Online</h1>
+          <h1 className="text-2xl font-bold">CV Wonder Studio</h1>
           <div className="flex items-center space-x-4">
             <Select value={selectedTheme} onValueChange={setSelectedTheme}>
               <SelectTrigger className="w-[180px]">
@@ -401,6 +402,14 @@ export default function SessionPage() {
               )}
               {isGenerating ? 'Generating...' : 'Download PDF'}
             </Button>
+            <Link
+              href="https://github.com/germainlefebvre4/cvwonder-studio"
+              target="_blank"
+              className="text-gray-600 hover:text-gray-900"
+            >
+              <Github className="h-5 w-5" />
+              <span className="sr-only">View on GitHub</span>
+            </Link>
           </div>
         </div>
       </header>

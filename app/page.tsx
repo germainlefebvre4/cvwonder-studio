@@ -68,7 +68,7 @@ export default function Home() {
               <FileJson className="h-6 w-6" />
             </div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            CV Wonder Online
+            CV Wonder Studio
             </h1>
           </div>
           <div className="flex items-center space-x-6">

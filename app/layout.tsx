@@ -6,7 +6,7 @@ import SessionWrapper from './components/session-wrapper';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'CV Wonder Online',
+  title: 'CV Wonder Studio',
   description: 'Generate you CV with Wonder!',
 };
 
