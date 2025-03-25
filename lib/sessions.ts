@@ -3,7 +3,7 @@ import { mkdir, writeFile, readFile, readdir, stat, unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import crypto from 'crypto';
 import { Session, CreateSessionRequest, UpdateSessionRequest } from './types';
-import { defaultCV } from './defaultCV';
+import defaultCV from './defaultCV';
 
 // Directory to store all sessions
 const SESSIONS_DIR = join(process.cwd(), 'sessions');

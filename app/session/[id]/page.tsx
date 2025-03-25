@@ -341,7 +341,7 @@ export default function SessionPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen scroll-disabled">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Loading Session...</h1>
           <p>Please wait while we load your CV session.</p>
@@ -351,7 +351,7 @@ export default function SessionPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="h-screen flex flex-col scroll-disabled main-session">
       <header className="flex-none border-b p-4 bg-background">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">CV Wonder Online</h1>
@@ -391,7 +391,7 @@ export default function SessionPage() {
         </Alert>
       )}
       
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 min-h-0">
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 min-h-0 overflow-hidden">
         <div className="flex flex-col overflow-hidden">
           <div className="flex-none h-12 p-2 border-b bg-muted/50 flex justify-between items-center">
             <h2 className="text-sm font-medium">
