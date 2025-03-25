@@ -23,6 +23,22 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { ShareDialog } from '@/components/ui/share-dialog';
+import { join } from 'path';
+
+
+// Get writable base directory depending on environment
+const getWritableBaseDir = () => {
+  // Check if we're running on AWS Lambda
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
+    console.log('Using /tmp directory for binary storage (Lambda/production environment)');
+    return '/tmp';
+  }
+  console.log('Using local directory for binary storage (development environment)');
+  return process.cwd();
+};
+
+const BINARY_PATH = join(getWritableBaseDir(), 'bin');
+const CVWONDER_BINARY_PATH = join(BINARY_PATH, 'cvwonder');
 
 const themes = [
   { id: 'default', name: 'Default Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-default' },

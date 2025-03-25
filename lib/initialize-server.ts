@@ -119,7 +119,7 @@ async function ensureDefaultTheme() {
     
     // Clone the default theme repository directly into the themes/default directory
     try {
-      await execAsync(`git clone ${DEFAULT_THEME_REPO} ${defaultThemeDir}`);
+      await execAsync(`cd ${getWritableBaseDir} && ${CVWONDER_BINARY_PATH} themes install ${DEFAULT_THEME_REPO}`);
       console.log('Default theme cloned successfully to:', defaultThemeDir);
     } catch (cloneError) {
       console.error('Error cloning default theme:', cloneError);
@@ -194,7 +194,7 @@ export async function installCVWonderTheme(themeName: string) {
     // Try to clone the theme repository
     try {
       console.log(`Cloning theme repository: ${themeRepo}`);
-      await execAsync(`git clone ${themeRepo} ${themeDir}`);
+      await execAsync(`cd ${getWritableBaseDir} && ${CVWONDER_BINARY_PATH} themes install ${DEFAULT_THEME_REPO}`);
       console.log(`Theme ${themeName} cloned successfully to: ${themeDir}`);
     } catch (cloneError) {
       console.error(`Error cloning theme ${themeName}:`, cloneError);
