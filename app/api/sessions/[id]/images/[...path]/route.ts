@@ -40,7 +40,7 @@ export async function GET(
       join(getWritableBaseDir(), 'sessions', id, 'images', imagePath),
       // 2. Theme-specific images
       join(getWritableBaseDir(), 'themes/default/images', imagePath),
-      join(getWritableBaseDir(), 'themes/basic/images', imagePath),
+      // join(getWritableBaseDir(), 'themes/basic/images', imagePath),
       // 3. Original session images directory
       join(getWritableBaseDir(), 'sessions', id, imagePath),
     ];

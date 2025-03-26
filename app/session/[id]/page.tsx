@@ -43,7 +43,7 @@ const CVWONDER_BINARY_PATH = join(BINARY_PATH, 'cvwonder');
 
 const themes = [
   { id: 'default', name: 'Default Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-default' },
-  { id: 'basic', name: 'Basic Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-basic' }
+  // { id: 'basic', name: 'Basic Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-basic' }
 ];
 
 export default function SessionPage() {
@@ -411,14 +411,14 @@ export default function SessionPage() {
               <Share2 className="mr-2 h-4 w-4" />
               Share
             </Button>
-            <Button variant="outline" onClick={handleDownloadPDF} disabled={isGenerating}>
+            {/* <Button variant="outline" onClick={handleDownloadPDF} disabled={isGenerating}>
               {isGenerating ? (
                 <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <FileDown className="mr-2 h-4 w-4" />
               )}
               {isGenerating ? 'Generating...' : 'Download PDF'}
-            </Button>
+            </Button> */}
             <Link
               href="https://github.com/germainlefebvre4/cvwonder-studio"
               target="_blank"

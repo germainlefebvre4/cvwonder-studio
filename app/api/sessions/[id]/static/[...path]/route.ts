@@ -45,9 +45,9 @@ export async function GET(
       join(getWritableBaseDir(), 'themes/default/css', filePath),
       join(getWritableBaseDir(), 'themes/default/js', filePath),
       // 3. Theme-specific files from basic theme
-      join(getWritableBaseDir(), 'themes/basic', filePath),
-      join(getWritableBaseDir(), 'themes/basic/css', filePath),
-      join(getWritableBaseDir(), 'themes/basic/js', filePath),
+      // join(getWritableBaseDir(), 'themes/basic', filePath),
+      // join(getWritableBaseDir(), 'themes/basic/css', filePath),
+      // join(getWritableBaseDir(), 'themes/basic/js', filePath),
     ];
     
     // Try each possible path until we find the file
