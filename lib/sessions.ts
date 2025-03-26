@@ -19,7 +19,7 @@ export { getBaseDir };
 
 // Directory to store all sessions
 const SESSIONS_DIR = join(getBaseDir(), 'sessions');
-const THEMES_DIR = join(getBaseDir(), 'themes'); // Always read themes from codebase
+const THEMES_DIR = join(process.cwd(), 'themes'); // Always read themes from codebase
 const DEFAULT_RETENTION_DAYS = 7;
 const MAX_RETENTION_DAYS = 7;
 

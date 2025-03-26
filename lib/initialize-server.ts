@@ -24,11 +24,11 @@ const CVWONDER_DOWNLOAD_URL = `${CVWONDER_BASE_URL}/download/${CVWONDER_VERSION}
 // Use appropriate directory paths based on environment
 const BINARY_PATH = join(getBaseDir(), 'bin');
 const CVWONDER_BINARY_PATH = join(BINARY_PATH, 'cvwonder');
-const THEMES_DIR = join(getBaseDir(), 'themes');  // Always read themes from codebase location
+const THEMES_DIR = join(process.cwd(), 'themes');  // Always read themes from codebase location
 
 // Get runtime themes directory (where we write to in Lambda)
 const getRuntimeThemeDir = (themeName: string) => {
-  return join(getBaseDir(), 'themes', themeName);
+  return join(process.cwd(), 'themes', themeName);
 };
 
 // Official theme repository URLs
@@ -49,14 +49,18 @@ async function ensureRuntimeTheme(themeName: string): Promise<string> {
     const runtimePath = getRuntimeThemeDir(themeName);
     
     // Create runtime directory if it doesn't exist
-    if (!existsSync(join(getBaseDir(), 'themes'))) {
-      await mkdir(join(getBaseDir(), 'themes'), { recursive: true });
+    if (!existsSync(join(process.cwd(), 'themes'))) {
+      await mkdir(join(process.cwd(), 'themes'), { recursive: true });
     }
     
     // If the theme exists in source but not in runtime, copy it
     if (existsSync(sourcePath) && !existsSync(runtimePath)) {
       console.log(`Copying theme ${themeName} to runtime location: ${runtimePath}`);
-      await mkdir(runtimePath, { recursive: true });
+      try {
+        await mkdir(runtimePath, { recursive: true });
+      } catch (error) {
+        console.warn(`Directory already exists: ${runtimePath}`);
+      }
       await cp(sourcePath, runtimePath, { recursive: true });
     }
     
@@ -72,7 +76,11 @@ export async function downloadCVWonderBinary() {
     // Check if the binary directory exists, create if not
     if (!existsSync(BINARY_PATH)) {
       console.log('Creating binary directory at:', BINARY_PATH);
-      await mkdir(BINARY_PATH, { recursive: true });
+      try {
+        await mkdir(BINARY_PATH, { recursive: true });
+      } catch (error) {
+        console.warn(`Directory already exists: ${BINARY_PATH}`);
+      }
     }
 
     // Check if binary already exists
@@ -117,7 +125,11 @@ export async function downloadCVWonderBinary() {
     // Create the themes directory if it doesn't exist
     if (!existsSync(THEMES_DIR)) {
       console.log('Creating themes directory at:', THEMES_DIR);
-      await mkdir(THEMES_DIR, { recursive: true });
+      try {
+        await mkdir(THEMES_DIR, { recursive: true });
+      } catch (error) {
+        console.warn(`Directory already exists: ${THEMES_DIR}`);
+      }
     }
     
     // Download and install the default theme
@@ -135,6 +147,11 @@ async function ensureDefaultTheme() {
     // Check if themes directory exists
     if (!existsSync(THEMES_DIR)) {
       console.log('Themes directory does not exist in source code location');
+      try {
+        await mkdir(THEMES_DIR, { recursive: true });
+      } catch (error) {
+        console.warn(`Directory already exists: ${THEMES_DIR}`);
+      }
     }
 
     // Check if default theme already exists
@@ -144,19 +161,40 @@ async function ensureDefaultTheme() {
       return;
     } else {
       // If the theme doesn't exist, we need to install it
-      console.log('Installing default theme from repository:', DEFAULT_THEME_REPO);
+      // console.log('Installing default theme from repository:', DEFAULT_THEME_REPO);
       
       // Clone the theme repository
+      // try {
+      //   console.log('Attempting to install default theme using cvwonder command');
+      //   const {stdout, stderr} = await execAsync(`cd ${getBaseDir()} && ${CVWONDER_BINARY_PATH} theme install ${DEFAULT_THEME_REPO}`);
+      //   console.log('CVWonder output:', stdout);
+      //   console.error('CVWonder error output:', stderr);
+      //   console.log('Default theme installed successfully using cvwonder command');
+      // } catch (installError) {
+      //   console.error('Error installing default theme with cvwonder:', installError);
+      //   throw new Error('Failed to install default theme by any method');
+      // }
+      
+      // Copy the default theme from the repository
+      console.log('Copying default theme from source code location');
       try {
-        console.log('Attempting to install default theme using cvwonder command');
-        const {stdout, stderr} = await execAsync(`cd ${getBaseDir()} && ${CVWONDER_BINARY_PATH} theme install ${DEFAULT_THEME_REPO}`);
-        console.log('CVWonder output:', stdout);
-        console.error('CVWonder error output:', stderr);
-        console.log('Default theme installed successfully using cvwonder command');
-      } catch (installError) {
-        console.error('Error installing default theme with cvwonder:', installError);
-        throw new Error('Failed to install default theme by any method');
+        const sourceThemeDirectory = join(process.cwd(), 'themes', 'default');
+        const themeDirectory = join(getBaseDir(), 'themes', 'default');
+        try {
+          await mkdir(themeDirectory, { recursive: true });
+        } catch (error) {
+          console.warn(`Directory already exists: ${themeDirectory}`);
+        }
+        try {
+          await cp(sourceThemeDirectory, themeDirectory, { recursive: true });
+        } catch (copyError) {
+          console.warn(`Error copying default theme: ${copyError}`);
+        }
+      } catch (copyError) {
+        console.error('Error copying default theme:', copyError);
+        throw new Error('Failed to copy default theme');
       }
+      console.log('Default theme copied successfully');
     }
     
     // Verify theme was installed
@@ -182,7 +220,11 @@ export async function installCVWonderTheme(themeName: string) {
     // Create themes directory if it doesn't exist
     if (!existsSync(THEMES_DIR)) {
       console.log('Creating themes directory at:', THEMES_DIR);
-      await mkdir(THEMES_DIR, { recursive: true });
+      try {
+        await mkdir(THEMES_DIR, { recursive: true });
+      } catch (error) {
+        console.warn(`Directory already exists: ${THEMES_DIR}`);
+      }
     }
 
     // If trying to use default theme, ensure it's installed

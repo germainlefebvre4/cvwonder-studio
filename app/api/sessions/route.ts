@@ -20,7 +20,7 @@ async function copyThemeAssets(sessionId: string, theme: string = 'default') {
     console.log(`Copying theme assets for theme: ${theme} to session: ${sessionId}`);
     
     // Get theme directory - always read from source themes directory
-    const themeDir = join(getBaseDir(), 'themes', theme);
+    const themeDir = join(process.cwd(), 'themes', theme);
     
     // Get session directory 
     const sessionDir = getSessionDir(sessionId);

@@ -43,7 +43,11 @@ async function ensureSessionFiles(sessionId: string, themeDir: string) {
     const dirsToCreate = ['images', 'static', 'css', 'js'].map(dir => join(sessionDir, dir));
     for (const dir of dirsToCreate) {
       if (!existsSync(dir)) {
-        await mkdir(dir, { recursive: true });
+        try {
+          await mkdir(dir, { recursive: true });
+        } catch (error) {
+          console.warn(`Direcotry already exists: ${dir}`);
+        }
       }
     }
 
@@ -68,7 +72,11 @@ async function ensureSessionFiles(sessionId: string, themeDir: string) {
       const srcDir = join(themeDir, dir);
       const destDir = join(sessionDir, dir);
       if (existsSync(srcDir)) {
-        await cp(srcDir, destDir, { recursive: true });
+        try {
+          await cp(srcDir, destDir, { recursive: true, force: true });
+        } catch (error) {
+          console.warn(`Directory already exists: ${destDir}`);
+        }
       }
     }
   } catch (error) {
@@ -140,7 +148,11 @@ export async function POST(req: NextRequest) {
     // Create output directory
     const outputDir = join(getWritableBaseDir(), 'sessions', sessionId);
     if (!existsSync(outputDir)) {
-      await mkdir(outputDir, { recursive: true });
+      try {
+        await mkdir(outputDir, { recursive: true });
+      } catch (error) {
+        console.warn(`Directory already exists: ${outputDir}`);
+      }
     }
 
     // Make sure the cvwonder binary exists
@@ -189,34 +201,34 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate CV
-    const command = `cd ${getBaseDir()} && ${cvwonderPath} generate --input="${cvPath}" --theme="${theme}" --format="${format}" --output="${outputDir}"`;
+    const command = `cd ${process.cwd()} && ${cvwonderPath} generate --input="${cvPath}" --theme="${theme}" --format="${format}" --output="${outputDir}"`;
     console.info('Executing command:', command);
     
     try {
       const { stdout, stderr } = await execAsync(command);
       console.info('Command stdout:', stdout);
-      if (stderr) {
-        // Only log temporary file warnings, don't treat them as errors
-        if (isTemporaryFileWarning(stderr)) {
-          console.log('Harmless warning about temporary files (can be ignored):', stderr);
-        } else {
-          console.warn('CVWonder command stderr:', stderr);
-          if (stderr.includes('invalid argument')) {
-            const fallbackCommand = `cd ${getBaseDir()} && ${cvwonderPath} generate -i "${cvPath}" -t "${theme}" -f "${format}" -o "${outputDir}"`;
-            console.log('Trying fallback command:', fallbackCommand);
-            try {
-              const fallbackResult = await execAsync(fallbackCommand);
-              console.log('Fallback command stdout:', fallbackResult.stdout);
-              if (fallbackResult.stderr && !isTemporaryFileWarning(fallbackResult.stderr)) {
-                console.warn('Fallback command stderr:', fallbackResult.stderr);
-              }
-            } catch (fallbackError) {
-              console.error('Fallback command also failed:', fallbackError);
-              throw fallbackError;
-            }
-          }
-        }
-      }
+      // if (stderr) {
+      //   // Only log temporary file warnings, don't treat them as errors
+      //   if (isTemporaryFileWarning(stderr)) {
+      //     console.log('Harmless warning about temporary files (can be ignored):', stderr);
+      //   } else {
+      //     console.warn('CVWonder command stderr:', stderr);
+      //     if (stderr.includes('invalid argument')) {
+      //       const fallbackCommand = `cd ${process.cwd()} && ${cvwonderPath} generate -i "${cvPath}" -t "${theme}" -f "${format}" -o "${outputDir}"`;
+      //       console.log('Trying fallback command:', fallbackCommand);
+      //       try {
+      //         const fallbackResult = await execAsync(fallbackCommand);
+      //         console.log('Fallback command stdout:', fallbackResult.stdout);
+      //         if (fallbackResult.stderr && !isTemporaryFileWarning(fallbackResult.stderr)) {
+      //           console.warn('Fallback command stderr:', fallbackResult.stderr);
+      //         }
+      //       } catch (fallbackError) {
+      //         console.error('Fallback command also failed:', fallbackError);
+      //         throw fallbackError;
+      //       }
+      //     }
+      //   }
+      // }
     } catch (execError: unknown) {
       // Type cast the error to our custom interface
       const typedError = execError as ExecError;
