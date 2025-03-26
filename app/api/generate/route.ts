@@ -43,7 +43,11 @@ async function ensureSessionFiles(sessionId: string, themeDir: string) {
     const dirsToCreate = ['images', 'static', 'css', 'js'].map(dir => join(sessionDir, dir));
     for (const dir of dirsToCreate) {
       if (!existsSync(dir)) {
-        await mkdir(dir, { recursive: true });
+        try {
+          await mkdir(dir, { recursive: true });
+        } catch (error) {
+          console.warn(`Direcotry ${dir} already exists.`);
+        }
       }
     }
 
@@ -140,7 +144,11 @@ export async function POST(req: NextRequest) {
     // Create output directory
     const outputDir = join(getWritableBaseDir(), 'sessions', sessionId);
     if (!existsSync(outputDir)) {
-      await mkdir(outputDir, { recursive: true });
+      try {
+        await mkdir(outputDir, { recursive: true });
+      } catch (error) {
+        console.warn('Output directory already exists:', error);
+      }
     }
 
     // Make sure the cvwonder binary exists
