@@ -185,7 +185,11 @@ async function ensureDefaultTheme() {
         } catch (error) {
           console.warn(`Directory already exists: ${themeDirectory}`);
         }
-        await cp(sourceThemeDirectory, themeDirectory, { recursive: true });
+        try {
+          await cp(sourceThemeDirectory, themeDirectory, { recursive: true });
+        } catch (copyError) {
+          console.warn(`Error copying default theme: ${copyError}`);
+        }
       } catch (copyError) {
         console.error('Error copying default theme:', copyError);
         throw new Error('Failed to copy default theme');
