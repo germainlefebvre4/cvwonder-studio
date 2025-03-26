@@ -95,6 +95,12 @@ function updatePaths(html: string, sessionId: string): string {
   return html;
 }
 
+// Function to determine if an error is just a warning about temporary file removal
+function isTemporaryFileWarning(stderr: string): boolean {
+  return stderr.includes('Error removing output tmp file') && 
+         (stderr.includes('no such file or directory') || stderr.includes('tmp: cannot remove'));
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { cv, theme, format = 'html', sessionId } = await req.json();
@@ -181,34 +187,45 @@ export async function POST(req: NextRequest) {
       const { stdout, stderr } = await execAsync(command);
       console.info('Command stdout:', stdout);
       if (stderr) {
-        console.warn('CVWonder command stderr:', stderr);
-        if (stderr.includes('invalid argument')) {
-          const fallbackCommand = `${cvwonderPath} generate -i "${cvPath}" -t "${theme}" -f "${format}" -o "${outputDir}"`;
-          console.log('Trying fallback command:', fallbackCommand);
-          try {
-            const fallbackResult = await execAsync(fallbackCommand);
-            console.log('Fallback command stdout:', fallbackResult.stdout);
-            if (fallbackResult.stderr) {
-              console.warn('Fallback command stderr:', fallbackResult.stderr);
+        // Only log temporary file warnings, don't treat them as errors
+        if (isTemporaryFileWarning(stderr)) {
+          console.log('Harmless warning about temporary files (can be ignored):', stderr);
+        } else {
+          console.warn('CVWonder command stderr:', stderr);
+          if (stderr.includes('invalid argument')) {
+            const fallbackCommand = `${cvwonderPath} generate -i "${cvPath}" -t "${theme}" -f "${format}" -o "${outputDir}"`;
+            console.log('Trying fallback command:', fallbackCommand);
+            try {
+              const fallbackResult = await execAsync(fallbackCommand);
+              console.log('Fallback command stdout:', fallbackResult.stdout);
+              if (fallbackResult.stderr && !isTemporaryFileWarning(fallbackResult.stderr)) {
+                console.warn('Fallback command stderr:', fallbackResult.stderr);
+              }
+            } catch (fallbackError) {
+              console.error('Fallback command also failed:', fallbackError);
+              throw fallbackError;
             }
-          } catch (fallbackError) {
-            console.error('Fallback command also failed:', fallbackError);
-            throw fallbackError;
           }
         }
       }
-    } catch (execError) {
-      console.error('Error executing CVWonder command:', execError);
-      if ((execError as any).stderr) {
-        console.error('Command stderr:', (execError as any).stderr);
+    } catch (execError: any) {
+      // Check if this is just a temporary file warning
+      if (execError.stderr && isTemporaryFileWarning(execError.stderr)) {
+        // This is just a warning, not an actual error
+        console.log('Command succeeded despite warnings about temporary files:', execError.stderr);
+      } else {
+        console.error('Error executing CVWonder command:', execError);
+        if (execError.stderr) {
+          console.error('Command stderr:', execError.stderr);
+        }
+        return NextResponse.json({ 
+          error: 'Failed to generate CV', 
+          message: execError instanceof Error ? 
+            (execError.message + (execError.stderr ? `: ${execError.stderr}` : '')) : 
+            'Unknown error during generation',
+          command: command
+        }, { status: 500 });
       }
-      return NextResponse.json({ 
-        error: 'Failed to generate CV', 
-        message: execError instanceof Error ? 
-          (execError.message + ((execError as any).stderr ? `: ${(execError as any).stderr}` : '')) : 
-          'Unknown error during generation',
-        command: command
-      }, { status: 500 });
     }
 
     const outputFile = format === 'pdf' ? 'cv.pdf' : 'cv.html';

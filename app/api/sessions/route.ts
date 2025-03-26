@@ -5,27 +5,24 @@ import { join } from 'path';
 import { cp, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 
-// Get writable base directory depending on environment
-const getWritableBaseDir = () => {
+// Get base directory based on environment
+const getBaseDir = () => {
   // Check if we're running on AWS Lambda
-  if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
-    console.log('Using /tmp directory for binary storage (Lambda/production environment)');
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
     return '/tmp';
   }
-  console.log('Using local directory for binary storage (development environment)');
   return process.cwd();
-};
-
-// Get base directory for themes based on environment
-const getThemesDir = () => {
-  return join(getWritableBaseDir(), 'themes');
 };
 
 async function copyThemeAssets(sessionId: string, theme: string = 'default') {
   try {
     console.log(`Copying theme assets for theme: ${theme} to session: ${sessionId}`);
-    const themeDir = join(getThemesDir(), theme);
-    const sessionDir = getSessionDir(sessionId); // Use the same function that's used elsewhere
+    
+    // Get theme directory - always read from source themes directory
+    const themeDir = join(process.cwd(), 'themes', theme);
+    
+    // Get session directory 
+    const sessionDir = getSessionDir(sessionId);
     
     if (!existsSync(themeDir)) {
       console.error(`Theme directory does not exist: ${themeDir}`);
@@ -50,8 +47,8 @@ async function copyThemeAssets(sessionId: string, theme: string = 'default') {
       }
     }
     
-    // Copy any root-level static files (like theme.yaml)
-    const staticFiles = ['theme.yaml', 'styles.css'];
+    // Copy any root-level static files
+    const staticFiles = ['theme.yaml', 'styles.css', 'index.html'];
     for (const file of staticFiles) {
       const sourcePath = join(themeDir, file);
       if (existsSync(sourcePath)) {

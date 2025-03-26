@@ -2,33 +2,69 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { mkdir, rm } from 'fs/promises';
+import { mkdir, rm, cp } from 'fs/promises';
 
 const execAsync = promisify(exec);
 
-// Get writable base directory depending on environment
-const getWritableBaseDir = () => {
+// Get base directory based on environment
+const getBaseDir = () => {
   // Check if we're running on AWS Lambda
-  if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
-    console.log('Using /tmp directory for binary storage (Lambda/production environment)');
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
     return '/tmp';
   }
-  console.log('Using local directory for binary storage (development environment)');
   return process.cwd();
 };
 
 // Build the cvwonder binary URL with version support
-const CVWONDER_VERSION = process.env.CVWONDER_VERSION || 'v0.3.0';
+const CVWONDER_VERSION = process.env.CVWONDER_VERSION || 'latest';
 const CVWONDER_BASE_URL = 'https://github.com/germainlefebvre4/cvwonder/releases';
-const CVWONDER_DOWNLOAD_URL = `${CVWONDER_BASE_URL}/${CVWONDER_VERSION}/download/cvwonder_linux_amd64`;
+const CVWONDER_DOWNLOAD_URL = `${CVWONDER_BASE_URL}/${CVWONDER_VERSION}/download/cvwonder-linux-amd64`;
 
-const BINARY_PATH = join(getWritableBaseDir(), 'bin');
+// Use appropriate directory paths based on environment
+const BINARY_PATH = join(getBaseDir(), 'bin');
 const CVWONDER_BINARY_PATH = join(BINARY_PATH, 'cvwonder');
-const THEMES_DIR = join(getWritableBaseDir(), 'themes');
+const THEMES_DIR = join(process.cwd(), 'themes');  // Always read themes from codebase location
+
+// Get runtime themes directory (where we write to in Lambda)
+const getRuntimeThemeDir = (themeName: string) => {
+  return join(getBaseDir(), 'themes', themeName);
+};
 
 // Official theme repository URLs
 const DEFAULT_THEME_REPO = 'https://github.com/germainlefebvre4/cvwonder-theme-default';
 const BASIC_THEME_REPO = 'https://github.com/germainlefebvre4/cvwonder-theme-basic';
+
+// Check if a theme exists in the themes directory
+function themeExists(themeName: string): boolean {
+  const themePath = join(THEMES_DIR, themeName);
+  return existsSync(themePath) && existsSync(join(themePath, 'index.html'));
+}
+
+// Ensure the theme is available in the runtime directory if needed (for Lambda)
+async function ensureRuntimeTheme(themeName: string): Promise<string> {
+  // If we're running on Lambda, we need to copy themes to the /tmp directory
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    const sourcePath = join(THEMES_DIR, themeName); 
+    const runtimePath = getRuntimeThemeDir(themeName);
+    
+    // Create runtime directory if it doesn't exist
+    if (!existsSync(join(getBaseDir(), 'themes'))) {
+      await mkdir(join(getBaseDir(), 'themes'), { recursive: true });
+    }
+    
+    // If the theme exists in source but not in runtime, copy it
+    if (existsSync(sourcePath) && !existsSync(runtimePath)) {
+      console.log(`Copying theme ${themeName} to runtime location: ${runtimePath}`);
+      await mkdir(runtimePath, { recursive: true });
+      await cp(sourcePath, runtimePath, { recursive: true });
+    }
+    
+    return runtimePath;
+  }
+  
+  // For non-Lambda environments, just use the original path
+  return join(THEMES_DIR, themeName);
+}
 
 export async function downloadCVWonderBinary() {
   try {
@@ -95,36 +131,44 @@ export async function downloadCVWonderBinary() {
 
 async function ensureDefaultTheme() {
   try {
-    // Create themes directory if it doesn't exist
+    // Check if themes directory exists
     if (!existsSync(THEMES_DIR)) {
-      console.log('Creating themes directory at:', THEMES_DIR);
-      await mkdir(THEMES_DIR, { recursive: true });
+      console.log('Themes directory does not exist in source code location');
     }
 
-    // Check if default theme directory already exists
-    const defaultThemeDir = join(THEMES_DIR, 'default');
-    if (existsSync(defaultThemeDir)) {
-      // Check if the theme has the index.html file
-      if (existsSync(join(defaultThemeDir, 'index.html'))) {
-        console.log('Default theme already installed at:', defaultThemeDir);
-        return;
-      } else {
-        // Remove incomplete theme directory
-        console.log('Removing incomplete default theme directory');
-        await rm(defaultThemeDir, { recursive: true, force: true });
-      }
+    // Check if default theme already exists
+    if (themeExists('default')) {
+      console.log('Default theme found in theme directory');
+      await ensureRuntimeTheme('default');
+      return;
     }
 
     console.log('Installing default theme from repository:', DEFAULT_THEME_REPO);
     
-    // Clone the default theme repository directly into the themes/default directory
+    // Determine where to install the theme (source or runtime location)
+    const installPath = process.env.AWS_LAMBDA_FUNCTION_NAME ? 
+      getRuntimeThemeDir('default') : 
+      join(THEMES_DIR, 'default');
+    
+    // Create directory if needed
+    if (!existsSync(installPath)) {
+      await mkdir(installPath, { recursive: true });
+    } else {
+      // Remove incomplete theme directory if it exists but is incomplete
+      if (!existsSync(join(installPath, 'index.html'))) {
+        await rm(installPath, { recursive: true, force: true });
+        await mkdir(installPath, { recursive: true });
+      }
+    }
+    
+    // Clone the theme repository
     try {
-      await execAsync(`cd ${getWritableBaseDir} && ${CVWONDER_BINARY_PATH} themes install ${DEFAULT_THEME_REPO}`);
-      console.log('Default theme cloned successfully to:', defaultThemeDir);
+      await execAsync(`git clone ${DEFAULT_THEME_REPO} ${installPath}`);
+      console.log('Default theme cloned successfully');
     } catch (cloneError) {
       console.error('Error cloning default theme:', cloneError);
       
-      // If git clone fails, try using cvwonder theme install command
+      // Try alternative installation methods
       try {
         console.log('Attempting to install default theme using cvwonder command');
         await execAsync(`${CVWONDER_BINARY_PATH} theme install ${DEFAULT_THEME_REPO}`);
@@ -134,9 +178,9 @@ async function ensureDefaultTheme() {
         throw new Error('Failed to install default theme by any method');
       }
     }
-
+    
     // Verify theme was installed
-    if (!existsSync(join(defaultThemeDir, 'index.html'))) {
+    if (!existsSync(join(installPath, 'index.html'))) {
       throw new Error('Default theme installation verification failed');
     }
     
@@ -167,14 +211,17 @@ export async function installCVWonderTheme(themeName: string) {
       return true;
     }
 
-    // For other themes - check if already installed
-    const themeDir = join(THEMES_DIR, themeName);
-    if (existsSync(themeDir) && existsSync(join(themeDir, 'index.html'))) {
-      console.log(`Theme ${themeName} is already installed at ${themeDir}`);
+    // Check if the theme exists in either location and ensure it's in runtime
+    if (themeExists(themeName)) {
+      const themeDir = await ensureRuntimeTheme(themeName);
+      console.log(`Theme ${themeName} is available at ${themeDir}`);
       return true;
     }
     
     console.log(`Installing CVWonder theme: ${themeName}`);
+    
+    // Theme will be installed to runtime directory
+    const themeDir = join(THEMES_DIR, themeName);
     
     // If theme directory exists but is incomplete, remove it
     if (existsSync(themeDir)) {
@@ -194,7 +241,7 @@ export async function installCVWonderTheme(themeName: string) {
     // Try to clone the theme repository
     try {
       console.log(`Cloning theme repository: ${themeRepo}`);
-      await execAsync(`cd ${getWritableBaseDir} && ${CVWONDER_BINARY_PATH} themes install ${DEFAULT_THEME_REPO}`);
+      await execAsync(`git clone ${themeRepo} ${themeDir}`);
       console.log(`Theme ${themeName} cloned successfully to: ${themeDir}`);
     } catch (cloneError) {
       console.error(`Error cloning theme ${themeName}:`, cloneError);
@@ -236,8 +283,8 @@ export async function installCVWonderTheme(themeName: string) {
 
 // Function to get the full path to the cvwonder binary
 export function getCVWonderBinaryPath() {
-  // Make sure the path is properly formed for the OS
-  const binaryPath = join(getWritableBaseDir(), 'bin', 'cvwonder');
+  // Use the same base directory logic to ensure consistency
+  const binaryPath = join(getBaseDir(), 'bin', 'cvwonder');
   
   // Log the binary path for debugging purposes
   console.log('CVWonder binary path:', binaryPath);
