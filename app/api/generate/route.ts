@@ -8,6 +8,13 @@ import { downloadCVWonderBinary, getCVWonderBinaryPath, installCVWonderTheme } f
 
 const execAsync = promisify(exec);
 
+// Type definition for exec errors
+interface ExecError extends Error {
+  stderr?: string;
+  stdout?: string;
+  code?: number;
+}
+
 // Get writable base directory depending on environment
 const getWritableBaseDir = () => {
   // Check if we're running on AWS Lambda
@@ -208,20 +215,23 @@ export async function POST(req: NextRequest) {
           }
         }
       }
-    } catch (execError: any) {
+    } catch (execError: unknown) {
+      // Type cast the error to our custom interface
+      const typedError = execError as ExecError;
+      
       // Check if this is just a temporary file warning
-      if (execError.stderr && isTemporaryFileWarning(execError.stderr)) {
+      if (typedError.stderr && isTemporaryFileWarning(typedError.stderr)) {
         // This is just a warning, not an actual error
-        console.log('Command succeeded despite warnings about temporary files:', execError.stderr);
+        console.log('Command succeeded despite warnings about temporary files:', typedError.stderr);
       } else {
-        console.error('Error executing CVWonder command:', execError);
-        if (execError.stderr) {
-          console.error('Command stderr:', execError.stderr);
+        console.error('Error executing CVWonder command:', typedError);
+        if (typedError.stderr) {
+          console.error('Command stderr:', typedError.stderr);
         }
         return NextResponse.json({ 
           error: 'Failed to generate CV', 
-          message: execError instanceof Error ? 
-            (execError.message + (execError.stderr ? `: ${execError.stderr}` : '')) : 
+          message: typedError instanceof Error ? 
+            (typedError.message + (typedError.stderr ? `: ${typedError.stderr}` : '')) : 
             'Unknown error during generation',
           command: command
         }, { status: 500 });
