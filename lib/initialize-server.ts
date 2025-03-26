@@ -24,11 +24,11 @@ const CVWONDER_DOWNLOAD_URL = `${CVWONDER_BASE_URL}/download/${CVWONDER_VERSION}
 // Use appropriate directory paths based on environment
 const BINARY_PATH = join(getBaseDir(), 'bin');
 const CVWONDER_BINARY_PATH = join(BINARY_PATH, 'cvwonder');
-const THEMES_DIR = join(getBaseDir(), 'themes');  // Always read themes from codebase location
+const THEMES_DIR = join(process.cwd(), 'themes');  // Always read themes from codebase location
 
 // Get runtime themes directory (where we write to in Lambda)
 const getRuntimeThemeDir = (themeName: string) => {
-  return join(getBaseDir(), 'themes', themeName);
+  return join(process.cwd(), 'themes', themeName);
 };
 
 // Official theme repository URLs
@@ -49,8 +49,8 @@ async function ensureRuntimeTheme(themeName: string): Promise<string> {
     const runtimePath = getRuntimeThemeDir(themeName);
     
     // Create runtime directory if it doesn't exist
-    if (!existsSync(join(getBaseDir(), 'themes'))) {
-      await mkdir(join(getBaseDir(), 'themes'), { recursive: true });
+    if (!existsSync(join(process.cwd(), 'themes'))) {
+      await mkdir(join(process.cwd(), 'themes'), { recursive: true });
     }
     
     // If the theme exists in source but not in runtime, copy it
