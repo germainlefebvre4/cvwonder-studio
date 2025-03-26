@@ -30,10 +30,11 @@ import { join } from 'path';
 const getWritableBaseDir = () => {
   // Check if we're running on AWS Lambda
   if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
-    console.log('Using /tmp directory for binary storage (Lambda/production environment)');
+    // console.log('Using /tmp directory for binary storage (Lambda/production environment)');
     return '/tmp';
   }
-  console.log('Using local directory for binary storage (development environment)');
+  // console.log('Using local directory for binary storage (development environment)');
+  return '/tmp';
   return process.cwd();
 };
 

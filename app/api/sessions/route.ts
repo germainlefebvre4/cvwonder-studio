@@ -20,7 +20,7 @@ async function copyThemeAssets(sessionId: string, theme: string = 'default') {
     console.log(`Copying theme assets for theme: ${theme} to session: ${sessionId}`);
     
     // Get theme directory - always read from source themes directory
-    const themeDir = join(process.cwd(), 'themes', theme);
+    const themeDir = join(getBaseDir(), 'themes', theme);
     
     // Get session directory 
     const sessionDir = getSessionDir(sessionId);
@@ -49,7 +49,7 @@ async function copyThemeAssets(sessionId: string, theme: string = 'default') {
     }
     
     // Copy any root-level static files
-    const staticFiles = ['theme.yaml', 'styles.css', 'index.html'];
+    const staticFiles = ['styles.css', 'index.html'];
     for (const file of staticFiles) {
       const sourcePath = join(themeDir, file);
       if (existsSync(sourcePath)) {
