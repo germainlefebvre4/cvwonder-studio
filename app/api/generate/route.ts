@@ -46,7 +46,7 @@ async function ensureSessionFiles(sessionId: string, themeDir: string) {
         try {
           await mkdir(dir, { recursive: true });
         } catch (error) {
-          console.warn(`Direcotry ${dir} already exists.`);
+          console.warn(`Direcotry already exists: ${dir}`);
         }
       }
     }
@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
       try {
         await mkdir(outputDir, { recursive: true });
       } catch (error) {
-        console.warn('Output directory already exists:', error);
+        console.warn(`Directory already exists: ${outputDir}`);
       }
     }
 
