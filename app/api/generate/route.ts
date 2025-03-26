@@ -72,7 +72,11 @@ async function ensureSessionFiles(sessionId: string, themeDir: string) {
       const srcDir = join(themeDir, dir);
       const destDir = join(sessionDir, dir);
       if (existsSync(srcDir)) {
-        await cp(srcDir, destDir, { recursive: true });
+        try {
+          await cp(srcDir, destDir, { recursive: true, force: true });
+        } catch (error) {
+          console.warn(`Directory already exists: ${destDir}`);
+        }
       }
     }
   } catch (error) {
