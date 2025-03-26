@@ -132,13 +132,13 @@ export async function POST(req: NextRequest) {
     }
     
     // Create temp directory if it doesn't exist
-    const tempDir = join(getWritableBaseDir(), 'tmp');
-    if (!existsSync(tempDir)) {
-      await mkdir(tempDir, { recursive: true });
-    }
+    // const tempDir = join(getWritableBaseDir(), 'tmp');
+    // if (!existsSync(tempDir)) {
+    //   await mkdir(tempDir, { recursive: true });
+    // }
 
     // Create output directory
-    const outputDir = join(tempDir, 'output');
+    const outputDir = join(getWritableBaseDir(), 'sessions', sessionId);
     if (!existsSync(outputDir)) {
       await mkdir(outputDir, { recursive: true });
     }
@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Write CV YAML to temp file
-    const cvPath = join(tempDir, 'cv.yml');
+    const cvPath = join(getWritableBaseDir(), 'sessions', sessionId, 'cv.yml');
     try {
       await writeFile(cvPath, cv);
       if (!existsSync(cvPath)) {
