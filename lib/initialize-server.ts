@@ -135,6 +135,7 @@ async function ensureDefaultTheme() {
     // Check if themes directory exists
     if (!existsSync(THEMES_DIR)) {
       console.log('Themes directory does not exist in source code location');
+      await mkdir(THEMES_DIR, { recursive: true });
     }
 
     // Check if default theme already exists
@@ -144,19 +145,32 @@ async function ensureDefaultTheme() {
       return;
     } else {
       // If the theme doesn't exist, we need to install it
-      console.log('Installing default theme from repository:', DEFAULT_THEME_REPO);
+      // console.log('Installing default theme from repository:', DEFAULT_THEME_REPO);
       
       // Clone the theme repository
+      // try {
+      //   console.log('Attempting to install default theme using cvwonder command');
+      //   const {stdout, stderr} = await execAsync(`cd ${getBaseDir()} && ${CVWONDER_BINARY_PATH} theme install ${DEFAULT_THEME_REPO}`);
+      //   console.log('CVWonder output:', stdout);
+      //   console.error('CVWonder error output:', stderr);
+      //   console.log('Default theme installed successfully using cvwonder command');
+      // } catch (installError) {
+      //   console.error('Error installing default theme with cvwonder:', installError);
+      //   throw new Error('Failed to install default theme by any method');
+      // }
+      
+      // Copy the default theme from the repository
+      console.log('Copying default theme from source code location');
       try {
-        console.log('Attempting to install default theme using cvwonder command');
-        const {stdout, stderr} = await execAsync(`cd ${getBaseDir()} && ${CVWONDER_BINARY_PATH} theme install ${DEFAULT_THEME_REPO}`);
-        console.log('CVWonder output:', stdout);
-        console.error('CVWonder error output:', stderr);
-        console.log('Default theme installed successfully using cvwonder command');
-      } catch (installError) {
-        console.error('Error installing default theme with cvwonder:', installError);
-        throw new Error('Failed to install default theme by any method');
+        const sourceThemeDirectory = join(process.cwd(), 'themes', 'default');
+        const themeDirectory = join(getBaseDir(), 'themes', 'default');
+        await mkdir(themeDirectory, { recursive: true });
+        await cp(sourceThemeDirectory, themeDirectory, { recursive: true });
+      } catch (copyError) {
+        console.error('Error copying default theme:', copyError);
+        throw new Error('Failed to copy default theme');
       }
+      console.log('Default theme copied successfully');
     }
     
     // Verify theme was installed
