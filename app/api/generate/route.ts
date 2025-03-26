@@ -4,7 +4,7 @@ import { promisify } from 'util';
 import { writeFile, mkdir, rm, readFile, cp } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
-import { downloadCVWonderBinary, getCVWonderBinaryPath, installCVWonderTheme } from '@/lib/initialize-server';
+import { downloadCVWonderBinary, getCVWonderBinaryPath, installCVWonderTheme, getValidThemePath } from '@/lib/initialize-server';
 
 const execAsync = promisify(exec);
 
@@ -33,10 +33,10 @@ try {
   console.error('Error during cvwonder binary initialization:', error);
 }
 
-async function ensureSessionFiles(sessionId: string, themeDir: string) {
-  const sessionDir = join(getWritableBaseDir(), 'sessions', sessionId);
-
+async function ensureSessionFiles(sessionId: string, themeName: string) {
   try {
+    const sessionDir = join(getWritableBaseDir(), 'sessions', sessionId);
+    
     // Create session directories if they don't exist
     const dirsToCreate = ['images', 'static', 'css', 'js'].map(dir => join(sessionDir, dir));
     for (const dir of dirsToCreate) {
@@ -44,6 +44,10 @@ async function ensureSessionFiles(sessionId: string, themeDir: string) {
         await mkdir(dir, { recursive: true });
       }
     }
+
+    // Get a valid theme path using our helper function that handles both source and runtime locations
+    const themeDir = await getValidThemePath(themeName);
+    console.log(`Using theme directory: ${themeDir} for session files`);
 
     // Copy theme files to session directory
     const filesToCopy = [
@@ -164,8 +168,7 @@ export async function POST(req: NextRequest) {
     // Make sure the selected theme is installed and files are copied to session
     try {
       await installCVWonderTheme(theme);
-      const themeDir = join(getWritableBaseDir(), 'themes', theme);
-      await ensureSessionFiles(sessionId, themeDir);
+      await ensureSessionFiles(sessionId, theme);
     } catch (themeError) {
       console.error(`Error setting up theme ${theme}:`, themeError);
     }

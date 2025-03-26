@@ -4,7 +4,7 @@ import { existsSync } from 'fs';
 import crypto from 'crypto';
 import { Session, CreateSessionRequest, UpdateSessionRequest } from './types';
 import defaultCV from './defaultCV';
-import { installCVWonderTheme } from './initialize-server';
+import { installCVWonderTheme, getValidThemePath } from './initialize-server';
 
 // Get base directory for sessions based on environment
 const getBaseDir = () => {
@@ -17,14 +17,18 @@ const getBaseDir = () => {
 
 // Directory to store all sessions
 const SESSIONS_DIR = join(getBaseDir(), 'sessions');
-const THEMES_DIR = join(process.cwd(), 'themes'); // Always read themes from codebase
 const DEFAULT_RETENTION_DAYS = 7;
 const MAX_RETENTION_DAYS = 7;
 
-// Validate theme existence
+// Validate theme existence using the installCVWonderTheme function (which handles both source and runtime)
 const validateTheme = async (theme: string = 'default'): Promise<boolean> => {
-  const themePath = join(THEMES_DIR, theme);
-  return existsSync(themePath) && existsSync(join(themePath, 'index.html'));
+  try {
+    await installCVWonderTheme(theme);
+    return true;
+  } catch (error) {
+    console.error(`Theme validation failed for ${theme}:`, error);
+    return false;
+  }
 };
 
 // Ensure sessions directory exists

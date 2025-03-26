@@ -4,6 +4,7 @@ import { CreateSessionRequest } from '@/lib/types';
 import { join } from 'path';
 import { cp, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
+import { getValidThemePath } from '@/lib/initialize-server';
 
 // Get base directory based on environment
 const getBaseDir = () => {
@@ -18,16 +19,14 @@ async function copyThemeAssets(sessionId: string, theme: string = 'default') {
   try {
     console.log(`Copying theme assets for theme: ${theme} to session: ${sessionId}`);
     
-    // Get theme directory - always read from source themes directory
-    const themeDir = join(process.cwd(), 'themes', theme);
+    // Get a valid theme path (either from source or runtime)
+    const themeDir = await getValidThemePath(theme);
     
     // Get session directory 
     const sessionDir = getSessionDir(sessionId);
     
-    if (!existsSync(themeDir)) {
-      console.error(`Theme directory does not exist: ${themeDir}`);
-      throw new Error(`Theme directory not found: ${theme}`);
-    }
+    console.log(`Using theme directory: ${themeDir}`);
+    console.log(`Using session directory: ${sessionDir}`);
     
     // List of directories to copy
     const assetDirs = ['images', 'css', 'js'];
