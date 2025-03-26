@@ -142,36 +142,21 @@ async function ensureDefaultTheme() {
       console.log('Default theme found in theme directory');
       await ensureRuntimeTheme('default');
       return;
-    }
-
-    console.log(`Checking if theme ${DEFAULT_THEME_REPO} is installed...`);
-    // Check if the default theme is already installed
-    const themeDir = join(THEMES_DIR, 'default');
-    if (existsSync(themeDir)) {
-      console.log('Default theme already exists in themes directory');
-      // Check if the theme is complete
-      if (existsSync(join(themeDir, 'index.html'))) {
-        console.log('Default theme is complete and ready to use');
-        return;
-      } else {
-        console.log('Default theme is incomplete, removing...');
-        await rm(themeDir, { recursive: true, force: true });
+    } else {
+      // If the theme doesn't exist, we need to install it
+      console.log('Installing default theme from repository:', DEFAULT_THEME_REPO);
+      
+      // Clone the theme repository
+      try {
+        console.log('Attempting to install default theme using cvwonder command');
+        const {stdout, stderr} = await execAsync(`cd ${getBaseDir()} && ${CVWONDER_BINARY_PATH} theme install ${DEFAULT_THEME_REPO}`);
+        console.log('CVWonder output:', stdout);
+        console.error('CVWonder error output:', stderr);
+        console.log('Default theme installed successfully using cvwonder command');
+      } catch (installError) {
+        console.error('Error installing default theme with cvwonder:', installError);
+        throw new Error('Failed to install default theme by any method');
       }
-    }
-    
-    // If the theme doesn't exist, we need to install it
-    console.log('Installing default theme from repository:', DEFAULT_THEME_REPO);
-    
-    // Clone the theme repository
-    try {
-      console.log('Attempting to install default theme using cvwonder command');
-      const {stdout, stderr} = await execAsync(`cd ${getBaseDir()} && ${CVWONDER_BINARY_PATH} theme install ${DEFAULT_THEME_REPO}`);
-      console.log('CVWonder output:', stdout);
-      console.error('CVWonder error output:', stderr);
-      console.log('Default theme installed successfully using cvwonder command');
-    } catch (installError) {
-      console.error('Error installing default theme with cvwonder:', installError);
-      throw new Error('Failed to install default theme by any method');
     }
     
     // Verify theme was installed
