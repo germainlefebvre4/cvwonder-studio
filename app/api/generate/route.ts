@@ -201,34 +201,34 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate CV
-    const command = `cd ${getBaseDir()} && ${cvwonderPath} generate --input="${cvPath}" --theme="${theme}" --format="${format}" --output="${outputDir}"`;
+    const command = `cd ${process.cwd()} && ${cvwonderPath} generate --input="${cvPath}" --theme="${theme}" --format="${format}" --output="${outputDir}"`;
     console.info('Executing command:', command);
     
     try {
       const { stdout, stderr } = await execAsync(command);
       console.info('Command stdout:', stdout);
-      if (stderr) {
-        // Only log temporary file warnings, don't treat them as errors
-        if (isTemporaryFileWarning(stderr)) {
-          console.log('Harmless warning about temporary files (can be ignored):', stderr);
-        } else {
-          console.warn('CVWonder command stderr:', stderr);
-          if (stderr.includes('invalid argument')) {
-            const fallbackCommand = `cd ${getBaseDir()} && ${cvwonderPath} generate -i "${cvPath}" -t "${theme}" -f "${format}" -o "${outputDir}"`;
-            console.log('Trying fallback command:', fallbackCommand);
-            try {
-              const fallbackResult = await execAsync(fallbackCommand);
-              console.log('Fallback command stdout:', fallbackResult.stdout);
-              if (fallbackResult.stderr && !isTemporaryFileWarning(fallbackResult.stderr)) {
-                console.warn('Fallback command stderr:', fallbackResult.stderr);
-              }
-            } catch (fallbackError) {
-              console.error('Fallback command also failed:', fallbackError);
-              throw fallbackError;
-            }
-          }
-        }
-      }
+      // if (stderr) {
+      //   // Only log temporary file warnings, don't treat them as errors
+      //   if (isTemporaryFileWarning(stderr)) {
+      //     console.log('Harmless warning about temporary files (can be ignored):', stderr);
+      //   } else {
+      //     console.warn('CVWonder command stderr:', stderr);
+      //     if (stderr.includes('invalid argument')) {
+      //       const fallbackCommand = `cd ${process.cwd()} && ${cvwonderPath} generate -i "${cvPath}" -t "${theme}" -f "${format}" -o "${outputDir}"`;
+      //       console.log('Trying fallback command:', fallbackCommand);
+      //       try {
+      //         const fallbackResult = await execAsync(fallbackCommand);
+      //         console.log('Fallback command stdout:', fallbackResult.stdout);
+      //         if (fallbackResult.stderr && !isTemporaryFileWarning(fallbackResult.stderr)) {
+      //           console.warn('Fallback command stderr:', fallbackResult.stderr);
+      //         }
+      //       } catch (fallbackError) {
+      //         console.error('Fallback command also failed:', fallbackError);
+      //         throw fallbackError;
+      //       }
+      //     }
+      //   }
+      // }
     } catch (execError: unknown) {
       // Type cast the error to our custom interface
       const typedError = execError as ExecError;
