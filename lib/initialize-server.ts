@@ -144,6 +144,22 @@ async function ensureDefaultTheme() {
       return;
     }
 
+    console.log(`Checking if theme ${DEFAULT_THEME_REPO} is installed...`);
+    // Check if the default theme is already installed
+    const themeDir = join(THEMES_DIR, 'default');
+    if (existsSync(themeDir)) {
+      console.log('Default theme already exists in themes directory');
+      // Check if the theme is complete
+      if (existsSync(join(themeDir, 'index.html'))) {
+        console.log('Default theme is complete and ready to use');
+        return;
+      } else {
+        console.log('Default theme is incomplete, removing...');
+        await rm(themeDir, { recursive: true, force: true });
+      }
+    }
+    
+    // If the theme doesn't exist, we need to install it
     console.log('Installing default theme from repository:', DEFAULT_THEME_REPO);
     
     // Clone the theme repository
