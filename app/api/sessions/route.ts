@@ -4,7 +4,6 @@ import { CreateSessionRequest } from '@/lib/types';
 import { join } from 'path';
 import { cp, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
-import { getValidThemePath } from '@/lib/initialize-server';
 
 // Get base directory based on environment
 const getBaseDir = () => {
@@ -12,6 +11,7 @@ const getBaseDir = () => {
   if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
     return '/tmp';
   }
+  return '/tmp';
   return process.cwd();
 };
 
@@ -19,14 +19,16 @@ async function copyThemeAssets(sessionId: string, theme: string = 'default') {
   try {
     console.log(`Copying theme assets for theme: ${theme} to session: ${sessionId}`);
     
-    // Get a valid theme path (either from source or runtime)
-    const themeDir = await getValidThemePath(theme);
+    // Get theme directory - always read from source themes directory
+    const themeDir = join(process.cwd(), 'themes', theme);
     
     // Get session directory 
     const sessionDir = getSessionDir(sessionId);
     
-    console.log(`Using theme directory: ${themeDir}`);
-    console.log(`Using session directory: ${sessionDir}`);
+    if (!existsSync(themeDir)) {
+      console.error(`Theme directory does not exist: ${themeDir}`);
+      throw new Error(`Theme directory not found: ${theme}`);
+    }
     
     // List of directories to copy
     const assetDirs = ['images', 'css', 'js'];

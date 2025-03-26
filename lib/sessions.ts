@@ -4,7 +4,7 @@ import { existsSync } from 'fs';
 import crypto from 'crypto';
 import { Session, CreateSessionRequest, UpdateSessionRequest } from './types';
 import defaultCV from './defaultCV';
-import { installCVWonderTheme, getValidThemePath } from './initialize-server';
+import { installCVWonderTheme } from './initialize-server';
 
 // Get base directory for sessions based on environment
 const getBaseDir = () => {
@@ -12,23 +12,22 @@ const getBaseDir = () => {
   if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
     return '/tmp';
   }
+  return '/tmp';
   return process.cwd();
 };
+export { getBaseDir };
 
 // Directory to store all sessions
 const SESSIONS_DIR = join(getBaseDir(), 'sessions');
+const THEMES_DIR = join(getBaseDir(), 'themes'); // Always read themes from codebase
 const DEFAULT_RETENTION_DAYS = 7;
 const MAX_RETENTION_DAYS = 7;
 
-// Validate theme existence using the installCVWonderTheme function (which handles both source and runtime)
+// Validate theme existence
 const validateTheme = async (theme: string = 'default'): Promise<boolean> => {
-  try {
-    await installCVWonderTheme(theme);
-    return true;
-  } catch (error) {
-    console.error(`Theme validation failed for ${theme}:`, error);
-    return false;
-  }
+  const themePath = join(THEMES_DIR, theme);
+  console.log(`Validating theme path: ${themePath}`);
+  return existsSync(themePath) && existsSync(join(themePath, 'index.html'));
 };
 
 // Ensure sessions directory exists
