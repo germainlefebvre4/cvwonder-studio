@@ -5,7 +5,8 @@ import { writeFile, mkdir, rm, readFile, cp } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import { downloadCVWonderBinary, getCVWonderBinaryPath, installCVWonderTheme } from '@/lib/initialize-server';
-import { getBaseDir } from '@/lib/sessions';
+import { getBaseDir, getSessionCVPath, getSessionCVBlobUrl } from '@/lib/sessions';
+import * as blobStore from '@vercel/blob';
 
 const execAsync = promisify(exec);
 
@@ -184,18 +185,36 @@ export async function POST(req: NextRequest) {
       console.error(`Error setting up theme ${theme}:`, themeError);
     }
 
-    // Write CV YAML to temp file
-    const cvPath = join(getWritableBaseDir(), 'sessions', sessionId, 'cv.yml');
+    // Store CV YAML in Vercel Blob storage
     try {
+      await blobStore.put(getSessionCVBlobUrl(sessionId), cv, { access: 'public' });
+      console.log(`CV file written successfully to Blob: sessions/${sessionId}/cv.yml`);
+    } catch (writeError) {
+      console.error('Error writing CV file to Blob:', writeError);
+      return NextResponse.json({ 
+        error: 'Failed to write CV file to Blob storage', 
+        message: writeError instanceof Error ? writeError.message : 'Unknown error' 
+      }, { status: 500 });
+    }
+    
+    // We also need to write the CV file locally for the cvwonder binary to use
+    const cvPath = getSessionCVPath(sessionId);
+    try {
+      // Ensure the directory exists
+      const dirPath = join(getWritableBaseDir(), 'sessions', sessionId);
+      if (!existsSync(dirPath)) {
+        await mkdir(dirPath, { recursive: true });
+      }
+      
+      // Write the file
       await writeFile(cvPath, cv);
       if (!existsSync(cvPath)) {
-        throw new Error(`Failed to create CV file at ${cvPath}`);
+        throw new Error(`Failed to create temporary CV file at ${cvPath}`);
       }
-      console.log(`CV file written successfully to ${cvPath}`);
     } catch (writeError) {
-      console.error('Error writing CV file:', writeError);
+      console.error('Error writing temporary CV file:', writeError);
       return NextResponse.json({ 
-        error: 'Failed to write CV file', 
+        error: 'Failed to write temporary CV file', 
         message: writeError instanceof Error ? writeError.message : 'Unknown error' 
       }, { status: 500 });
     }
