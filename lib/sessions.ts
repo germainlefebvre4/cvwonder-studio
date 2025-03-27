@@ -87,17 +87,10 @@ export const getEnvironmentName = (): string => {
   return 'local';
 };
 
-// Get the path prefix for Blob storage
-export const getBlobPathPrefix = (): string => {
-  // No prefix needed for any environment now
-  return '';
-};
-
 // Get the Blob URL for a session's combined data file
 export const getSessionDataBlobUrl = (sessionId: string): string => {
   const envName = getEnvironmentName();
-  const prefix = getBlobPathPrefix();
-  const blobUrl = `${prefix}${envName}/sessions/${sessionId}/data.json`;
+    const blobUrl = `${envName}/sessions/${sessionId}/data.json`;
   console.log(`Generated data blob URL: ${blobUrl}`);
   return blobUrl;
 };
@@ -105,16 +98,14 @@ export const getSessionDataBlobUrl = (sessionId: string): string => {
 // Legacy functions maintained for backward compatibility
 export const getSessionCVBlobUrl = (sessionId: string): string => {
   const envName = getEnvironmentName();
-  const prefix = getBlobPathPrefix();
-  const blobUrl = `${prefix}${envName}/sessions/${sessionId}/cv.yml`;
+    const blobUrl = `${envName}/sessions/${sessionId}/cv.yml`;
   console.log(`Generated legacy CV blob URL: ${blobUrl}`);
   return blobUrl;
 };
 
 export const getSessionMetadataBlobUrl = (sessionId: string): string => {
   const envName = getEnvironmentName();
-  const prefix = getBlobPathPrefix();
-  return `${prefix}${envName}/sessions/${sessionId}/metadata.json`;
+    return `${envName}/sessions/${sessionId}/metadata.json`;
 };
 
 // Get the path to a session's metadata file
@@ -338,92 +329,13 @@ export const getSession = async (sessionId: string): Promise<Session | null> => 
           }
         }
       } catch (blobError: unknown) {
-        // Only log if it's not a "not found" error or in development mode
-        if (process.env.NODE_ENV === 'development' || 
-            !isBlobNotFoundError(blobError)) {
-          console.error(`Error fetching session data from Blob for session ${sessionId}:`, blobError);
-        } else {
-          console.log(`Blob not found for session ${sessionId}, checking legacy format...`);
-        }
+        console.error(`Error fetching session data from Blob for session ${sessionId}:`, blobError);
       }
     } catch (outerBlobError) {
       // This catch is just a safety net for any unexpected errors
       console.error(`Unexpected error during Blob access for session ${sessionId}:`, outerBlobError);
     }
     
-    // Fallback to legacy format (separate files)
-    try {
-      // Try to get metadata from Vercel Blob
-      const metadataBlobUrl = getSessionMetadataBlobUrl(sessionId);
-      
-      try {
-        const metadataBlobInfo = await head(metadataBlobUrl);
-        
-        if (metadataBlobInfo) {
-          const metadataResponse = await fetch(metadataBlobInfo.url);
-          if (metadataResponse.ok) {
-            const metadata = await metadataResponse.json();
-            
-            const session: Session = {
-              ...metadata,
-              createdAt: new Date(metadata.createdAt),
-              updatedAt: new Date(metadata.updatedAt),
-              expiresAt: new Date(metadata.expiresAt),
-              cvContent: '' // Will populate next
-            };
-            
-            // Check if session has expired
-            if (new Date() > session.expiresAt) {
-              await deleteExpiredSession(sessionId);
-              return null;
-            }
-            
-            // Try to get CV content
-            try {
-              const cvBlobUrl = getSessionCVBlobUrl(session.id);
-              const cvBlobInfo = await head(cvBlobUrl);
-              
-              if (cvBlobInfo) {
-                const cvResponse = await fetch(cvBlobInfo.url);
-                if (cvResponse.ok) {
-                  session.cvContent = await cvResponse.text();
-                  
-                  // Since we found legacy format data, migrate it to the new combined format
-                  try {
-                    await migrateSessionToSingleFile(session);
-                  } catch (migrationError: unknown) {
-                    console.error(`Error migrating session ${session.id} to single file:`, migrationError);
-                  }
-                }
-              }
-            } catch (cvError: unknown) {
-              console.error(`Error fetching CV content for session ${session.id}:`, cvError);
-            }
-            
-            // Return session even if we couldn't get CV content
-            return session;
-          }
-        }
-      } catch (metadataError: unknown) {
-        // Only log detailed errors in development mode or if not "not found" error
-        if (process.env.NODE_ENV === 'development' || 
-            !isBlobNotFoundError(metadataError)) {
-          console.error(`Error fetching legacy session data from Blob for session ${sessionId}:`, metadataError);
-        } else {
-          console.log(`Legacy metadata blob not found for session ${sessionId}, checking filesystem...`);
-        }
-      }
-    } catch (legacyError) {
-      // This catch is just a safety net for any unexpected errors
-      console.error(`Unexpected error during legacy Blob access for session ${sessionId}:`, legacyError);
-    }
-    
-    // Last resort: try to get from filesystem (for backward compatibility)
-    const metadataPath = getSessionMetadataPath(sessionId);
-    if (!existsSync(metadataPath)) {
-      console.log(`No session found for ID ${sessionId} in any storage location`);
-      return null;
-    }
     
     console.log(`Loading session ${sessionId} from filesystem...`);
     const metadataJson = await readFile(metadataPath, 'utf-8');
