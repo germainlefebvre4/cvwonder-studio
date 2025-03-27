@@ -89,12 +89,7 @@ export const getEnvironmentName = (): string => {
 
 // Get the path prefix for Blob storage
 export const getBlobPathPrefix = (): string => {
-  // For Vercel production/preview environments, use the fixed prefix
-  if (process.env.VERCEL_ENV) {
-    return 'cvwonder-studio-blob/';
-  }
-  
-  // For local development, no prefix required
+  // No prefix needed for any environment now
   return '';
 };
 
