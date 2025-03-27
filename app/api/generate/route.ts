@@ -5,7 +5,8 @@ import { writeFile, mkdir, rm, readFile, cp } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import { downloadCVWonderBinary, getCVWonderBinaryPath, installCVWonderTheme } from '@/lib/initialize-server';
-import { getBaseDir } from '@/lib/sessions';
+import { getBaseDir, getSessionCVPath, getSessionDataBlobUrl, getEnvironmentName, getSession } from '@/lib/sessions';
+import { put } from '@vercel/blob';
 
 const execAsync = promisify(exec);
 
@@ -184,18 +185,58 @@ export async function POST(req: NextRequest) {
       console.error(`Error setting up theme ${theme}:`, themeError);
     }
 
-    // Write CV YAML to temp file
-    const cvPath = join(getWritableBaseDir(), 'sessions', sessionId, 'cv.yml');
+    // Store CV data in Vercel Blob using the combined data format
     try {
+      // Get any existing data
+      let existingSession = null;
+      try {
+        existingSession = await getSession(sessionId);
+      } catch (e) {
+        // No existing session, we'll create a new one
+      }
+      
+      // Create combined data object
+      const now = new Date();
+      const expiresAt = existingSession?.expiresAt || new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days default
+      
+      const combinedData = {
+        metadata: {
+          id: sessionId,
+          createdAt: existingSession?.createdAt?.toISOString() || now.toISOString(),
+          updatedAt: now.toISOString(),
+          expiresAt: expiresAt.toISOString(),
+          selectedTheme: theme,
+          blobStoragePath: getEnvironmentName() + '/sessions/' + sessionId,
+          lastGeneratedAt: now.toISOString()
+        },
+        cvContent: cv
+      };
+      
+      await put(getSessionDataBlobUrl(sessionId), JSON.stringify(combinedData, null, 2), { access: 'public' });
+      console.log(`CV data written successfully to Blob: ${getSessionDataBlobUrl(sessionId)}`);
+    } catch (writeError) {
+      console.error('Error writing CV data to Blob:', writeError);
+      // Continue anyway since we'll write to the local file below
+    }
+    
+    // We also need to write the CV file locally for the cvwonder binary to use
+    const cvPath = getSessionCVPath(sessionId);
+    try {
+      // Ensure the directory exists
+      const dirPath = join(getWritableBaseDir(), 'sessions', sessionId);
+      if (!existsSync(dirPath)) {
+        await mkdir(dirPath, { recursive: true });
+      }
+      
+      // Write the file
       await writeFile(cvPath, cv);
       if (!existsSync(cvPath)) {
-        throw new Error(`Failed to create CV file at ${cvPath}`);
+        throw new Error(`Failed to create temporary CV file at ${cvPath}`);
       }
-      console.log(`CV file written successfully to ${cvPath}`);
     } catch (writeError) {
-      console.error('Error writing CV file:', writeError);
+      console.error('Error writing temporary CV file:', writeError);
       return NextResponse.json({ 
-        error: 'Failed to write CV file', 
+        error: 'Failed to write temporary CV file', 
         message: writeError instanceof Error ? writeError.message : 'Unknown error' 
       }, { status: 500 });
     }
