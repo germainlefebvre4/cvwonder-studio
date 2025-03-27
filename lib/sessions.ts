@@ -113,6 +113,42 @@ export const getSessionMetadataPath = (sessionId: string): string => {
   return join(getSessionDir(sessionId), 'metadata.json');
 };
 
+// Helper function to check if an error is a BlobNotFoundError
+const isBlobNotFoundError = (error: unknown): boolean => {
+  if (typeof error === 'object' && error !== null) {
+    // Check direct toString method
+    if ('toString' in error && typeof error.toString === 'function') {
+      const errorString = error.toString();
+      if (errorString.includes('BlobNotFoundError') || errorString.includes('The requested blob does not exist')) {
+        return true;
+      }
+    }
+    
+    // Check error message property
+    if ('message' in error && typeof (error as any).message === 'string') {
+      const message = (error as any).message;
+      if (message.includes('BlobNotFoundError') || message.includes('The requested blob does not exist')) {
+        return true;
+      }
+    }
+    
+    // Check error name property
+    if ('name' in error && typeof (error as any).name === 'string') {
+      if ((error as any).name === 'BlobNotFoundError') {
+        return true;
+      }
+    }
+  }
+  
+  // For string errors
+  if (typeof error === 'string' && 
+      (error.includes('BlobNotFoundError') || error.includes('The requested blob does not exist'))) {
+    return true;
+  }
+  
+  return false;
+};
+
 // Create a new session
 export const createSession = async (params: CreateSessionRequest = {}): Promise<Session> => {
   try {
@@ -295,10 +331,7 @@ export const getSession = async (sessionId: string): Promise<Session | null> => 
       } catch (blobError: unknown) {
         // Only log if it's not a "not found" error or in development mode
         if (process.env.NODE_ENV === 'development' || 
-            !(typeof blobError === 'object' && 
-              blobError !== null && 
-              'toString' in blobError && 
-              blobError.toString().includes('BlobNotFoundError'))) {
+            !isBlobNotFoundError(blobError)) {
           console.error(`Error fetching session data from Blob for session ${sessionId}:`, blobError);
         } else {
           console.log(`Blob not found for session ${sessionId}, checking legacy format...`);
@@ -349,7 +382,7 @@ export const getSession = async (sessionId: string): Promise<Session | null> => 
                   // Since we found legacy format data, migrate it to the new combined format
                   try {
                     await migrateSessionToSingleFile(session);
-                  } catch (migrationError) {
+                  } catch (migrationError: unknown) {
                     console.error(`Error migrating session ${session.id} to single file:`, migrationError);
                   }
                 }
@@ -365,10 +398,7 @@ export const getSession = async (sessionId: string): Promise<Session | null> => 
       } catch (metadataError: unknown) {
         // Only log detailed errors in development mode or if not "not found" error
         if (process.env.NODE_ENV === 'development' || 
-            !(typeof metadataError === 'object' && 
-              metadataError !== null && 
-              'toString' in metadataError && 
-              metadataError.toString().includes('BlobNotFoundError'))) {
+            !isBlobNotFoundError(metadataError)) {
           console.error(`Error fetching legacy session data from Blob for session ${sessionId}:`, metadataError);
         } else {
           console.log(`Legacy metadata blob not found for session ${sessionId}, checking filesystem...`);
@@ -650,7 +680,7 @@ export const listBlobSessions = async (envName?: string): Promise<Session[]> => 
                   // Since we found legacy format data, migrate it to the new combined format
                   try {
                     await migrateSessionToSingleFile(session);
-                  } catch (migrationError) {
+                  } catch (migrationError: unknown) {
                     console.error(`Error migrating session ${session.id} to single file:`, migrationError);
                   }
                 }
