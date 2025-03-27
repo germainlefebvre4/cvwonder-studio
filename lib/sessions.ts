@@ -87,12 +87,25 @@ export const getEnvironmentName = (): string => {
   return 'local';
 };
 
-// Get the Blob URL for a session's CV YAML file
+// Get the Blob URL for a session's combined data file
+export const getSessionDataBlobUrl = (sessionId: string): string => {
+  const envName = getEnvironmentName();
+  const blobUrl = `${envName}/sessions/${sessionId}/data.json`;
+  console.log(`Generated data blob URL: ${blobUrl}`);
+  return blobUrl;
+};
+
+// Legacy functions maintained for backward compatibility
 export const getSessionCVBlobUrl = (sessionId: string): string => {
   const envName = getEnvironmentName();
   const blobUrl = `${envName}/sessions/${sessionId}/cv.yml`;
-  console.log(`Generated blob URL: ${blobUrl}`);
+  console.log(`Generated legacy CV blob URL: ${blobUrl}`);
   return blobUrl;
+};
+
+export const getSessionMetadataBlobUrl = (sessionId: string): string => {
+  const envName = getEnvironmentName();
+  return `${envName}/sessions/${sessionId}/metadata.json`;
 };
 
 // Get the path to a session's metadata file
@@ -103,7 +116,7 @@ export const getSessionMetadataPath = (sessionId: string): string => {
 // Create a new session
 export const createSession = async (params: CreateSessionRequest = {}): Promise<Session> => {
   try {
-    // Ensure sessions directory exists and is writable
+    // Ensure sessions directory exists and is writable for temporary files
     await ensureSessionsDir();
     
     // Validate theme and install if necessary
@@ -123,7 +136,7 @@ export const createSession = async (params: CreateSessionRequest = {}): Promise<
     const sessionId = generateSessionId();
     const sessionDir = getSessionDir(sessionId);
     
-    // Create session directory
+    // Create session directory for temporary files
     await mkdir(sessionDir, { recursive: true }); 
     
     const now = new Date();
@@ -141,28 +154,45 @@ export const createSession = async (params: CreateSessionRequest = {}): Promise<
       throw new Error('Invalid CV content');
     }
     
-    // Write session metadata
-    const metadataPath = getSessionMetadataPath(sessionId);
-    await writeFile(
-      metadataPath,
-      JSON.stringify(session, null, 2)
-    );
-    
-    // Verify metadata was written correctly
-    const writtenMetadata = await readFile(metadataPath, 'utf-8');
-    JSON.parse(writtenMetadata); // Validate JSON
-    
-    // Write initial CV content to local file (for now we'll maintain both storage methods)
+    // Write CV content to a local file for rendering (temporarily)
     const cvPath = getSessionCVPath(sessionId);
     await writeFile(cvPath, session.cvContent);
     
-    // Write initial CV content to Vercel Blob
+    // Write combined data to Vercel Blob
     try {
-      const { url } = await put(getSessionCVBlobUrl(sessionId), session.cvContent, { access: 'public' });
-      console.log(`CV file written to Blob at: ${url}`);
+      const combinedData = {
+        metadata: {
+          id: sessionId,
+          createdAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+          expiresAt: session.expiresAt.toISOString(),
+          selectedTheme: theme,
+          blobStoragePath: getEnvironmentName() + '/sessions/' + sessionId,
+          storedAt: new Date().toISOString()
+        },
+        cvContent: session.cvContent
+      };
+      
+      // Store blob data with public access
+      const { url } = await put(getSessionDataBlobUrl(sessionId), JSON.stringify(combinedData, null, 2), { access: 'public' });
+      console.log(`Combined session data written to Blob at: ${url}`);
+      
+      // Also store the URL in the filesystem metadata for backward compatibility
+      // and to maintain a reference to the blob URL with its generated suffix
+      const metadataPath = getSessionMetadataPath(sessionId);
+      await writeFile(
+        metadataPath,
+        JSON.stringify({...session, blobUrl: url}, null, 2)
+      );
     } catch (blobError) {
-      console.error('Failed to store CV in Blob storage:', blobError);
-      // Continue with local file only as fallback
+      console.error('Failed to store session data in Blob storage:', blobError);
+      
+      // Fall back to writing metadata to filesystem only
+      const metadataPath = getSessionMetadataPath(sessionId);
+      await writeFile(
+        metadataPath,
+        JSON.stringify(session, null, 2)
+      );
     }
     
     // Schedule cleanup for this session
@@ -179,13 +209,181 @@ export const createSession = async (params: CreateSessionRequest = {}): Promise<
 
 // Get a session by ID with expiration check
 export const getSession = async (sessionId: string): Promise<Session | null> => {
-  const metadataPath = getSessionMetadataPath(sessionId);
-  
-  if (!existsSync(metadataPath)) {
-    return null;
-  }
-  
   try {
+    // First check if we have local metadata with a blobUrl
+    try {
+      const metadataPath = getSessionMetadataPath(sessionId);
+      if (existsSync(metadataPath)) {
+        console.log(`Found local metadata for session ${sessionId}, checking for blob URL...`);
+        const metadataJson = await readFile(metadataPath, 'utf-8');
+        const metadata = JSON.parse(metadataJson);
+        
+        // If the metadata contains a direct blobUrl, use it
+        if (metadata.blobUrl) {
+          console.log(`Found blob URL in metadata: ${metadata.blobUrl}`);
+          try {
+            const response = await fetch(metadata.blobUrl);
+            if (response.ok) {
+              const combinedData = await response.json();
+              
+              // Create a session object from the combined data
+              const session: Session = {
+                id: combinedData.metadata.id,
+                createdAt: new Date(combinedData.metadata.createdAt),
+                updatedAt: new Date(combinedData.metadata.updatedAt),
+                expiresAt: new Date(combinedData.metadata.expiresAt),
+                selectedTheme: combinedData.metadata.selectedTheme,
+                cvContent: combinedData.cvContent
+              };
+              
+              // Check if session has expired
+              if (new Date() > session.expiresAt) {
+                await deleteExpiredSession(sessionId);
+                return null;
+              }
+              
+              console.log(`Successfully loaded session data from stored blob URL: ${metadata.blobUrl}`);
+              return session;
+            } else {
+              console.error(`Error fetching blob content: ${response.status} ${response.statusText}`);
+            }
+          } catch (fetchError) {
+            console.error(`Error fetching from blob URL: ${fetchError}`);
+          }
+        }
+      }
+    } catch (metadataError) {
+      console.error(`Error reading local metadata file: ${metadataError}`);
+    }
+    
+    // Try to get session data from Vercel Blob first
+    try {
+      // Check if the combined data blob exists
+      const blobUrl = getSessionDataBlobUrl(sessionId);
+      
+      try {
+        const blobInfo = await head(blobUrl);
+        
+        if (blobInfo) {
+          // Blob exists, download it
+          const response = await fetch(blobInfo.url);
+          if (response.ok) {
+            const combinedData = await response.json();
+            
+            // Create a session object from the combined data
+            const session: Session = {
+              id: combinedData.metadata.id,
+              createdAt: new Date(combinedData.metadata.createdAt),
+              updatedAt: new Date(combinedData.metadata.updatedAt),
+              expiresAt: new Date(combinedData.metadata.expiresAt),
+              selectedTheme: combinedData.metadata.selectedTheme,
+              cvContent: combinedData.cvContent
+            };
+            
+            // Check if session has expired
+            if (new Date() > session.expiresAt) {
+              await deleteExpiredSession(sessionId);
+              return null;
+            }
+            
+            console.log(`Successfully loaded session data from Blob storage: ${blobUrl}`);
+            return session;
+          } else {
+            console.error(`Error fetching blob content: ${response.status} ${response.statusText}`);
+          }
+        }
+      } catch (blobError) {
+        // Only log if it's not a "not found" error or in development mode
+        if (process.env.NODE_ENV === 'development' || !(blobError.toString().includes('BlobNotFoundError'))) {
+          console.error(`Error fetching session data from Blob for session ${sessionId}:`, blobError);
+        } else {
+          console.log(`Blob not found for session ${sessionId}, checking legacy format...`);
+        }
+      }
+    } catch (outerBlobError) {
+      // This catch is just a safety net for any unexpected errors
+      console.error(`Unexpected error during Blob access for session ${sessionId}:`, outerBlobError);
+    }
+    
+    // Fallback to legacy format (separate files)
+    try {
+      // Try to get metadata from Vercel Blob
+      const metadataBlobUrl = getSessionMetadataBlobUrl(sessionId);
+      
+      try {
+        const metadataBlobInfo = await head(metadataBlobUrl);
+        
+        if (metadataBlobInfo) {
+          const metadataResponse = await fetch(metadataBlobInfo.url);
+          if (metadataResponse.ok) {
+            const metadata = await metadataResponse.json();
+            
+            const session: Session = {
+              ...metadata,
+              createdAt: new Date(metadata.createdAt),
+              updatedAt: new Date(metadata.updatedAt),
+              expiresAt: new Date(metadata.expiresAt),
+              cvContent: '' // Will populate next
+            };
+            
+            // Check if session has expired
+            if (new Date() > session.expiresAt) {
+              await deleteExpiredSession(sessionId);
+              return null;
+            }
+            
+            // Try to get CV content from Vercel Blob
+            try {
+              const cvBlobUrl = getSessionCVBlobUrl(sessionId);
+              const cvBlobInfo = await head(cvBlobUrl);
+              
+              if (cvBlobInfo) {
+                const cvResponse = await fetch(cvBlobInfo.url);
+                if (cvResponse.ok) {
+                  session.cvContent = await cvResponse.text();
+                  
+                  // Since we found legacy format data, migrate it to the new combined format
+                  try {
+                    await migrateSessionToSingleFile(session);
+                  } catch (migrationError) {
+                    console.error(`Error migrating session ${sessionId} to single file:`, migrationError);
+                  }
+                  
+                  return session;
+                }
+              }
+            } catch (cvError) {
+              // Only log detailed errors in development mode or if not "not found" error
+              if (process.env.NODE_ENV === 'development' || !(cvError.toString().includes('BlobNotFoundError'))) {
+                console.error(`Error fetching CV content from Blob for session ${sessionId}:`, cvError);
+              }
+            }
+            
+            // Return session even if we couldn't get CV content
+            return session;
+          }
+        }
+      } catch (metadataError) {
+        // Only log detailed errors in development mode or if not "not found" error
+        if (process.env.NODE_ENV === 'development' || !(metadataError.toString().includes('BlobNotFoundError'))) {
+          console.error(`Error fetching legacy session data from Blob for session ${sessionId}:`, metadataError);
+        } else {
+          console.log(`Legacy metadata blob not found for session ${sessionId}, checking filesystem...`);
+        }
+      }
+    } catch (legacyError) {
+      // This catch is just a safety net for any unexpected errors
+      console.error(`Unexpected error during legacy Blob access for session ${sessionId}:`, legacyError);
+    }
+    
+    // Last resort: try to get from filesystem (for backward compatibility)
+    const metadataPath = getSessionMetadataPath(sessionId);
+    if (!existsSync(metadataPath)) {
+      console.log(`No session found for ID ${sessionId} in any storage location`);
+      return null;
+    }
+    
+    console.log(`Loading session ${sessionId} from filesystem...`);
     const metadataJson = await readFile(metadataPath, 'utf-8');
     const metadata = JSON.parse(metadataJson);
     
@@ -202,37 +400,22 @@ export const getSession = async (sessionId: string): Promise<Session | null> => 
       return null;
     }
     
-    // Get CV content from local file as fallback
+    // Get CV content from local file
     try {
       const cvPath = getSessionCVPath(sessionId);
       if (existsSync(cvPath)) {
         session.cvContent = await readFile(cvPath, 'utf-8');
+        
+        // Migrate to blob storage for future requests
+        try {
+          await migrateSessionToSingleFile(session);
+          console.log(`Migrated session ${sessionId} from filesystem to Blob storage`);
+        } catch (migrationError) {
+          console.error(`Error migrating session ${sessionId} to Blob storage:`, migrationError);
+        }
       }
     } catch (fileError) {
       console.error(`Error reading local CV file for session ${sessionId}:`, fileError);
-    }
-    
-    // Try to get CV content from Vercel Blob
-    try {
-      // First check if the blob exists
-      const blobUrl = getSessionCVBlobUrl(sessionId);
-      const blobInfo = await head(blobUrl);
-      
-      if (blobInfo) {
-        // Blob exists, download it
-        const response = await fetch(blobInfo.url);
-        if (response.ok) {
-          session.cvContent = await response.text();
-          console.log(`Successfully loaded CV content from Blob storage: ${blobUrl}`);
-        } else {
-          console.error(`Error fetching blob content: ${response.status} ${response.statusText}`);
-        }
-      } else {
-        console.log(`Blob not found for session ${sessionId}, using local file instead`);
-      }
-    } catch (blobError) {
-      console.error(`Error fetching CV content from Blob for session ${sessionId}:`, blobError);
-      // We already tried to read from local file as fallback
     }
     
     return session;
@@ -242,17 +425,53 @@ export const getSession = async (sessionId: string): Promise<Session | null> => 
   }
 };
 
+// Helper function to migrate a session to the new single file format
+const migrateSessionToSingleFile = async (session: Session): Promise<void> => {
+  try {
+    const combinedData = {
+      metadata: {
+        id: session.id,
+        createdAt: session.createdAt.toISOString(),
+        updatedAt: session.updatedAt.toISOString(),
+        expiresAt: session.expiresAt.toISOString(),
+        selectedTheme: session.selectedTheme,
+        blobStoragePath: getEnvironmentName() + '/sessions/' + session.id,
+        storedAt: new Date().toISOString(),
+        migratedAt: new Date().toISOString()
+      },
+      cvContent: session.cvContent
+    };
+    
+    await put(getSessionDataBlobUrl(session.id), JSON.stringify(combinedData, null, 2), { access: 'public' });
+    console.log(`Migrated session ${session.id} to single file format`);
+  } catch (error) {
+    console.error(`Failed to migrate session ${session.id} to single file:`, error);
+    throw error;
+  }
+};
+
 // Delete an expired session
 export const deleteExpiredSession = async (sessionId: string): Promise<void> => {
   try {
     // Delete from Vercel Blob
     try {
-      await del(getSessionCVBlobUrl(sessionId));
+      // Delete combined data file
+      await del(getSessionDataBlobUrl(sessionId));
+      
+      // Also try to delete legacy files for complete cleanup
+      try {
+        await del(getSessionCVBlobUrl(sessionId));
+        await del(getSessionMetadataBlobUrl(sessionId));
+      } catch (legacyError) {
+        // Ignore errors from legacy files that might not exist
+      }
+      
+      console.log(`Successfully deleted session ${sessionId} from Blob storage`);
     } catch (blobError) {
-      console.error(`Error deleting CV content from Blob for session ${sessionId}:`, blobError);
+      console.error(`Error deleting session data from Blob for session ${sessionId}:`, blobError);
     }
     
-    // Delete from filesystem
+    // Delete from filesystem (temporary files only)
     const sessionDir = getSessionDir(sessionId);
     if (existsSync(sessionDir)) {
       await rm(sessionDir, { recursive: true });
@@ -299,25 +518,42 @@ export const updateSession = async (
     }),
   };
   
-  // Update metadata
-  await writeFile(
-    getSessionMetadataPath(sessionId),
-    JSON.stringify(updatedSession, null, 2)
-  );
-  
-  // Update CV content if provided
+  // Update CV content in local file for rendering if needed
   if (updates.cvContent !== undefined) {
-    // Update local file
     const cvPath = getSessionCVPath(sessionId);
     await writeFile(cvPath, updates.cvContent);
+  }
+  
+  // Update combined data in Vercel Blob
+  try {
+    const combinedData = {
+      metadata: {
+        id: sessionId,
+        createdAt: updatedSession.createdAt.toISOString(),
+        updatedAt: updatedSession.updatedAt.toISOString(),
+        expiresAt: updatedSession.expiresAt.toISOString(),
+        selectedTheme: updatedSession.selectedTheme,
+        blobStoragePath: getEnvironmentName() + '/sessions/' + sessionId,
+        lastModified: new Date().toISOString()
+      },
+      cvContent: updatedSession.cvContent
+    };
     
-    // Update in Vercel Blob
+    const { url } = await put(getSessionDataBlobUrl(sessionId), JSON.stringify(combinedData, null, 2), { access: 'public' });
+    console.log(`Updated combined session data in Blob storage for session ${sessionId} at: ${url}`);
+    
+    // Store the URL in local metadata file for easier retrieval
     try {
-      await put(getSessionCVBlobUrl(sessionId), updates.cvContent, { access: 'public' });
-    } catch (blobError) {
-      console.error(`Error updating CV in Blob storage for session ${sessionId}:`, blobError);
-      // Continue with local file only as fallback
+      const metadataPath = getSessionMetadataPath(sessionId);
+      await writeFile(
+        metadataPath,
+        JSON.stringify({...updatedSession, blobUrl: url}, null, 2)
+      );
+    } catch (metadataError) {
+      console.error(`Error updating local metadata file: ${metadataError}`);
     }
+  } catch (blobError) {
+    console.error(`Error updating combined session data in Blob storage for session ${sessionId}:`, blobError);
   }
   
   return updatedSession;
@@ -339,4 +575,116 @@ export const listSessions = async (limit: number = 20): Promise<Session[]> => {
   
   // Sort by updatedAt, newest first
   return sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+};
+
+// List sessions from Blob storage
+export const listBlobSessions = async (envName?: string): Promise<Session[]> => {
+  const env = envName || getEnvironmentName();
+  const sessions: Session[] = [];
+  
+  try {
+    // List all blobs under the environment's sessions directory
+    const { blobs } = await list({ prefix: `${env}/sessions/` });
+    
+    // Filter for data.json files (new combined format)
+    const dataBlobs = blobs.filter(blob => blob.pathname.endsWith('/data.json'));
+    
+    // Fetch each data file
+    for (const blob of dataBlobs) {
+      try {
+        const response = await fetch(blob.url);
+        if (response.ok) {
+          const combinedData = await response.json();
+          
+          // Convert date strings to Date objects
+          const session: Session = {
+            id: combinedData.metadata.id,
+            createdAt: new Date(combinedData.metadata.createdAt),
+            updatedAt: new Date(combinedData.metadata.updatedAt),
+            expiresAt: new Date(combinedData.metadata.expiresAt),
+            selectedTheme: combinedData.metadata.selectedTheme,
+            cvContent: combinedData.cvContent
+          };
+          
+          sessions.push(session);
+        }
+      } catch (error) {
+        console.error(`Error fetching session data from ${blob.url}:`, error);
+      }
+    }
+    
+    // If no combined data files were found, fall back to the legacy format
+    if (sessions.length === 0) {
+      // Filter for metadata files (legacy format)
+      const metadataBlobs = blobs.filter(blob => blob.pathname.endsWith('/metadata.json'));
+      
+      // Fetch each metadata file
+      for (const blob of metadataBlobs) {
+        try {
+          const response = await fetch(blob.url);
+          if (response.ok) {
+            const metadata = await response.json();
+            
+            // Convert date strings to Date objects
+            const session = {
+              ...metadata,
+              createdAt: new Date(metadata.createdAt),
+              updatedAt: new Date(metadata.updatedAt),
+              expiresAt: new Date(metadata.expiresAt),
+              cvContent: '' // We'll try to populate this next
+            };
+            
+            // Try to get CV content
+            try {
+              const cvBlobUrl = getSessionCVBlobUrl(session.id);
+              const cvBlobInfo = await head(cvBlobUrl);
+              
+              if (cvBlobInfo) {
+                const cvResponse = await fetch(cvBlobInfo.url);
+                if (cvResponse.ok) {
+                  session.cvContent = await cvResponse.text();
+                  
+                  // Since we found legacy format data, migrate it to the new combined format
+                  try {
+                    await migrateSessionToSingleFile(session);
+                  } catch (migrationError) {
+                    console.error(`Error migrating session ${session.id} to single file:`, migrationError);
+                  }
+                }
+              }
+            } catch (cvError) {
+              console.error(`Error fetching CV content for session ${session.id}:`, cvError);
+            }
+            
+            sessions.push(session);
+          }
+        } catch (error) {
+          console.error(`Error fetching session metadata from ${blob.url}:`, error);
+        }
+      }
+    }
+    
+    // Sort by updatedAt, newest first
+    return sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  } catch (error) {
+    console.error('Error listing sessions from Blob storage:', error);
+    return [];
+  }
+};
+
+// Cleanup expired sessions from Blob storage
+export const cleanupExpiredBlobSessions = async (envName?: string): Promise<void> => {
+  try {
+    const sessions = await listBlobSessions(envName);
+    const now = new Date();
+    
+    for (const session of sessions) {
+      if (now > session.expiresAt) {
+        console.log(`Deleting expired session ${session.id} from Blob storage`);
+        await deleteExpiredSession(session.id);
+      }
+    }
+  } catch (error) {
+    console.error('Error cleaning up expired sessions from Blob storage:', error);
+  }
 };
