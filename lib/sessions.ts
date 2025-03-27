@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import { Session, CreateSessionRequest, UpdateSessionRequest } from './types';
 import defaultCV from './defaultCV';
 import { installCVWonderTheme } from './initialize-server';
-import * as blobStore from "@vercel/blob";
+import { put, list, del, head } from "@vercel/blob";
 
 // Get base directory for sessions based on environment
 const getBaseDir = () => {
@@ -158,7 +158,7 @@ export const createSession = async (params: CreateSessionRequest = {}): Promise<
     
     // Write initial CV content to Vercel Blob
     try {
-      const { url } = await blobStore.put(getSessionCVBlobUrl(sessionId), session.cvContent, { access: 'public' });
+      const { url } = await put(getSessionCVBlobUrl(sessionId), session.cvContent, { access: 'public' });
       console.log(`CV file written to Blob at: ${url}`);
     } catch (blobError) {
       console.error('Failed to store CV in Blob storage:', blobError);
@@ -214,10 +214,22 @@ export const getSession = async (sessionId: string): Promise<Session | null> => 
     
     // Try to get CV content from Vercel Blob
     try {
-      const blobResponse = await blobStore.get(getSessionCVBlobUrl(sessionId));
-      if (blobResponse) {
-        session.cvContent = await blobResponse.text();
-      } 
+      // First check if the blob exists
+      const blobUrl = getSessionCVBlobUrl(sessionId);
+      const blobInfo = await head(blobUrl);
+      
+      if (blobInfo) {
+        // Blob exists, download it
+        const response = await fetch(blobInfo.url);
+        if (response.ok) {
+          session.cvContent = await response.text();
+          console.log(`Successfully loaded CV content from Blob storage: ${blobUrl}`);
+        } else {
+          console.error(`Error fetching blob content: ${response.status} ${response.statusText}`);
+        }
+      } else {
+        console.log(`Blob not found for session ${sessionId}, using local file instead`);
+      }
     } catch (blobError) {
       console.error(`Error fetching CV content from Blob for session ${sessionId}:`, blobError);
       // We already tried to read from local file as fallback
@@ -235,7 +247,7 @@ export const deleteExpiredSession = async (sessionId: string): Promise<void> => 
   try {
     // Delete from Vercel Blob
     try {
-      await blobStore.del(getSessionCVBlobUrl(sessionId));
+      await del(getSessionCVBlobUrl(sessionId));
     } catch (blobError) {
       console.error(`Error deleting CV content from Blob for session ${sessionId}:`, blobError);
     }
@@ -301,7 +313,7 @@ export const updateSession = async (
     
     // Update in Vercel Blob
     try {
-      await blobStore.put(getSessionCVBlobUrl(sessionId), updates.cvContent, { access: 'public' });
+      await put(getSessionCVBlobUrl(sessionId), updates.cvContent, { access: 'public' });
     } catch (blobError) {
       console.error(`Error updating CV in Blob storage for session ${sessionId}:`, blobError);
       // Continue with local file only as fallback

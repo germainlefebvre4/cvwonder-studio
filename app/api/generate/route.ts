@@ -6,7 +6,7 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import { downloadCVWonderBinary, getCVWonderBinaryPath, installCVWonderTheme } from '@/lib/initialize-server';
 import { getBaseDir, getSessionCVPath, getSessionCVBlobUrl } from '@/lib/sessions';
-import * as blobStore from '@vercel/blob';
+import { put } from '@vercel/blob';
 
 const execAsync = promisify(exec);
 
@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
 
     // Store CV YAML in Vercel Blob storage
     try {
-      await blobStore.put(getSessionCVBlobUrl(sessionId), cv, { access: 'public' });
+      await put(getSessionCVBlobUrl(sessionId), cv, { access: 'public' });
       console.log(`CV file written successfully to Blob: sessions/${sessionId}/cv.yml`);
     } catch (writeError) {
       console.error('Error writing CV file to Blob:', writeError);
