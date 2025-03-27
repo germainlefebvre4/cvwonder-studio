@@ -292,9 +292,13 @@ export const getSession = async (sessionId: string): Promise<Session | null> => 
             console.error(`Error fetching blob content: ${response.status} ${response.statusText}`);
           }
         }
-      } catch (blobError) {
+      } catch (blobError: unknown) {
         // Only log if it's not a "not found" error or in development mode
-        if (process.env.NODE_ENV === 'development' || !(blobError.toString().includes('BlobNotFoundError'))) {
+        if (process.env.NODE_ENV === 'development' || 
+            !(typeof blobError === 'object' && 
+              blobError !== null && 
+              'toString' in blobError && 
+              blobError.toString().includes('BlobNotFoundError'))) {
           console.error(`Error fetching session data from Blob for session ${sessionId}:`, blobError);
         } else {
           console.log(`Blob not found for session ${sessionId}, checking legacy format...`);
@@ -332,9 +336,9 @@ export const getSession = async (sessionId: string): Promise<Session | null> => 
               return null;
             }
             
-            // Try to get CV content from Vercel Blob
+            // Try to get CV content
             try {
-              const cvBlobUrl = getSessionCVBlobUrl(sessionId);
+              const cvBlobUrl = getSessionCVBlobUrl(session.id);
               const cvBlobInfo = await head(cvBlobUrl);
               
               if (cvBlobInfo) {
@@ -346,26 +350,25 @@ export const getSession = async (sessionId: string): Promise<Session | null> => 
                   try {
                     await migrateSessionToSingleFile(session);
                   } catch (migrationError) {
-                    console.error(`Error migrating session ${sessionId} to single file:`, migrationError);
+                    console.error(`Error migrating session ${session.id} to single file:`, migrationError);
                   }
-                  
-                  return session;
                 }
               }
-            } catch (cvError) {
-              // Only log detailed errors in development mode or if not "not found" error
-              if (process.env.NODE_ENV === 'development' || !(cvError.toString().includes('BlobNotFoundError'))) {
-                console.error(`Error fetching CV content from Blob for session ${sessionId}:`, cvError);
-              }
+            } catch (cvError: unknown) {
+              console.error(`Error fetching CV content for session ${session.id}:`, cvError);
             }
             
             // Return session even if we couldn't get CV content
             return session;
           }
         }
-      } catch (metadataError) {
+      } catch (metadataError: unknown) {
         // Only log detailed errors in development mode or if not "not found" error
-        if (process.env.NODE_ENV === 'development' || !(metadataError.toString().includes('BlobNotFoundError'))) {
+        if (process.env.NODE_ENV === 'development' || 
+            !(typeof metadataError === 'object' && 
+              metadataError !== null && 
+              'toString' in metadataError && 
+              metadataError.toString().includes('BlobNotFoundError'))) {
           console.error(`Error fetching legacy session data from Blob for session ${sessionId}:`, metadataError);
         } else {
           console.log(`Legacy metadata blob not found for session ${sessionId}, checking filesystem...`);
@@ -652,7 +655,7 @@ export const listBlobSessions = async (envName?: string): Promise<Session[]> => 
                   }
                 }
               }
-            } catch (cvError) {
+            } catch (cvError: unknown) {
               console.error(`Error fetching CV content for session ${session.id}:`, cvError);
             }
             
