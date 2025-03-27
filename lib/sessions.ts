@@ -87,10 +87,22 @@ export const getEnvironmentName = (): string => {
   return 'local';
 };
 
+// Get the path prefix for Blob storage
+export const getBlobPathPrefix = (): string => {
+  // For Vercel production/preview environments, use the fixed prefix
+  if (process.env.VERCEL_ENV) {
+    return 'cvwonder-studio-blob/';
+  }
+  
+  // For local development, no prefix required
+  return '';
+};
+
 // Get the Blob URL for a session's combined data file
 export const getSessionDataBlobUrl = (sessionId: string): string => {
   const envName = getEnvironmentName();
-  const blobUrl = `${envName}/sessions/${sessionId}/data.json`;
+  const prefix = getBlobPathPrefix();
+  const blobUrl = `${prefix}${envName}/sessions/${sessionId}/data.json`;
   console.log(`Generated data blob URL: ${blobUrl}`);
   return blobUrl;
 };
@@ -98,14 +110,16 @@ export const getSessionDataBlobUrl = (sessionId: string): string => {
 // Legacy functions maintained for backward compatibility
 export const getSessionCVBlobUrl = (sessionId: string): string => {
   const envName = getEnvironmentName();
-  const blobUrl = `${envName}/sessions/${sessionId}/cv.yml`;
+  const prefix = getBlobPathPrefix();
+  const blobUrl = `${prefix}${envName}/sessions/${sessionId}/cv.yml`;
   console.log(`Generated legacy CV blob URL: ${blobUrl}`);
   return blobUrl;
 };
 
 export const getSessionMetadataBlobUrl = (sessionId: string): string => {
   const envName = getEnvironmentName();
-  return `${envName}/sessions/${sessionId}/metadata.json`;
+  const prefix = getBlobPathPrefix();
+  return `${prefix}${envName}/sessions/${sessionId}/metadata.json`;
 };
 
 // Get the path to a session's metadata file
