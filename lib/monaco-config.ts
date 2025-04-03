@@ -4,14 +4,6 @@ import { editor } from 'monaco-editor';
 export const configureMonacoYamlEditor = async (monaco: any) => {
   try {
     // Fetch the schema from the local file
-    // const schemaResponse = await fetch('/schemas/3.0.0/cvwonder.json');
-    
-    // if (!schemaResponse.ok) {
-    //   console.error('Failed to fetch CVWonder schema');
-    //   return;
-    // }
-    
-    // const schema = await schemaResponse.json();
     const schema = await import('../schemas/3.0.0/cvwonder.json');
     
     // Check if the YAML language is already registered
@@ -122,21 +114,6 @@ function createCompletionItemsFromSchema(schema: any, contextPath: string, monac
                         value: getPropertyDocFromSchema(currentSchema.properties[key].items)
                     }
                 });
-
-                // Add array item properties if the items are objects
-                // if (currentSchema.properties[key].items.type === 'object' && currentSchema.properties[key].items.properties) {
-                //     for (const itemKey in currentSchema.properties[key].items.properties) {
-                //         suggestions.push({
-                //             label: `${key}[].${itemKey}`,
-                //             kind: monaco.languages.CompletionItemKind.Property,
-                //             insertText: `  ${itemKey}:`,
-                //             detail: getPropertyDetailFromSchema(currentSchema.properties[key].items.properties[itemKey]),
-                //             documentation: {
-                //                 value: getPropertyDocFromSchema(currentSchema.properties[key].items.properties[itemKey])
-                //             }
-                //         });
-                //     }
-                // }
             }
         }
     }
