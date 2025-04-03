@@ -1,5 +1,16 @@
 ---
 services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cvwonder-studio:dev
+    container_name: cvwonder-studio
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://cvwonder:cvwonder@database:5432/cvwonder
+    
   database:
     image: postgres:latest
     environment:

@@ -1,19 +1,11 @@
-import { editor } from 'monaco-editor';
+import { editor, languages } from 'monaco-editor';
 
 // Function to configure Monaco editor with the CVWonder schema
 export const configureMonacoYamlEditor = async (monaco: any) => {
   try {
     // Fetch the schema from the local file
-    // const schemaResponse = await fetch('/schemas/3.0.0/cvwonder.json');
-    
-    // if (!schemaResponse.ok) {
-    //   console.error('Failed to fetch CVWonder schema');
-    //   return;
-    // }
-    
-    // const schema = await schemaResponse.json();
     const schema = await import('../schemas/3.0.0/cvwonder.json');
-    
+
     // Check if the YAML language is already registered
     if (!monaco.languages.getLanguages().some((lang: any) => lang.id === 'yaml')) {
       console.log('YAML language not registered, registering simple YAML support');
@@ -21,10 +13,10 @@ export const configureMonacoYamlEditor = async (monaco: any) => {
       // Register a basic YAML language if full support is not available
       monaco.languages.register({ id: 'yaml' });
     }
-    
+
     // Register basic completion provider for YAML
     monaco.languages.registerCompletionItemProvider('yaml', {
-      provideCompletionItems: (model: editor.ITextModel, position: editor.IPosition) => {
+      provideCompletionItems: (model: any, position: any) => {
         // Get the text before the cursor
         const textUntilPosition = model.getValueInRange({
           startLineNumber: 1,
@@ -75,8 +67,8 @@ export const configureMonacoYamlEditor = async (monaco: any) => {
 };
 
 // Helper function to create completion items from schema
-function createCompletionItemsFromSchema(schema: any, contextPath: string, monaco: any): editor.CompletionItem[] {
-    const suggestions: editor.CompletionItem[] = [];
+function createCompletionItemsFromSchema(schema: any, contextPath: string, monaco: any): languages.CompletionItem[] {
+    const suggestions: languages.CompletionItem[] = [];
     
     if (!schema.properties) {
         return suggestions;
@@ -98,6 +90,14 @@ function createCompletionItemsFromSchema(schema: any, contextPath: string, monac
         }
     }
 
+    // Define a default range for all completion items
+    const defaultRange = {
+        startLineNumber: 0,
+        startColumn: 0,
+        endLineNumber: 0,
+        endColumn: 0
+    };
+
     // Generate suggestions for the current schema level
     if (currentSchema.properties) {
         for (const key in currentSchema.properties) {
@@ -108,7 +108,8 @@ function createCompletionItemsFromSchema(schema: any, contextPath: string, monac
                 detail: getPropertyDetailFromSchema(currentSchema.properties[key]),
                 documentation: {
                     value: getPropertyDocFromSchema(currentSchema.properties[key])
-                }
+                },
+                range: defaultRange
             });
 
             // Add array items if applicable
@@ -120,24 +121,10 @@ function createCompletionItemsFromSchema(schema: any, contextPath: string, monac
                     detail: `Array of ${currentSchema.properties[key].items.type || 'items'}`,
                     documentation: {
                         value: getPropertyDocFromSchema(currentSchema.properties[key].items)
-                    }
-                });
-
-                // Add array item properties if the items are objects
-                // if (currentSchema.properties[key].items.type === 'object' && currentSchema.properties[key].items.properties) {
-                //     for (const itemKey in currentSchema.properties[key].items.properties) {
-                //         suggestions.push({
-                //             label: `${key}[].${itemKey}`,
-                //             kind: monaco.languages.CompletionItemKind.Property,
-                //             insertText: `  ${itemKey}:`,
-                //             detail: getPropertyDetailFromSchema(currentSchema.properties[key].items.properties[itemKey]),
-                //             documentation: {
-                //                 value: getPropertyDocFromSchema(currentSchema.properties[key].items.properties[itemKey])
-                //             }
-                //         });
-                //     }
-                // }
-            }
+                    },
+                    range: defaultRange
+               });
+         }
         }
     }
 
