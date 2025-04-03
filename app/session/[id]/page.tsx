@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import Editor from '@monaco-editor/react';
+import Editor, { OnMount } from '@monaco-editor/react';
 import * as yaml from 'js-yaml';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +24,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { ShareDialog } from '@/components/ui/share-dialog';
 import { join } from 'path';
+import { configureMonacoYamlEditor } from '@/lib/monaco-config';
 
 
 // Get writable base directory depending on environment
@@ -63,6 +64,13 @@ export default function SessionPage() {
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const currentYamlRef = useRef(defaultCV);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+
+  // Handler for when Monaco editor is mounted
+  const handleEditorDidMount: OnMount = useCallback(async (editor, monaco) => {
+    console.log('Monaco editor mounted');
+    // Configure the editor with auto-completion based on the CVWonder schema
+    await configureMonacoYamlEditor(monaco);
+  }, []);
 
   // Load session data when component mounts
   useEffect(() => {
@@ -457,11 +465,19 @@ export default function SessionPage() {
               defaultLanguage="yaml"
               value={cv}
               onChange={handleEditorChange}
+              onMount={handleEditorDidMount}
               options={{
                 minimap: { enabled: false },
                 lineNumbers: 'on',
                 scrollBeyondLastLine: false,
                 wordWrap: 'on',
+                formatOnPaste: true,
+                formatOnType: true,
+                suggest: {
+                  showWords: true,
+                  showSnippets: true,
+                  showProperties: true
+                }
               }}
             />
           </div>

@@ -3,6 +3,8 @@ import { promisify } from 'util';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { mkdir, rm, cp } from 'fs/promises';
+import prisma from './db';
+import { initializeDefaultTheme } from './themes';
 
 const execAsync = promisify(exec);
 
@@ -34,6 +36,41 @@ const getRuntimeThemeDir = (themeName: string) => {
 // Official theme repository URLs
 const DEFAULT_THEME_REPO = 'https://github.com/germainlefebvre4/cvwonder-theme-default';
 // const BASIC_THEME_REPO = 'https://github.com/germainlefebvre4/cvwonder-theme-basic';
+
+// Initialize database with default data
+export async function initializeDatabase() {
+  console.log('Initializing database...');
+  
+  try {
+    // Initialize default theme in the database
+    await initializeDefaultTheme();
+    
+    console.log('Database initialization complete.');
+    return true;
+  } catch (error) {
+    console.error('Database initialization failed:', error);
+    throw error;
+  }
+}
+
+// Master initialization function
+export async function initializeServer() {
+  console.log('Initializing server...');
+  
+  try {
+    // Initialize the database
+    await initializeDatabase();
+    
+    // Download and setup the CVWonder binary
+    await downloadCVWonderBinary();
+    
+    console.log('Server initialization complete.');
+    return true;
+  } catch (error) {
+    console.error('Server initialization failed:', error);
+    throw error;
+  }
+}
 
 // Check if a theme exists in the themes directory
 function themeExists(themeName: string): boolean {

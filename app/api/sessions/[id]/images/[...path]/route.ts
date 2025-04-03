@@ -2,6 +2,7 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import { readFile } from 'fs/promises';
 import { NextRequest, NextResponse } from 'next/server';
+import { getSession } from '@/lib/sessions';
 
 const MIME_TYPES: Record<string, string> = {
   '.jpg': 'image/jpeg',
@@ -16,10 +17,8 @@ const MIME_TYPES: Record<string, string> = {
 const getWritableBaseDir = () => {
   // Check if we're running on AWS Lambda
   if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
-    // console.log('Using /tmp directory for binary storage (Lambda/production environment)');
     return '/tmp';
   }
-  // console.log('Using local directory for binary storage (development environment)');
   return '/tmp';
   return process.cwd();
 };
@@ -31,18 +30,25 @@ export async function GET(
   try {
     const { id, path } = params;
     
+    // Get session information from database to determine theme
+    const session = await getSession(id);
+    if (!session) {
+      console.error('Session not found:', id);
+      return new NextResponse('Session not found', { status: 404 });
+    }
+    
+    // Use the theme from the session
+    const theme = session.selectedTheme || 'default';
+    
     // Join the path parts but remove any 'images' prefix if it exists
     const imagePath = path.join('/').replace(/^images\//, '');
     
     // List of possible locations to look for the image
     const possiblePaths = [
-      // 1. Session-specific images
-      join(getWritableBaseDir(), 'sessions', id, 'images', imagePath),
-      // 2. Theme-specific images
+      // Theme-specific images from the session's theme
+      join(getWritableBaseDir(), `themes/${theme}/images`, imagePath),
+      // Fallback to default theme images
       join(getWritableBaseDir(), 'themes/default/images', imagePath),
-      // join(getWritableBaseDir(), 'themes/basic/images', imagePath),
-      // 3. Original session images directory
-      join(getWritableBaseDir(), 'sessions', id, imagePath),
     ];
     
     // Try each possible path until we find the image
