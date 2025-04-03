@@ -1,11 +1,11 @@
-import { editor } from 'monaco-editor';
+import { editor, languages } from 'monaco-editor';
 
 // Function to configure Monaco editor with the CVWonder schema
 export const configureMonacoYamlEditor = async (monaco: any) => {
   try {
     // Fetch the schema from the local file
     const schema = await import('../schemas/3.0.0/cvwonder.json');
-    
+
     // Check if the YAML language is already registered
     if (!monaco.languages.getLanguages().some((lang: any) => lang.id === 'yaml')) {
       console.log('YAML language not registered, registering simple YAML support');
@@ -13,10 +13,10 @@ export const configureMonacoYamlEditor = async (monaco: any) => {
       // Register a basic YAML language if full support is not available
       monaco.languages.register({ id: 'yaml' });
     }
-    
+
     // Register basic completion provider for YAML
     monaco.languages.registerCompletionItemProvider('yaml', {
-      provideCompletionItems: (model: editor.ITextModel, position: editor.IPosition) => {
+      provideCompletionItems: (model: any, position: any) => {
         // Get the text before the cursor
         const textUntilPosition = model.getValueInRange({
           startLineNumber: 1,
@@ -67,8 +67,8 @@ export const configureMonacoYamlEditor = async (monaco: any) => {
 };
 
 // Helper function to create completion items from schema
-function createCompletionItemsFromSchema(schema: any, contextPath: string, monaco: any): editor.CompletionItem[] {
-    const suggestions: editor.CompletionItem[] = [];
+function createCompletionItemsFromSchema(schema: any, contextPath: string, monaco: any): languages.CompletionItem[] {
+    const suggestions: languages.CompletionItem[] = [];
     
     if (!schema.properties) {
         return suggestions;
@@ -90,6 +90,14 @@ function createCompletionItemsFromSchema(schema: any, contextPath: string, monac
         }
     }
 
+    // Define a default range for all completion items
+    const defaultRange = {
+        startLineNumber: 0,
+        startColumn: 0,
+        endLineNumber: 0,
+        endColumn: 0
+    };
+
     // Generate suggestions for the current schema level
     if (currentSchema.properties) {
         for (const key in currentSchema.properties) {
@@ -100,7 +108,8 @@ function createCompletionItemsFromSchema(schema: any, contextPath: string, monac
                 detail: getPropertyDetailFromSchema(currentSchema.properties[key]),
                 documentation: {
                     value: getPropertyDocFromSchema(currentSchema.properties[key])
-                }
+                },
+                range: defaultRange
             });
 
             // Add array items if applicable
@@ -112,9 +121,10 @@ function createCompletionItemsFromSchema(schema: any, contextPath: string, monac
                     detail: `Array of ${currentSchema.properties[key].items.type || 'items'}`,
                     documentation: {
                         value: getPropertyDocFromSchema(currentSchema.properties[key].items)
-                    }
-                });
-            }
+                    },
+                    range: defaultRange
+               });
+         }
         }
     }
 
