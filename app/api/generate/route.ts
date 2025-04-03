@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { writeFile, mkdir, rm, readFile, cp } from 'fs/promises';
+import { writeFile, mkdir, readFile, cp } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import { downloadCVWonderBinary, getCVWonderBinaryPath, installCVWonderTheme } from '@/lib/initialize-server';
-import { getBaseDir } from '@/lib/sessions';
+import { getSession } from '@/lib/sessions';
 
 const execAsync = promisify(exec);
 
@@ -20,10 +20,17 @@ interface ExecError extends Error {
 const getWritableBaseDir = () => {
   // Check if we're running on AWS Lambda
   if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
-    // console.log('Using /tmp directory for binary storage (Lambda/production environment)');
     return '/tmp';
   }
-  // console.log('Using local directory for binary storage (development environment)');
+  return '/tmp';
+  return process.cwd();
+};
+
+// Get base directory for command execution
+const getBaseDir = () => {
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return '/tmp';
+  }
   return '/tmp';
   return process.cwd();
 };
@@ -54,7 +61,6 @@ async function ensureSessionFiles(sessionId: string, themeDir: string) {
     // Copy theme files to session directory
     const filesToCopy = [
       { src: join(themeDir, 'styles.css'), dest: join(sessionDir, 'static', 'styles.css') },
-      // { src: join(themeDir, 'theme.yaml'), dest: join(sessionDir, 'static', 'theme.yaml') }
     ];
 
     // Copy theme directories
@@ -120,30 +126,28 @@ function isTemporaryFileWarning(stderr: string): boolean {
 
 export async function POST(req: NextRequest) {
   try {
-    const { cv, theme, format = 'html', sessionId } = await req.json();
+    const { cv, format = 'html', sessionId } = await req.json();
     
     // Input validation
     if (!cv || typeof cv !== 'string' || cv.trim() === '') {
       return NextResponse.json({ error: 'CV content is required and must be a non-empty string' }, { status: 400 });
     }
     
-    if (!theme || typeof theme !== 'string') {
-      return NextResponse.json({ error: 'Theme is required and must be a string' }, { status: 400 });
-    }
-    
-    if (format !== 'html' && format !== 'pdf') {
-      return NextResponse.json({ error: 'Format must be either "html" or "pdf"' }, { status: 400 });
-    }
-
     if (!sessionId) {
       return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
     }
     
-    // Create temp directory if it doesn't exist
-    // const tempDir = join(getWritableBaseDir(), 'tmp');
-    // if (!existsSync(tempDir)) {
-    //   await mkdir(tempDir, { recursive: true });
-    // }
+    // Get session from database to determine theme
+    const session = await getSession(sessionId);
+    if (!session) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+    
+    const theme = session.selectedTheme;
+    
+    if (format !== 'html' && format !== 'pdf') {
+      return NextResponse.json({ error: 'Format must be either "html" or "pdf"' }, { status: 400 });
+    }
 
     // Create output directory
     const outputDir = join(getWritableBaseDir(), 'sessions', sessionId);

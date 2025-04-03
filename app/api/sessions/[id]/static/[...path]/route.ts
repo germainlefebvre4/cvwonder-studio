@@ -2,6 +2,7 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import { readFile } from 'fs/promises';
 import { NextRequest, NextResponse } from 'next/server';
+import { getSession } from '@/lib/sessions';
 
 const MIME_TYPES: Record<string, string> = {
   '.js': 'application/javascript',
@@ -17,10 +18,8 @@ const MIME_TYPES: Record<string, string> = {
 const getWritableBaseDir = () => {
   // Check if we're running on AWS Lambda
   if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
-    // console.log('Using /tmp directory for binary storage (Lambda/production environment)');
     return '/tmp';
   }
-  // console.log('Using local directory for binary storage (development environment)');
   return '/tmp';
   return process.cwd();
 };
@@ -32,22 +31,29 @@ export async function GET(
   try {
     const { id, path } = params;
     
+    // Get session information from database to determine theme
+    const session = await getSession(id);
+    if (!session) {
+      console.error('Session not found:', id);
+      return new NextResponse('Session not found', { status: 404 });
+    }
+    
+    // Use the theme from the session
+    const theme = session.selectedTheme || 'default';
+    
     // Join the path parts and remove any 'static' prefix if it exists
     const filePath = path.join('/').replace(/^(?:static|css|js)\//, '');
     
     // List of possible locations to look for the file
     const possiblePaths = [
-      // 1. Session-specific files
-      join(getWritableBaseDir(), 'sessions', id, 'static', filePath),
-      join(getWritableBaseDir(), 'sessions', id, filePath),
-      // 2. Theme-specific files from default theme
+      // Theme-specific files from the session's theme
+      join(getWritableBaseDir(), `themes/${theme}`, filePath),
+      join(getWritableBaseDir(), `themes/${theme}/css`, filePath),
+      join(getWritableBaseDir(), `themes/${theme}/js`, filePath),
+      // Fallback to default theme files
       join(getWritableBaseDir(), 'themes/default', filePath),
       join(getWritableBaseDir(), 'themes/default/css', filePath),
       join(getWritableBaseDir(), 'themes/default/js', filePath),
-      // 3. Theme-specific files from basic theme
-      // join(getWritableBaseDir(), 'themes/basic', filePath),
-      // join(getWritableBaseDir(), 'themes/basic/css', filePath),
-      // join(getWritableBaseDir(), 'themes/basic/js', filePath),
     ];
     
     // Try each possible path until we find the file
