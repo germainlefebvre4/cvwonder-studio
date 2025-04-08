@@ -21,22 +21,25 @@ const colors = {
 // Initial themes to seed
 const themes = [
   {
-    name: 'default',
-    description: 'Default CV Wonder theme',
+    name: 'Default',
+    slug: 'default',
+    description: 'Default theme for CV Wonder',
     githubRepoUrl: 'https://github.com/germainlefebvre4/cvwonder-theme-default',
-    previewUrl: 'https://cvwonder.com/themes/default/preview'
+    previewUrl: 'https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-default/main/preview.png'
   },
   {
-    name: 'modern',
-    description: 'Modern and clean CV theme with sleek design',
-    githubRepoUrl: 'https://github.com/germainlefebvre4/cvwonder-theme-modern',
-    previewUrl: 'https://cvwonder.com/themes/modern/preview'
+    name: 'Basic',
+    slug: 'basic',
+    description: 'Basic theme for CV Wonder',
+    githubRepoUrl: 'https://github.com/germainlefebvre4/cvwonder-theme-basic',
+    previewUrl: 'https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-basic/main/preview.png'
   },
   {
-    name: 'professional',
-    description: 'Professional CV theme for corporate environments',
-    githubRepoUrl: 'https://github.com/germainlefebvre4/cvwonder-theme-professional',
-    previewUrl: 'https://cvwonder.com/themes/professional/preview'
+    name: 'Horizon Timeline',
+    slug: 'horizon-timeline',
+    description: 'Horizon Timeline theme for CV Wonder',
+    githubRepoUrl: 'https://github.com/germainlefebvre4/cvwonder-theme-horizon-timeline',
+    previewUrl: 'https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-horizon-timeline/main/preview.png'
   }
 ];
 
@@ -50,18 +53,18 @@ async function main() {
     for (const theme of themes) {
       // Check if theme already exists
       const existingTheme = await prisma.theme.findUnique({
-        where: { name: theme.name }
+        where: { slug: theme.slug }
       });
       
       if (existingTheme) {
-        console.log(`${colors.fg.yellow}Theme '${theme.name}' already exists, updating...${colors.reset}`);
+        console.log(`${colors.fg.yellow}Theme '${theme.slug}' already exists, updating...${colors.reset}`);
         
         await prisma.theme.update({
-          where: { name: theme.name },
+          where: { slug: theme.slug },
           data: theme
         });
       } else {
-        console.log(`${colors.fg.green}Creating theme '${theme.name}'...${colors.reset}`);
+        console.log(`${colors.fg.green}Creating theme '${theme.slug}'...${colors.reset}`);
         
         await prisma.theme.create({
           data: theme

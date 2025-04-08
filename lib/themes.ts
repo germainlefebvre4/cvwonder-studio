@@ -5,14 +5,14 @@ import prisma from './db';
 /**
  * Validate if a theme exists in the database
  */
-export const validateTheme = async (themeName: string = 'default'): Promise<boolean> => {
+export const validateTheme = async (themeSlug: string = 'default'): Promise<boolean> => {
   try {
     const theme = await prisma.theme.findUnique({
-      where: { name: themeName }
+      where: { slug: themeSlug }
     });
     return !!theme;
   } catch (error) {
-    console.error(`Error validating theme ${themeName}:`, error);
+    console.error(`Error validating theme ${themeSlug}:`, error);
     return false;
   }
 };
@@ -22,7 +22,7 @@ export const validateTheme = async (themeName: string = 'default'): Promise<bool
  */
 export const getAllThemes = async () => {
   return prisma.theme.findMany({
-    orderBy: { name: 'asc' }
+    orderBy: { slug: 'asc' }
   });
 };
 
@@ -31,6 +31,7 @@ export const getAllThemes = async () => {
  */
 export const createTheme = async (theme: {
   name: string;
+  slug: string;
   description?: string;
   githubRepoUrl?: string;
   previewUrl?: string;
@@ -43,9 +44,9 @@ export const createTheme = async (theme: {
 /**
  * Get a theme by name
  */
-export const getThemeByName = async (name: string) => {
+export const getThemeByName = async (slug: string) => {
   return prisma.theme.findUnique({
-    where: { name }
+    where: { slug }
   });
 };
 
@@ -57,10 +58,11 @@ export const initializeDefaultTheme = async () => {
   
   if (!defaultExists) {
     await createTheme({
-      name: 'default',
-      description: 'Default CV Wonder theme',
-      githubRepoUrl: 'https://github.com/cvwonder/default-theme',
-      previewUrl: 'https://cvwonder.com/themes/default/preview'
+      name: 'Default',
+      slug: 'default',
+      description: 'Default theme for CV Wonder',
+      githubRepoUrl: 'https://github.com/germainlefebvre4/cvwonder-theme-default',
+      previewUrl: 'https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-default/main/preview.png'
     });
     console.log('Default theme initialized');
   }
