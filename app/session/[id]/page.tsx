@@ -30,10 +30,9 @@ import { configureMonacoYamlEditor } from '@/lib/monaco-config';
 // Get writable base directory depending on environment
 const getWritableBaseDir = () => {
   // Check if we're running on AWS Lambda
-  if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
-    // console.log('Using /tmp directory for binary storage (Lambda/production environment)');
-    return '/tmp';
-  }
+  // if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
+  //   return '/tmp';
+  // }
   // console.log('Using local directory for binary storage (development environment)');
   return process.cwd();
 };

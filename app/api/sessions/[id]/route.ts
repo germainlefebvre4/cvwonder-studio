@@ -3,7 +3,7 @@ import { getSession, updateSession } from '@/lib/sessions';
 import { UpdateSessionRequest } from '@/lib/types';
 
 interface SessionParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function GET(req: NextRequest, { params }: SessionParams) {
