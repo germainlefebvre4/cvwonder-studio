@@ -8,14 +8,13 @@ interface SessionParams {
 
 export async function GET(req: NextRequest, { params }: SessionParams) {
   try {
-    const { id } = params;
-    
+    const { id } = await params;
     const session = await getSession(id);
-    
+
     if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
-    
+
     return NextResponse.json(session);
   } catch (error) {
     console.error(`Error fetching session:`, error);
@@ -28,7 +27,7 @@ export async function GET(req: NextRequest, { params }: SessionParams) {
 
 export async function PATCH(req: NextRequest, { params }: SessionParams) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body: UpdateSessionRequest = await req.json();
     
     // Validate retention days if provided
