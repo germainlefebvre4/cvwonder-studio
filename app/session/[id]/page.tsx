@@ -35,7 +35,6 @@ const getWritableBaseDir = () => {
     return '/tmp';
   }
   // console.log('Using local directory for binary storage (development environment)');
-  return '/tmp';
   return process.cwd();
 };
 

@@ -20,7 +20,6 @@ const getWritableBaseDir = () => {
   if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
     return '/tmp';
   }
-  return '/tmp';
   return process.cwd();
 };
 

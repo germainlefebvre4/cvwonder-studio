@@ -14,7 +14,6 @@ const getBaseDir = () => {
   if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
     return '/tmp';
   }
-  return '/tmp';
   return process.cwd();
 };
 
