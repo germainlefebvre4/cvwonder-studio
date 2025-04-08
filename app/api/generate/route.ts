@@ -19,9 +19,9 @@ interface ExecError extends Error {
 // Get writable base directory depending on environment
 const getWritableBaseDir = () => {
   // Check if we're running on AWS Lambda
-  if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
-    return '/tmp';
-  }
+  // if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
+  //   return '/tmp';
+  // }
   return process.cwd();
 };
 

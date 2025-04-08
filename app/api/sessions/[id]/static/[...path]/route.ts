@@ -17,18 +17,18 @@ const MIME_TYPES: Record<string, string> = {
 // Get writable base directory depending on environment
 const getWritableBaseDir = () => {
   // Check if we're running on AWS Lambda
-  if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
-    return '/tmp';
-  }
+  // if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
+  //   return '/tmp';
+  // }
   return process.cwd();
 };
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string; path: string[] } }
+  { params }: { params: Promise<{ id: string; path: string[] }> }
 ) {
   try {
-    const { id, path } = params;
+    const { id, path } = await params;
     
     // Get session information from database to determine theme
     const session = await getSession(id);
