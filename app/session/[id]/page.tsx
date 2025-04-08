@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { 
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -26,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ShareDialog } from '@/components/ui/share-dialog';
 import { join } from 'path';
 import { configureMonacoYamlEditor } from '@/lib/monaco-config';
+import { SelectIcon, SelectPortal } from '@radix-ui/react-select';
 
 
 // Get writable base directory depending on environment
@@ -69,7 +71,7 @@ export default function SessionPage() {
 
   // Handler for when Monaco editor is mounted
   const handleEditorDidMount: OnMount = useCallback(async (editor, monaco) => {
-    console.log('Monaco editor mounted');
+    // console.log('Monaco editor mounted');
     // Configure the editor with auto-completion based on the CVWonder schema
     await configureMonacoYamlEditor(monaco);
   }, []);
@@ -121,10 +123,7 @@ export default function SessionPage() {
   useEffect(() => {
     const fetchThemes = async () => {
       try {
-        // Initialisation avec un thème par défaut
-        setThemes([{ slug: 'default', name: 'Default Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-default' }]);
-        
-        // Appel à l'API au lieu d'utiliser getAllThemes()
+        // Fetch themes from API
         const response = await fetch('/api/themes');
         
         if (!response.ok) {
@@ -135,29 +134,33 @@ export default function SessionPage() {
         
         if (!themesData || themesData.length === 0) {
           console.warn('No themes returned from API');
+          // Set a default theme if none is returned
+          setThemes([{ slug: 'default', name: 'Default Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-default' }]);
           return;
         }
         
         const themesList = themesData.map((theme: any) => ({
-          slug: theme.slug ?? 'Unknown Theme',
-          name: theme.name ?? 'Unknown Theme',
-          url: theme.githubRepoUrl ?? '',
+          slug: theme.slug,
+          name: theme.name,
+          url: theme.githubRepoUrl,
         }));
 
-        if (themesList.length > 0) {
-          // Mise à jour des thèmes en incluant le thème par défaut si nécessaire
-          const hasDefaultTheme = themesList.some((theme: {slug: string}) => theme.slug === 'default');
-          // console.log('Has default theme:', hasDefaultTheme);
-          setThemes(hasDefaultTheme ? themesList : [{ slug: 'default', name: 'Default Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-default' }, ...themesList]);
-          setThemes(themesList);
-          setThemesLoaded(true);
-        }
+        themesList.forEach((theme: Theme) => {
+          if (theme.slug === selectedTheme) {
+            console.log(`Setting selected theme to: ${theme.slug}`);
+            setSelectedTheme(theme.slug);
+          }
+        });
+        setThemes(themesList);
+
+        setThemesLoaded(true);
       } catch (error) {
         console.error('Error fetching themes from API:', error);
-        // Ajouter des détails d'erreur pour un meilleur débogage
         if (error instanceof Error) {
           console.error('Error details:', error.message, error.stack);
         }
+        // Set a fallback theme in case of error
+        setThemes([{ slug: 'default', name: 'Default Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-default' }]);
       }
     };
     
@@ -452,27 +455,31 @@ export default function SessionPage() {
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">CV Wonder Studio</h1>
           <div className="flex items-center space-x-4">
-            <Select value={selectedTheme} onValueChange={setSelectedTheme}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select a theme" />
+            <Select
+              value={selectedTheme}
+              onValueChange={(value) => {
+                setSelectedTheme(value);
+              }}
+            >
+              <SelectTrigger className="w-[250px]">
+                <SelectValue placeholder="Select a theme">
+                  {themes.find(t => t.slug === selectedTheme)?.name || "Unknown"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {
+                <SelectGroup>
+                {themes.length > 0 ? (
                   themes.map((theme) => (
-                    <SelectItem key={theme.slug} value={theme.slug}>
-                      {theme.name}
-                    </SelectItem>
-                  ))
-                }
-                {/* {themes.length > 0 ? (
-                  themes.map((theme) => (
-                    <SelectItem key={theme.slug} value={theme.slug}>
+                    <SelectItem
+                      value={theme.slug}
+                    >
                       {theme.name}
                     </SelectItem>
                   ))
                 ) : (
-                  <SelectItem value="default">Default Theme</SelectItem>
-                )} */}
+                  <SelectItem key="default" value="default">Unknown</SelectItem>
+                )}
+                </SelectGroup>
               </SelectContent>
             </Select>
             <Button variant="outline" onClick={openShareDialog}>
