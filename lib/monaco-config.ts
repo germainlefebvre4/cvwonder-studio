@@ -47,9 +47,9 @@ export const configureMonacoYamlEditor = async (monaco: any) => {
         // Build the current context path
         const contextPath = contextStack.join('.');
 
-        console.log("textUntilPosition", textUntilPosition);
-        console.log("position", position);
-        console.log("contextPath", contextPath);
+        // console.log("textUntilPosition", textUntilPosition);
+        // console.log("position", position);
+        // console.log("contextPath", contextPath);
 
         // Create suggestions based on the schema and context
         const suggestions = createCompletionItemsFromSchema(schema, contextPath, monaco);
@@ -60,7 +60,7 @@ export const configureMonacoYamlEditor = async (monaco: any) => {
       }
     });
     
-    console.log('Monaco editor configured with CVWonder schema');
+    // console.log('Monaco editor configured with CVWonder schema');
   } catch (error) {
     console.error('Error configuring Monaco editor:', error);
   }
