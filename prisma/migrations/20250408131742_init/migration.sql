@@ -2,6 +2,7 @@
 CREATE TABLE "Theme" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
     "description" TEXT,
     "githubRepoUrl" TEXT,
     "previewUrl" TEXT,
@@ -25,7 +26,7 @@ CREATE TABLE "Session" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Theme_name_key" ON "Theme"("name");
+CREATE UNIQUE INDEX "Theme_slug_key" ON "Theme"("slug");
 
 -- AddForeignKey
-ALTER TABLE "Session" ADD CONSTRAINT "Session_selectedTheme_fkey" FOREIGN KEY ("selectedTheme") REFERENCES "Theme"("name") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Session" ADD CONSTRAINT "Session_selectedTheme_fkey" FOREIGN KEY ("selectedTheme") REFERENCES "Theme"("slug") ON DELETE RESTRICT ON UPDATE CASCADE;

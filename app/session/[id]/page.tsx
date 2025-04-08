@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Session } from '@/lib/types';
+import { getAllThemes } from '@/lib/themes';
 import defaultCV from '@/lib/defaultCV';
 import { AlertCircle, FileDown, RefreshCw, Share2, Github } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -40,10 +41,11 @@ const getWritableBaseDir = () => {
 const BINARY_PATH = join(getWritableBaseDir(), 'bin');
 const CVWONDER_BINARY_PATH = join(BINARY_PATH, 'cvwonder');
 
-const themes = [
-  { id: 'default', name: 'Default Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-default' },
-  // { id: 'basic', name: 'Basic Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-basic' }
-];
+interface Theme {
+  slug: string;
+  name: string;
+  url: string;
+}
 
 export default function SessionPage() {
   const { id } = useParams();
@@ -62,6 +64,8 @@ export default function SessionPage() {
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const currentYamlRef = useRef(defaultCV);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [themes, setThemes] = useState<Theme[]>([]);
+  const [themesLoaded, setThemesLoaded] = useState(false);
 
   // Handler for when Monaco editor is mounted
   const handleEditorDidMount: OnMount = useCallback(async (editor, monaco) => {
@@ -69,6 +73,7 @@ export default function SessionPage() {
     // Configure the editor with auto-completion based on the CVWonder schema
     await configureMonacoYamlEditor(monaco);
   }, []);
+
 
   // Load session data when component mounts
   useEffect(() => {
@@ -109,9 +114,55 @@ export default function SessionPage() {
         setIsLoading(false);
       }
     };
-    
+  
     fetchSession();
   }, [id, router, toast]);
+
+  useEffect(() => {
+    const fetchThemes = async () => {
+      try {
+        // Initialisation avec un thème par défaut
+        setThemes([{ slug: 'default', name: 'Default Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-default' }]);
+        
+        // Appel à l'API au lieu d'utiliser getAllThemes()
+        const response = await fetch('/api/themes');
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch themes: ${response.status} ${response.statusText}`);
+        }
+        
+        const themesData = await response.json();
+        
+        if (!themesData || themesData.length === 0) {
+          console.warn('No themes returned from API');
+          return;
+        }
+        
+        const themesList = themesData.map((theme: any) => ({
+          slug: theme.slug ?? 'Unknown Theme',
+          name: theme.name ?? 'Unknown Theme',
+          url: theme.githubRepoUrl ?? '',
+        }));
+
+        if (themesList.length > 0) {
+          // Mise à jour des thèmes en incluant le thème par défaut si nécessaire
+          const hasDefaultTheme = themesList.some((theme: {slug: string}) => theme.slug === 'default');
+          // console.log('Has default theme:', hasDefaultTheme);
+          setThemes(hasDefaultTheme ? themesList : [{ slug: 'default', name: 'Default Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-default' }, ...themesList]);
+          setThemes(themesList);
+          setThemesLoaded(true);
+        }
+      } catch (error) {
+        console.error('Error fetching themes from API:', error);
+        // Ajouter des détails d'erreur pour un meilleur débogage
+        if (error instanceof Error) {
+          console.error('Error details:', error.message, error.stack);
+        }
+      }
+    };
+    
+    fetchThemes();
+  }, []);
 
   // Update session when YAML or theme changes
   const updateSessionData = async (updates: { cvContent?: string; selectedTheme?: string }) => {
@@ -406,11 +457,22 @@ export default function SessionPage() {
                 <SelectValue placeholder="Select a theme" />
               </SelectTrigger>
               <SelectContent>
-                {themes.map((theme) => (
-                  <SelectItem key={theme.id} value={theme.id}>
-                    {theme.name}
-                  </SelectItem>
-                ))}
+                {
+                  themes.map((theme) => (
+                    <SelectItem key={theme.slug} value={theme.slug}>
+                      {theme.name}
+                    </SelectItem>
+                  ))
+                }
+                {/* {themes.length > 0 ? (
+                  themes.map((theme) => (
+                    <SelectItem key={theme.slug} value={theme.slug}>
+                      {theme.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="default">Default Theme</SelectItem>
+                )} */}
               </SelectContent>
             </Select>
             <Button variant="outline" onClick={openShareDialog}>
@@ -484,7 +546,7 @@ export default function SessionPage() {
         <div className="flex flex-col overflow-hidden border-l">
           <div className="flex-none h-12 p-2 border-b bg-muted/50 flex justify-between items-center">
             <h2 className="text-sm font-medium">
-              Preview ({themes.find(t => t.id === selectedTheme)?.name})
+              Preview ({themes.find(t => t.slug === selectedTheme)?.slug})
             </h2>
             <Button 
               variant="ghost" 

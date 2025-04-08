@@ -17,7 +17,8 @@ datasource db {
 
 model Theme {
   id            String    @id @default(uuid())
-  name          String    @unique
+  name          String
+  slug          String    @unique
   description   String?
   githubRepoUrl String?
   previewUrl    String?
@@ -30,7 +31,7 @@ model Session {
   id            String   @id
   cvContent     String
   selectedTheme String
-  theme         Theme    @relation(fields: [selectedTheme], references: [name])
+  theme         Theme    @relation(fields: [selectedTheme], references: [slug])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   expiresAt     DateTime
