@@ -10,6 +10,7 @@ import defaultCV from '@/lib/defaultCV';
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { logger } from '@/lib/logger';
+import { CVWONDER_VERSION } from '@/lib/environment';
 
 const themes = [
   { id: 'default', name: 'Default Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-default' },
