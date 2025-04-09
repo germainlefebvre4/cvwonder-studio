@@ -10,12 +10,6 @@ import defaultCV from '@/lib/defaultCV';
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { logger } from '@/lib/logger';
-import { CVWONDER_VERSION } from '@/lib/environment';
-
-const themes = [
-  { id: 'default', name: 'Default Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-default' },
-  // { id: 'basic', name: 'Basic Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-basic' }
-];
 
 export default function Home() {
   const router = useRouter();
@@ -104,30 +98,17 @@ export default function Home() {
                 CV Wonder transforms your YAML data into beautifully formatted resumes that capture attention and showcase your professional journey.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Select 
-                  value={selectedTheme} 
-                  onValueChange={(value) => {
-                    setSelectedTheme(value);
-                  }}
-                  defaultValue="default"
+                {/* Button to "Explore the themes" */}
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="btn-modern border-gray-300 text-gray-900 hover:bg-gray-100"
+                  onClick={() => router.push('/gallery')}
                 >
-                  <SelectTrigger className="w-full sm:w-[180px] z-50">
-                    <SelectValue>
-                      {themes.find(theme => theme.id === selectedTheme)?.name || "Select theme"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent position="popper" className="z-50 bg-white">
-                    {themes.map(theme => (
-                      <SelectItem
-                        key={theme.id}
-                        value={theme.id}
-                        className="cursor-pointer hover:bg-blue-50"
-                      >
-                        {theme.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <span className="mr-2">Explore the Gallery</span>
+                  <ArrowRight className="h-5 w-5 ml-2" />
+                </Button>
+                {/* Button to "Create Your CV" */}
                 <Button
                   size="lg"
                   onClick={createNewSession}
