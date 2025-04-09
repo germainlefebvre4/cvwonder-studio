@@ -85,6 +85,8 @@ export default function SessionPage() {
     if (!id) return;
     
     const fetchSession = async () => {
+      const loadingDuration = 2000; // Minimum loading duration in milliseconds
+      const startTime = Date.now();
       try {
         const response = await fetch(`/api/sessions/${id}`);
         
@@ -106,6 +108,12 @@ export default function SessionPage() {
         setCV(sessionData.cvContent);
         currentYamlRef.current = sessionData.cvContent;
         setSelectedTheme(sessionData.selectedTheme);
+
+        // Wait for the minimum loading duration
+        const elapsedTime = Date.now() - startTime;
+        if (elapsedTime < loadingDuration) {
+          await new Promise(resolve => setTimeout(resolve, loadingDuration - elapsedTime));
+        }
         setIsLoading(false);
         
         // Generate preview for the initial load
@@ -445,6 +453,7 @@ export default function SessionPage() {
     return (
       <div className="flex items-center justify-center h-screen scroll-disabled">
         <div className="text-center">
+          <img src="/logo.svg" alt="CV Wonder Logo" className="mx-auto mb-4 animate-pulse" />
           <h1 className="text-2xl font-bold mb-4">Loading Session...</h1>
           <p>Please wait while we load your CV session.</p>
         </div>
