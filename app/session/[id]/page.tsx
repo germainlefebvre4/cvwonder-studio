@@ -455,7 +455,6 @@ export default function SessionPage() {
 
   const handleSelectChange = (value: string) => {
     setSelectedTheme(value);
-    // logger.info('Selected value:', value);
     setPreviewMessage("Refresh the preview to see the changes");
   };
 

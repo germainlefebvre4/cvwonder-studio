@@ -27,7 +27,7 @@ abstract:
 
 career:
   - companyName: Zatsit
-    companyLogo: images/zatsit-logo.webp
+    companyLogo: https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-default/refs/heads/main/images/zatsit-logo.webp
     duration: 10 mois, aujourd'hui
     missions:
       - position: Platform Engineer
@@ -54,7 +54,7 @@ career:
           - Vulgarisation d'une architecture applicative en langage déclaratif (yaml)
 
   - companyName: Ineat
-    companyLogo: images/ineat-logo.webp
+    companyLogo: https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-default/refs/heads/main/images/ineat-logo.webp
     duration: 7 ans, 10 mois
     missions:
       - position: Lead Tech Ops
@@ -155,19 +155,19 @@ certifications:
     issuer: Person View
     date: Février 2022
     link: https://www.credly.com/badges/e7955ad8-1d54-4eb3-ac0f-1f69e644e14c/public_url
-    badge: images/aws-certified-cloud-practitioner.png
+    badge: https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-default/refs/heads/main/images/aws-certified-cloud-practitioner.png
   - companyName: AWS
     certificationName: Solutions Architect Associate
     issuer: Coursera
     date: Mars 2018
     link: https://www.credly.com/badges/dd09dc40-9ef8-43a4-addb-d861d4dadf26/public_url
-    badge: images/aws-certified-solutions-architect-associate.png
+    badge: https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-default/refs/heads/main/images/aws-certified-solutions-architect-associate.png
   - companyName: AWS
     certificationName: SysOps Administrator Associate
     issuer: Coursera
     date: Août 2017
     link: https://www.credly.com/badges/f0054964-7101-47a0-82b2-16d351eb08f2/public_url
-    badge: images/aws-certified-sysops-administrator-associate.png
+    badge: https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-default/refs/heads/main/images/aws-certified-sysops-administrator-associate.png
 
 languages:
   - name: Francais
@@ -177,7 +177,7 @@ languages:
 
 education:
   - schoolName: IG2I - Centrale
-    schoolLogo: images/centrale-lille-logo.webp
+    schoolLogo: https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-default/refs/heads/main/images/centrale-lille-logo.webp
     degree: Titre d'ingénieur (BAC+5)
     location: Lens, France
     dates: 2019 - 2014
