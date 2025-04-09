@@ -7,7 +7,6 @@ export interface LogFn {
 
 /** Basic logger interface */
 export interface Logger {
-  debug: LogFn;
   info: LogFn;
   warn: LogFn;
   error: LogFn;
@@ -20,7 +19,6 @@ const NO_OP: LogFn = (message?: any, ...optionalParams: any[]) => {};
 
 /** Logger which outputs to the browser console */
 export class ConsoleLogger implements Logger {
-  readonly debug: LogFn;
   readonly info: LogFn;
   readonly warn: LogFn;
   readonly error: LogFn;

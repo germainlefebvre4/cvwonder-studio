@@ -81,29 +81,12 @@ async function ensureSessionFiles(sessionId: string, themeDir: string) {
   }
 }
 
-function updatePaths(html: string, sessionId: string): string {
-  // Update CSS file paths
-  html = html.replace(
-    /href=["'](?:\/styles\.css|styles\.css)["']/g,
-    `href="/api/sessions/${sessionId}/static/styles.css"`
-  );
+function updatePaths(html: string, themeName: string, sessionId: string): string {
 
-  // Update other static file paths (CSS, JS)
+  // Update static file paths (Images, CSS, JS)
   html = html.replace(
-    /(href|src)=["']((?:css|js)\/[^"']+)["']/g,
-    `$1="/api/sessions/${sessionId}/static/$2"`
-  );
-  
-  // Update image paths
-  html = html.replace(
-    /src=["'](?:\/api\/sessions\/[^\/]+\/images\/|\/session\/[^\/]+\/images\/|\/images\/|)(.*?\.(?:png|jpe?g|gif|webp|svg))["']/g,
-    `src="/api/sessions/${sessionId}/images/$1"`
-  );
-  
-  // Handle paths that start with just 'images/'
-  html = html.replace(
-    /src=["'](images\/.*?\.(?:png|jpe?g|gif|webp|svg))["']/g,
-    `src="/api/sessions/${sessionId}/images/$1"`
+    /(href|src)=["']((?!http).*?\.(?:png|jpe?g|gif|webp|svg|css|js))["']/g,
+    `$1="/api/themes/${themeName}/$2"`
   );
   
   return html;
@@ -117,7 +100,8 @@ function isTemporaryFileWarning(stderr: string): boolean {
 
 export async function POST(req: NextRequest) {
   try {
-    const { cv, format = 'html', sessionId } = await req.json();
+    const { cv, themeName, format = 'html', sessionId } = await req.json();
+    logger.info('Received request to generate CV:', { themeName, format, sessionId });
     
     // Input validation
     if (!cv || typeof cv !== 'string' || cv.trim() === '') {
@@ -263,7 +247,7 @@ export async function POST(req: NextRequest) {
       
       // If it's HTML, update paths to use our API endpoints
       if (format === 'html' && typeof fileContent === 'string') {
-        fileContent = updatePaths(fileContent, sessionId);
+        fileContent = updatePaths(fileContent, themeName, sessionId);
       }
     } catch (readError) {
       logger.error('Error reading generated file:', readError);

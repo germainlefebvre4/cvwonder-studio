@@ -228,7 +228,7 @@ export default function SessionPage() {
         },
         body: JSON.stringify({
           cv: yamlContent,
-          theme,
+          themeName: theme,
           format: 'html',
           sessionId: id,
         }),
@@ -277,7 +277,7 @@ export default function SessionPage() {
       
       if (iframeDoc) {
         iframeDoc.open();
-        iframeDoc.write(renderHtml);
+        iframeDoc.writeln(renderHtml);
         iframeDoc.close();
       }
     }
@@ -290,8 +290,6 @@ export default function SessionPage() {
     // Validate YAML before regenerating preview on theme change
     const isValid = validateYaml(currentYamlRef.current);
     if (isValid) {
-      generatePreview(currentYamlRef.current, selectedTheme);
-      
       // Update the session with the new theme
       updateSessionData({ selectedTheme });
     } else {
@@ -474,7 +472,7 @@ export default function SessionPage() {
             >
               <SelectTrigger className="w-[250px]">
                 <SelectValue placeholder="Select a theme">
-                  {themes.find(t => t.slug === selectedTheme)?.name || "Unknown"}
+                  {themes.find(t => t.slug === selectedTheme)?.name}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>

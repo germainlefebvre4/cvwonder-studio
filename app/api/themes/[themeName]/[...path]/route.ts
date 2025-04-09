@@ -13,10 +13,17 @@ const MIME_TYPES: Record<string, string> = {
   '.txt': 'text/plain',
   '.yaml': 'text/yaml',
   '.yml': 'text/yaml',
+  // Image types
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
 };
 
 // Get writable base directory depending on environment
-const getWritableBaseDir = () => {
+const getThemesBaseDir = () => {
   // Check if we're running on AWS Lambda
   // if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
   //   return '/tmp';
@@ -26,34 +33,23 @@ const getWritableBaseDir = () => {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; path: string[] }> }
+  { params }: { params: Promise<{ themeName: string; path: string[] }> }
 ) {
   try {
-    const { id, path } = await params;
-    
-    // Get session information from database to determine theme
-    const session = await getSession(id);
-    if (!session) {
-      logger.error('Session not found:', id);
-      return new NextResponse('Session not found', { status: 404 });
-    }
+    const { themeName, path } = await params;
     
     // Use the theme from the session
-    const theme = session.selectedTheme || 'default';
+    const theme = themeName;
     
-    // Join the path parts and remove any 'static' prefix if it exists
-    const filePath = path.join('/').replace(/^(?:static|css|js)\//, '');
+    // Join the path parts
+    const filePath = path.join('/');
     
     // List of possible locations to look for the file
     const possiblePaths = [
       // Theme-specific files from the session's theme
-      join(getWritableBaseDir(), `themes/${theme}`, filePath),
-      join(getWritableBaseDir(), `themes/${theme}/css`, filePath),
-      join(getWritableBaseDir(), `themes/${theme}/js`, filePath),
+      join(getThemesBaseDir(), `themes/${theme}`, filePath),
       // Fallback to default theme files
-      join(getWritableBaseDir(), 'themes/default', filePath),
-      join(getWritableBaseDir(), 'themes/default/css', filePath),
-      join(getWritableBaseDir(), 'themes/default/js', filePath),
+      // join(getThemesBaseDir(), 'themes/default', filePath),
     ];
     
     // Try each possible path until we find the file
@@ -67,7 +63,7 @@ export async function GET(
 
     if (!finalPath) {
       logger.error('File not found:', {
-        sessionId: id,
+        themeName: themeName,
         requestedPath: filePath,
         triedPaths: possiblePaths
       });
