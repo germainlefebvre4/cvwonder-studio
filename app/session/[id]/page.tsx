@@ -556,7 +556,7 @@ export default function SessionPage() {
         <div className="flex flex-col overflow-hidden border-l">
           <div className="flex-none h-12 p-2 border-b bg-muted/50 flex justify-between items-center">
             <h2 className="text-sm font-medium">
-              Preview ({themes.find(t => t.slug === selectedTheme)?.slug})
+              Preview ({themes.find(t => t.slug === selectedTheme)?.name})
             </h2>
             <Button 
               variant="ghost" 
