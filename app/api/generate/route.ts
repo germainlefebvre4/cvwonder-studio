@@ -6,6 +6,7 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import { downloadCVWonderBinary, getCVWonderBinaryPath, installCVWonderTheme } from '@/lib/initialize-server';
 import { getSession } from '@/lib/sessions';
+import { logger } from '@/lib/logger';
 
 const execAsync = promisify(exec);
 
@@ -29,7 +30,7 @@ const getWritableBaseDir = () => {
 try {
   downloadCVWonderBinary();
 } catch (error) {
-  console.error('Error during cvwonder binary initialization:', error);
+  logger.error('Error during cvwonder binary initialization:', error);
 }
 
 async function ensureSessionFiles(sessionId: string, themeDir: string) {
@@ -43,7 +44,7 @@ async function ensureSessionFiles(sessionId: string, themeDir: string) {
         try {
           await mkdir(dir, { recursive: true });
         } catch (error) {
-          console.warn(`Direcotry already exists: ${dir}`);
+          logger.warn(`Direcotry already exists: ${dir}`);
         }
       }
     }
@@ -71,12 +72,12 @@ async function ensureSessionFiles(sessionId: string, themeDir: string) {
         try {
           await cp(srcDir, destDir, { recursive: true, force: true });
         } catch (error) {
-          console.warn(`Directory already exists: ${destDir}`);
+          logger.warn(`Directory already exists: ${destDir}`);
         }
       }
     }
   } catch (error) {
-    console.error('Error setting up session files:', error);
+    logger.error('Error setting up session files:', error);
   }
 }
 
@@ -145,7 +146,7 @@ export async function POST(req: NextRequest) {
       try {
         await mkdir(outputDir, { recursive: true });
       } catch (error) {
-        console.warn(`Directory already exists: ${outputDir}`);
+        logger.warn(`Directory already exists: ${outputDir}`);
       }
     }
 
@@ -155,7 +156,7 @@ export async function POST(req: NextRequest) {
       try {
         await downloadCVWonderBinary();
       } catch (downloadError) {
-        console.error('Failed to download CVWonder binary:', downloadError);
+        logger.error('Failed to download CVWonder binary:', downloadError);
         return NextResponse.json({ 
           error: 'CVWonder binary not found and could not be downloaded.', 
           message: downloadError instanceof Error ? downloadError.message : 'Unknown error' 
@@ -175,7 +176,7 @@ export async function POST(req: NextRequest) {
       const themeDir = join(getWritableBaseDir(), 'themes', theme);
       await ensureSessionFiles(sessionId, themeDir);
     } catch (themeError) {
-      console.error(`Error setting up theme ${theme}:`, themeError);
+      logger.error(`Error setting up theme ${theme}:`, themeError);
     }
 
     // Write CV YAML to temp file
@@ -185,9 +186,9 @@ export async function POST(req: NextRequest) {
       if (!existsSync(cvPath)) {
         throw new Error(`Failed to create CV file at ${cvPath}`);
       }
-      console.log(`CV file written successfully to ${cvPath}`);
+      logger.info(`CV file written successfully to ${cvPath}`);
     } catch (writeError) {
-      console.error('Error writing CV file:', writeError);
+      logger.error('Error writing CV file:', writeError);
       return NextResponse.json({ 
         error: 'Failed to write CV file', 
         message: writeError instanceof Error ? writeError.message : 'Unknown error' 
@@ -204,20 +205,20 @@ export async function POST(req: NextRequest) {
       // if (stderr) {
       //   // Only log temporary file warnings, don't treat them as errors
       //   if (isTemporaryFileWarning(stderr)) {
-      //     console.log('Harmless warning about temporary files (can be ignored):', stderr);
+      //     logger.info('Harmless warning about temporary files (can be ignored):', stderr);
       //   } else {
-      //     console.warn('CVWonder command stderr:', stderr);
+      //     logger.warn('CVWonder command stderr:', stderr);
       //     if (stderr.includes('invalid argument')) {
       //       const fallbackCommand = `cd ${process.cwd()} && ${cvwonderPath} generate -i "${cvPath}" -t "${theme}" -f "${format}" -o "${outputDir}"`;
-      //       console.log('Trying fallback command:', fallbackCommand);
+      //       logger.info('Trying fallback command:', fallbackCommand);
       //       try {
       //         const fallbackResult = await execAsync(fallbackCommand);
-      //         console.log('Fallback command stdout:', fallbackResult.stdout);
+      //         logger.info('Fallback command stdout:', fallbackResult.stdout);
       //         if (fallbackResult.stderr && !isTemporaryFileWarning(fallbackResult.stderr)) {
-      //           console.warn('Fallback command stderr:', fallbackResult.stderr);
+      //           logger.warn('Fallback command stderr:', fallbackResult.stderr);
       //         }
       //       } catch (fallbackError) {
-      //         console.error('Fallback command also failed:', fallbackError);
+      //         logger.error('Fallback command also failed:', fallbackError);
       //         throw fallbackError;
       //       }
       //     }
@@ -230,11 +231,11 @@ export async function POST(req: NextRequest) {
       // Check if this is just a temporary file warning
       if (typedError.stderr && isTemporaryFileWarning(typedError.stderr)) {
         // This is just a warning, not an actual error
-        console.log('Command succeeded despite warnings about temporary files:', typedError.stderr);
+        logger.info('Command succeeded despite warnings about temporary files:', typedError.stderr);
       } else {
-        console.error('Error executing CVWonder command:', typedError);
+        logger.error('Error executing CVWonder command:', typedError);
         if (typedError.stderr) {
-          console.error('Command stderr:', typedError.stderr);
+          logger.error('Command stderr:', typedError.stderr);
         }
         return NextResponse.json({ 
           error: 'Failed to generate CV', 
@@ -265,7 +266,7 @@ export async function POST(req: NextRequest) {
         fileContent = updatePaths(fileContent, sessionId);
       }
     } catch (readError) {
-      console.error('Error reading generated file:', readError);
+      logger.error('Error reading generated file:', readError);
       return NextResponse.json({ 
         error: 'Failed to read generated file', 
         message: readError instanceof Error ? readError.message : 'Unknown error' 
@@ -283,7 +284,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Generation error:', error);
+    logger.error('Generation error:', error);
     return NextResponse.json({ 
       error: 'Failed to generate CV', 
       message: error instanceof Error ? error.message : 'Unknown error',

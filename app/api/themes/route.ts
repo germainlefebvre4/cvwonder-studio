@@ -6,6 +6,7 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import { getSession } from '@/lib/sessions';
 import { getAllThemes } from '@/lib/themes';
+import { logger } from '@/lib/logger';
 
 const execAsync = promisify(exec);
 
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
         }));
       })
       .catch((error) => {
-        console.error('Error fetching themes:', error);
+        logger.error('Error fetching themes:', error);
         return [];
       });
     return NextResponse.json(themes);

@@ -4,6 +4,7 @@ import defaultCV from './defaultCV';
 import prisma from './db';
 import { validateTheme, initializeDefaultTheme } from './themes';
 import { installCVWonderTheme } from './initialize-server';
+import { logger } from './logger';
 
 // Constants
 const DEFAULT_RETENTION_DAYS = 7;
@@ -35,7 +36,7 @@ export const createSession = async (params: CreateSessionRequest = {}): Promise<
       // Optional installation step that might be needed for rendering
       await installCVWonderTheme(theme);
     } catch (themeError) {
-      console.error(`Failed to install theme ${theme}:`, themeError);
+      logger.error(`Failed to install theme ${theme}:`, themeError);
       throw new Error(`Failed to setup theme: ${theme}`);
     }
     
@@ -80,7 +81,7 @@ export const createSession = async (params: CreateSessionRequest = {}): Promise<
       selectedTheme: session.selectedTheme
     };
   } catch (error) {
-    console.error('Failed to create session:', error);
+    logger.error('Failed to create session:', error);
     throw error;
   }
 };
@@ -111,7 +112,7 @@ export const getSession = async (sessionId: string): Promise<Session | null> => 
       selectedTheme: session.selectedTheme
     };
   } catch (error) {
-    console.error(`Error retrieving session ${sessionId}:`, error);
+    logger.error(`Error retrieving session ${sessionId}:`, error);
     return null;
   }
 };
@@ -123,7 +124,7 @@ export const deleteExpiredSession = async (sessionId: string): Promise<void> => 
       where: { id: sessionId }
     });
   } catch (error) {
-    console.error(`Error deleting expired session ${sessionId}:`, error);
+    logger.error(`Error deleting expired session ${sessionId}:`, error);
   }
 };
 
@@ -141,7 +142,7 @@ export const cleanupExpiredSessions = async (): Promise<void> => {
       }
     });
   } catch (error) {
-    console.error('Error cleaning up expired sessions:', error);
+    logger.error('Error cleaning up expired sessions:', error);
   }
 };
 
@@ -193,7 +194,7 @@ export const updateSession = async (
       selectedTheme: updatedSession.selectedTheme
     };
   } catch (error) {
-    console.error(`Error updating session ${sessionId}:`, error);
+    logger.error(`Error updating session ${sessionId}:`, error);
     return null;
   }
 };
@@ -217,7 +218,7 @@ export const listSessions = async (limit: number = 20): Promise<Session[]> => {
       selectedTheme: session.selectedTheme
     }));
   } catch (error) {
-    console.error('Error listing sessions:', error);
+    logger.error('Error listing sessions:', error);
     return [];
   }
 };

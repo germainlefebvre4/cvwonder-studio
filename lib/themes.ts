@@ -1,4 +1,5 @@
 import prisma from './db';
+import { logger } from './logger';
 
 // All theme-related functionality
 
@@ -12,7 +13,7 @@ export const validateTheme = async (themeSlug: string = 'default'): Promise<bool
     });
     return !!theme;
   } catch (error) {
-    console.error(`Error validating theme ${themeSlug}:`, error);
+    logger.error(`Error validating theme ${themeSlug}:`, error);
     return false;
   }
 };
@@ -64,6 +65,6 @@ export const initializeDefaultTheme = async () => {
       githubRepoUrl: 'https://github.com/germainlefebvre4/cvwonder-theme-default',
       previewUrl: 'https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-default/main/preview.png'
     });
-    console.log('Default theme initialized');
+    logger.info('Default theme initialized');
   }
 };

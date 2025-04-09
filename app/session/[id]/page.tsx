@@ -28,7 +28,8 @@ import { useToast } from "@/hooks/use-toast";
 import { ShareDialog } from '@/components/ui/share-dialog';
 import { join } from 'path';
 import { configureMonacoYamlEditor } from '@/lib/monaco-config';
-import { SelectIcon, SelectPortal } from '@radix-ui/react-select';
+
+import { logger } from '@/lib/logger';
 
 
 // Get writable base directory depending on environment
@@ -37,7 +38,7 @@ const getWritableBaseDir = () => {
   // if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
   //   return '/tmp';
   // }
-  // console.log('Using local directory for binary storage (development environment)');
+  // logger.info('Using local directory for binary storage (development environment)');
   return process.cwd();
 };
 
@@ -73,7 +74,7 @@ export default function SessionPage() {
 
   // Handler for when Monaco editor is mounted
   const handleEditorDidMount: OnMount = useCallback(async (editor, monaco) => {
-    // console.log('Monaco editor mounted');
+    // logger.info('Monaco editor mounted');
     // Configure the editor with auto-completion based on the CVWonder schema
     await configureMonacoYamlEditor(monaco);
   }, []);
@@ -113,7 +114,7 @@ export default function SessionPage() {
           generatePreview(sessionData.cvContent, sessionData.selectedTheme);
         }
       } catch (err) {
-        console.error('Error loading session:', err);
+        logger.error('Error loading session:', err);
         setError('Failed to load session. Please try again.');
         setIsLoading(false);
       }
@@ -135,7 +136,7 @@ export default function SessionPage() {
         const themesData = await response.json();
         
         if (!themesData || themesData.length === 0) {
-          console.warn('No themes returned from API');
+          logger.warn('No themes returned from API');
           // Set a default theme if none is returned
           setThemes([{ slug: 'default', name: 'Default Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-default' }]);
           return;
@@ -149,7 +150,7 @@ export default function SessionPage() {
 
         themesList.forEach((theme: Theme) => {
           if (theme.slug === selectedTheme) {
-            console.log(`Setting selected theme to: ${theme.slug}`);
+            // logger.info(`Setting selected theme to: ${theme.slug}`);
             setSelectedTheme(theme.slug);
           }
         });
@@ -157,9 +158,9 @@ export default function SessionPage() {
 
         setThemesLoaded(true);
       } catch (error) {
-        console.error('Error fetching themes from API:', error);
+        logger.error('Error fetching themes from API:', error);
         if (error instanceof Error) {
-          console.error('Error details:', error.message, error.stack);
+          logger.error('Error details:', error.message, error.stack);
         }
         // Set a fallback theme in case of error
         setThemes([{ slug: 'default', name: 'Default Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-default' }]);
@@ -195,7 +196,7 @@ export default function SessionPage() {
         description: "Your CV changes have been saved.",
       });
     } catch (err) {
-      console.error('Error updating session:', err);
+      logger.error('Error updating session:', err);
       toast({
         title: "Update Failed",
         description: "Failed to save your changes. Please try again.",
@@ -242,7 +243,7 @@ export default function SessionPage() {
       const htmlContent = await response.text();
       setRenderHtml(htmlContent);
     } catch (err) {
-      console.error('Error generating preview:', err);
+      logger.error('Error generating preview:', err);
       setApiError(err instanceof Error ? err.message : 'Failed to generate preview');
     } finally {
       setIsGenerating(false);
@@ -251,7 +252,7 @@ export default function SessionPage() {
 
   // Manual refresh function for the preview
   const handleRefreshPreview = () => {
-    console.log(`Preview refreshing`);
+    logger.info(`Preview refreshing`);
     // Check YAML validity before refreshing
     const isValid = validateYaml(currentYamlRef.current);
     if (!isValid) {
@@ -265,7 +266,7 @@ export default function SessionPage() {
     // Generate preview with current YAML and selected theme
     generatePreview(currentYamlRef.current, selectedTheme);
     setPreviewMessage("");
-    console.log(`Preview refreshed`);
+    logger.info(`Preview refreshed`);
   };
 
   // Effect to update the iframe content when renderHtml changes
@@ -307,7 +308,7 @@ export default function SessionPage() {
       yaml.load(value);
       return true;
     } catch (e) {
-      console.error('YAML validation error:', e);
+      logger.error('YAML validation error:', e);
       return false;
     }
   };
@@ -365,7 +366,7 @@ export default function SessionPage() {
       // Close the dialog
       setIsShareDialogOpen(false);
     } catch (err) {
-      console.error('Error updating session:', err);
+      logger.error('Error updating session:', err);
       toast({
         title: "Update Failed",
         description: "Failed to update session retention. Please try again.",
@@ -430,7 +431,7 @@ export default function SessionPage() {
         description: "Your CV has been downloaded as a PDF.",
       });
     } catch (err) {
-      console.error('Error generating PDF:', err);
+      logger.error('Error generating PDF:', err);
       setApiError(err instanceof Error ? err.message : 'Failed to generate PDF');
       
       toast({
@@ -456,7 +457,7 @@ export default function SessionPage() {
 
   const handleSelectChange = (value: string) => {
     setSelectedTheme(value);
-    console.log('Selected value:', value);
+    // logger.info('Selected value:', value);
     setPreviewMessage("Refresh the preview to see the changes");
   };
 
