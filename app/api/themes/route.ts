@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
       .then((themes) => {
         return themes.map((theme) => ({
           name: theme.name,
+          slug: theme.slug,
           description: theme.description,
           githubRepoUrl: theme.githubRepoUrl,
           previewUrl: theme.previewUrl,

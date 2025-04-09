@@ -14,6 +14,7 @@ import {
   SelectContent,
   SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -468,17 +469,19 @@ export default function SessionPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                {themes.length > 0 ? (
-                  themes.map((theme) => (
-                    <SelectItem
-                      value={theme.slug}
-                    >
-                      {theme.name}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem key="default" value="default">Unknown</SelectItem>
-                )}
+                  <SelectLabel>Official themes</SelectLabel>
+                  {themes.length > 0 ? (
+                    themes.map((theme) => (
+                      <SelectItem
+                        key={theme.slug}
+                        value={theme.slug}
+                      >
+                        {theme.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem key="default" value="default">Unknown</SelectItem>
+                  )}
                 </SelectGroup>
               </SelectContent>
             </Select>
