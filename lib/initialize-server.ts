@@ -159,17 +159,17 @@ export async function downloadCVWonderBinary() {
     }
     
     // Create the themes directory if it doesn't exist
-    if (!existsSync(THEMES_DIR)) {
-      console.log('Creating themes directory at:', THEMES_DIR);
-      try {
-        await mkdir(THEMES_DIR, { recursive: true });
-      } catch (error) {
-        console.warn(`Directory already exists: ${THEMES_DIR}`);
-      }
-    }
+    // if (!existsSync(THEMES_DIR)) {
+    //   console.log('Creating themes directory at:', THEMES_DIR);
+    //   try {
+    //     await mkdir(THEMES_DIR, { recursive: true });
+    //   } catch (error) {
+    //     console.warn(`Directory already exists: ${THEMES_DIR}`);
+    //   }
+    // }
     
     // Download and install the default theme
-    await ensureDefaultTheme();
+    // await ensureDefaultTheme();
     
     return true;
   } catch (error) {
@@ -263,54 +263,41 @@ export async function installCVWonderTheme(themeName: string) {
       }
     }
 
-    // If trying to use default theme, ensure it's installed
-    if (themeName === 'default') {
-      await ensureDefaultTheme();
-      return true;
+    // Fetch themes from database
+    const themes = await prisma.theme.findMany({
+      where: {
+        slug: themeName,
+      },
+    });
+    if (themes.length === 0) {
+      throw new Error(`Theme ${themeName} not found in database`);
+    } else {
+      console.log(`Found ${themes.length} theme in database for slug ${themeName}`);
     }
-
-    // Check if the theme exists in either location and ensure it's in runtime
-    if (themeExists(themeName)) {
-      const themeDir = await ensureRuntimeTheme(themeName);
-      console.log(`Theme ${themeName} is available at ${themeDir}`);
-      return true;
+    // Iterate over themes and download each one
+    for (const theme of themes) {
+      const themeDir = join(THEMES_DIR, theme.slug);
+      const themeRepo = theme.githubRepoUrl;
+      console.log(`Cloning theme repository: ${themeRepo}`);
+      try {
+        await execAsync(`cd ${getBaseDir()} && ${CVWONDER_BINARY_PATH} theme install ${themeRepo}`);
+        console.log(`Theme ${themeName} retrieved successfully`);
+      } catch (cloneError) {
+        console.error(`Error retrieving theme ${themeName}:`, cloneError);
+        throw new Error(`Failed to retrieve theme ${themeName}`);
+      }
+      // Verify theme was installed
+      if (!existsSync(join(themeDir, 'index.html'))) {
+        throw new Error(`Theme ${themeName} installation verification failed`);
+      }
+      // Ensure the theme is available in the runtime directory
+      const runtimeThemeDir = await ensureRuntimeTheme(themeName);
+      if (!existsSync(join(runtimeThemeDir, 'index.html'))) {
+        throw new Error(`Theme ${themeName} not found in runtime directory`);
+      }
+      console.log(`Theme ${themeName} is ready at ${themeDir}`);
     }
     
-    console.log(`Installing CVWonder theme: ${themeName}`);
-    
-    // Theme will be installed to runtime directory
-    const themeDir = join(THEMES_DIR, themeName);
-    
-    // If theme directory exists but is incomplete, remove it
-    if (existsSync(themeDir)) {
-      console.log(`Removing incomplete theme directory: ${themeDir}`);
-      await rm(themeDir, { recursive: true, force: true });
-    }
-    
-    // Determine the theme repository URL
-    // let themeRepo = '';
-    // if (themeName === 'basic') {
-    //   themeRepo = BASIC_THEME_REPO;
-    // } else {
-    //   // For other themes, attempt to guess the URL pattern
-    //   themeRepo = `https://github.com/germainlefebvre4/cvwonder-theme-${themeName}`;
-    // }
-    
-    // // Try to clone the theme repository
-    // try {
-    //   console.log(`Cloning theme repository: ${themeRepo}`);
-    //   await execAsync(`cd ${getBaseDir()} && ${CVWONDER_BINARY_PATH} theme install ${themeRepo}`);
-    //   console.log(`Theme ${themeName} retrieved successfully`);
-    // } catch (cloneError) {
-    //   console.error(`Error retrieving theme ${themeName}:`, cloneError);
-    // }
-    
-    // // Verify theme was installed
-    // if (!existsSync(join(themeDir, 'index.html'))) {
-    //   throw new Error(`Theme ${themeName} installation verification failed`);
-    // }
-    
-    console.log(`Theme ${themeName} is ready at ${themeDir}`);
     return true;
   } catch (error) {
     console.error(`Failed to install theme ${themeName}:`, error);
