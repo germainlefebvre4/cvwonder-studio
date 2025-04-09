@@ -278,24 +278,26 @@ export async function installCVWonderTheme(themeName: string) {
     for (const theme of themes) {
       const themeDir = join(THEMES_DIR, theme.slug);
       const themeRepo = theme.githubRepoUrl;
-      console.log(`Cloning theme repository: ${themeRepo}`);
-      try {
-        await execAsync(`cd ${getBaseDir()} && ${CVWONDER_BINARY_PATH} theme install ${themeRepo}`);
-        console.log(`Theme ${themeName} retrieved successfully`);
-      } catch (cloneError) {
-        console.error(`Error retrieving theme ${themeName}:`, cloneError);
-        throw new Error(`Failed to retrieve theme ${themeName}`);
-      }
-      // Verify theme was installed
       if (!existsSync(join(themeDir, 'index.html'))) {
-        throw new Error(`Theme ${themeName} installation verification failed`);
+        console.log(`Cloning theme repository: ${themeRepo}`);
+        try {
+          await execAsync(`cd ${getBaseDir()} && ${CVWONDER_BINARY_PATH} theme install ${themeRepo}`);
+          console.log(`Theme ${themeName} retrieved successfully`);
+        } catch (cloneError) {
+          console.error(`Error retrieving theme ${themeName}:`, cloneError);
+          throw new Error(`Failed to retrieve theme ${themeName}`);
+        }
+        // Verify theme was installed
+        if (!existsSync(join(themeDir, 'index.html'))) {
+          throw new Error(`Theme ${themeName} installation verification failed`);
+        }
+        // Ensure the theme is available in the runtime directory
+        const runtimeThemeDir = await ensureRuntimeTheme(themeName);
+        if (!existsSync(join(runtimeThemeDir, 'index.html'))) {
+          throw new Error(`Theme ${themeName} not found in runtime directory`);
+        }
+        console.log(`Theme ${themeName} is ready at ${themeDir}`);
       }
-      // Ensure the theme is available in the runtime directory
-      const runtimeThemeDir = await ensureRuntimeTheme(themeName);
-      if (!existsSync(join(runtimeThemeDir, 'index.html'))) {
-        throw new Error(`Theme ${themeName} not found in runtime directory`);
-      }
-      console.log(`Theme ${themeName} is ready at ${themeDir}`);
     }
     
     return true;
