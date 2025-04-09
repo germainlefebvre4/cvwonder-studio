@@ -121,9 +121,7 @@ export async function downloadCVWonderBinary() {
     }
 
     // Check if binary already exists
-    if (existsSync(CVWONDER_BINARY_PATH)) {
-      logger.info('CVWonder binary already exists at:', CVWONDER_BINARY_PATH);
-    } else {
+    if (!existsSync(CVWONDER_BINARY_PATH)) {
       logger.info('Downloading CVWonder binary from:', CVWONDER_DOWNLOAD_URL);
       
       // Download the binary with better error handling
@@ -148,100 +146,11 @@ export async function downloadCVWonderBinary() {
       }
       
       logger.info('CVWonder binary downloaded and made executable at:', CVWONDER_BINARY_PATH);
-      
-      // Test that the binary works
-      // try {
-      //   const { stdout } = await execAsync(`${CVWONDER_BINARY_PATH} --version`);
-      //   logger.info('CVWonder version:', stdout.trim());
-      // } catch (versionError) {
-      //   logger.warn('Could not verify CVWonder version:', versionError);
-      //   // Don't throw here, as the binary might still work for our purposes
-      // }
     }
-    
-    // Create the themes directory if it doesn't exist
-    // if (!existsSync(THEMES_DIR)) {
-    //   logger.info('Creating themes directory at:', THEMES_DIR);
-    //   try {
-    //     await mkdir(THEMES_DIR, { recursive: true });
-    //   } catch (error) {
-    //     logger.warn(`Directory already exists: ${THEMES_DIR}`);
-    //   }
-    // }
-    
-    // Download and install the default theme
-    // await ensureDefaultTheme();
     
     return true;
   } catch (error) {
     logger.error('Failed to download CVWonder binary:', error);
-    throw error;
-  }
-}
-
-async function ensureDefaultTheme() {
-  try {
-    // Check if themes directory exists
-    if (!existsSync(THEMES_DIR)) {
-      logger.info('Themes directory does not exist in source code location');
-      try {
-        await mkdir(THEMES_DIR, { recursive: true });
-      } catch (error) {
-        logger.warn(`Directory already exists: ${THEMES_DIR}`);
-      }
-    }
-
-    // Check if default theme already exists
-    if (themeExists('default')) {
-      logger.info('Default theme found in theme directory');
-      await ensureRuntimeTheme('default');
-      return;
-    } else {
-      // If the theme doesn't exist, we need to install it
-      // logger.info('Installing default theme from repository:', DEFAULT_THEME_REPO);
-      
-      // Clone the theme repository
-      // try {
-      //   logger.info('Attempting to install default theme using cvwonder command');
-      //   const {stdout, stderr} = await execAsync(`cd ${getBaseDir()} && ${CVWONDER_BINARY_PATH} theme install ${DEFAULT_THEME_REPO}`);
-      //   logger.info('CVWonder output:', stdout);
-      //   logger.error('CVWonder error output:', stderr);
-      //   logger.info('Default theme installed successfully using cvwonder command');
-      // } catch (installError) {
-      //   logger.error('Error installing default theme with cvwonder:', installError);
-      //   throw new Error('Failed to install default theme by any method');
-      // }
-      
-      // Copy the default theme from the repository
-      logger.info('Copying default theme from source code location');
-      try {
-        const sourceThemeDirectory = join(process.cwd(), 'themes', 'default');
-        const themeDirectory = join(getBaseDir(), 'themes', 'default');
-        try {
-          await mkdir(themeDirectory, { recursive: true });
-        } catch (error) {
-          logger.warn(`Directory already exists: ${themeDirectory}`);
-        }
-        try {
-          await cp(sourceThemeDirectory, themeDirectory, { recursive: true });
-        } catch (copyError) {
-          logger.warn(`Error copying default theme: ${copyError}`);
-        }
-      } catch (copyError) {
-        logger.error('Error copying default theme:', copyError);
-        throw new Error('Failed to copy default theme');
-      }
-      logger.info('Default theme copied successfully');
-    }
-    
-    // Verify theme was installed
-    if (!existsSync(join(THEMES_DIR, 'default', 'index.html'))) {
-      throw new Error('Default theme installation verification failed');
-    }
-    
-    logger.info('Default theme setup complete');
-  } catch (error) {
-    logger.error('Error setting up default theme:', error);
     throw error;
   }
 }
@@ -272,8 +181,6 @@ export async function installCVWonderTheme(themeName: string) {
     });
     if (themes.length === 0) {
       throw new Error(`Theme ${themeName} not found in database`);
-    } else {
-      logger.info(`Found ${themes.length} theme in database for slug ${themeName}`);
     }
     // Iterate over themes and download each one
     for (const theme of themes) {
@@ -312,9 +219,6 @@ export async function installCVWonderTheme(themeName: string) {
 export function getCVWonderBinaryPath() {
   // Use the same base directory logic to ensure consistency
   const binaryPath = join(getBaseDir(), 'bin', 'cvwonder');
-  
-  // Log the binary path for debugging purposes
-  logger.info('CVWonder binary path:', binaryPath);
   
   return binaryPath;
 }

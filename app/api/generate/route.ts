@@ -101,7 +101,7 @@ function isTemporaryFileWarning(stderr: string): boolean {
 export async function POST(req: NextRequest) {
   try {
     const { cv, themeName, format = 'html', sessionId } = await req.json();
-    logger.info('Received request to generate CV:', { themeName, format, sessionId });
+    logger.info(`Session ${sessionId} - Received request to generate CV`);
     
     // Input validation
     if (!cv || typeof cv !== 'string' || cv.trim() === '') {
@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
       if (!existsSync(cvPath)) {
         throw new Error(`Failed to create CV file at ${cvPath}`);
       }
-      logger.info(`CV file written successfully to ${cvPath}`);
+      logger.info(`Session ${sessionId} - CV file written to ${cvPath}`);
     } catch (writeError) {
       logger.error('Error writing CV file:', writeError);
       return NextResponse.json({ 
@@ -180,34 +180,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate CV
-    const command = `cd ${process.cwd()} && ${cvwonderPath} generate --input="${cvPath}" --theme="${theme}" --format="${format}" --output="${outputDir}"`;
-    console.info('Executing command:', command);
+    const cvwonderCommand = `${cvwonderPath} generate --input="${cvPath}" --theme="${theme}" --format="${format}" --output="${outputDir}"`;
+    const command = `cd ${process.cwd()} && ${cvwonderCommand}`;
+    logger.info(`Session ${sessionId} - Executing command ${cvwonderCommand}`);
     
     try {
       const { stdout, stderr } = await execAsync(command);
-      console.info('Command stdout:', stdout);
-      // if (stderr) {
-      //   // Only log temporary file warnings, don't treat them as errors
-      //   if (isTemporaryFileWarning(stderr)) {
-      //     logger.info('Harmless warning about temporary files (can be ignored):', stderr);
-      //   } else {
-      //     logger.warn('CVWonder command stderr:', stderr);
-      //     if (stderr.includes('invalid argument')) {
-      //       const fallbackCommand = `cd ${process.cwd()} && ${cvwonderPath} generate -i "${cvPath}" -t "${theme}" -f "${format}" -o "${outputDir}"`;
-      //       logger.info('Trying fallback command:', fallbackCommand);
-      //       try {
-      //         const fallbackResult = await execAsync(fallbackCommand);
-      //         logger.info('Fallback command stdout:', fallbackResult.stdout);
-      //         if (fallbackResult.stderr && !isTemporaryFileWarning(fallbackResult.stderr)) {
-      //           logger.warn('Fallback command stderr:', fallbackResult.stderr);
-      //         }
-      //       } catch (fallbackError) {
-      //         logger.error('Fallback command also failed:', fallbackError);
-      //         throw fallbackError;
-      //       }
-      //     }
-      //   }
-      // }
     } catch (execError: unknown) {
       // Type cast the error to our custom interface
       const typedError = execError as ExecError;
