@@ -98,7 +98,8 @@ export const getSession = async (sessionId: string): Promise<Session | null> => 
     }
     
     // Check if session has expired
-    if (new Date() > session.expiresAt) {
+    if (new Date() > new Date(session.expiresAt)) {
+      logger.info(`Session ${sessionId} - Session expired`);
       await deleteExpiredSession(sessionId);
       return null;
     }
@@ -120,6 +121,7 @@ export const getSession = async (sessionId: string): Promise<Session | null> => 
 // Delete an expired session
 export const deleteExpiredSession = async (sessionId: string): Promise<void> => {
   try {
+    // Delete session from database
     await prisma.session.delete({
       where: { id: sessionId }
     });
