@@ -12,7 +12,7 @@ const MAX_RETENTION_DAYS = 7;
 
 // Generate a random session ID
 export const generateSessionId = (): string => {
-  return crypto.randomBytes(16).toString('hex');
+  return crypto.randomUUID();
 };
 
 // Calculate expiration date based on retention days
