@@ -3,6 +3,7 @@ import { existsSync } from 'fs';
 import { readFile } from 'fs/promises';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/sessions';
+import { logger } from '@/lib/logger';
 
 const MIME_TYPES: Record<string, string> = {
   '.js': 'application/javascript',
@@ -33,7 +34,7 @@ export async function GET(
     // Get session information from database to determine theme
     const session = await getSession(id);
     if (!session) {
-      console.error('Session not found:', id);
+      logger.error('Session not found:', id);
       return new NextResponse('Session not found', { status: 404 });
     }
     
@@ -65,7 +66,7 @@ export async function GET(
     }
 
     if (!finalPath) {
-      console.error('File not found:', {
+      logger.error('File not found:', {
         sessionId: id,
         requestedPath: filePath,
         triedPaths: possiblePaths
@@ -89,7 +90,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Error serving static file:', error);
+    logger.error('Error serving static file:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

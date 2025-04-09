@@ -3,6 +3,7 @@ import { existsSync } from 'fs';
 import { readFile } from 'fs/promises';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/sessions';
+import { logger } from '@/lib/logger';
 
 const MIME_TYPES: Record<string, string> = {
   '.jpg': 'image/jpeg',
@@ -33,7 +34,7 @@ export async function GET(
     // Get session information from database to determine theme
     const session = await getSession(id);
     if (!session) {
-      console.error('Session not found:', id);
+      logger.error('Session not found:', id);
       return new NextResponse('Session not found', { status: 404 });
     }
     
@@ -61,7 +62,7 @@ export async function GET(
     }
 
     if (!finalPath) {
-      console.error('Image not found:', {
+      logger.error('Image not found:', {
         sessionId: id,
         requestedPath: imagePath,
         triedPaths: possiblePaths
@@ -85,7 +86,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Error serving image:', error);
+    logger.error('Error serving image:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

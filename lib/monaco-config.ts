@@ -1,4 +1,5 @@
 import { editor, languages } from 'monaco-editor';
+import { logger } from '@/lib/logger';
 
 // Function to configure Monaco editor with the CVWonder schema
 export const configureMonacoYamlEditor = async (monaco: any) => {
@@ -8,7 +9,7 @@ export const configureMonacoYamlEditor = async (monaco: any) => {
 
     // Check if the YAML language is already registered
     if (!monaco.languages.getLanguages().some((lang: any) => lang.id === 'yaml')) {
-      console.log('YAML language not registered, registering simple YAML support');
+      logger.info('YAML language not registered, registering simple YAML support');
       
       // Register a basic YAML language if full support is not available
       monaco.languages.register({ id: 'yaml' });
@@ -47,9 +48,9 @@ export const configureMonacoYamlEditor = async (monaco: any) => {
         // Build the current context path
         const contextPath = contextStack.join('.');
 
-        // console.log("textUntilPosition", textUntilPosition);
-        // console.log("position", position);
-        // console.log("contextPath", contextPath);
+        // logger.info("textUntilPosition", textUntilPosition);
+        // logger.info("position", position);
+        // logger.info("contextPath", contextPath);
 
         // Create suggestions based on the schema and context
         const suggestions = createCompletionItemsFromSchema(schema, contextPath, monaco);
@@ -60,9 +61,9 @@ export const configureMonacoYamlEditor = async (monaco: any) => {
       }
     });
     
-    // console.log('Monaco editor configured with CVWonder schema');
+    // logger.info('Monaco editor configured with CVWonder schema');
   } catch (error) {
-    console.error('Error configuring Monaco editor:', error);
+    logger.error('Error configuring Monaco editor:', error);
   }
 };
 

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import defaultCV from '@/lib/defaultCV';
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
+import { logger } from '@/lib/logger';
 
 const themes = [
   { id: 'default', name: 'Default Theme', url: 'https://github.com/germainlefebvre4/cvwonder-theme-default' },
@@ -47,7 +48,7 @@ export default function Home() {
         description: "Your CV editing session has been created.",
       });
     } catch (err) {
-      console.error('Error creating session:', err);
+      logger.error('Error creating session:', err);
       toast({
         title: "Session Creation Failed",
         description: "Failed to create a new session. Please try again.",

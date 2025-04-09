@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from './button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 import { Share2, Copy, Check } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface ShareDialogProps {
   isOpen: boolean;
@@ -32,7 +33,7 @@ export function ShareDialog({ isOpen, onClose, onShare, sessionUrl }: ShareDialo
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (error) {
-      console.error('Failed to share session:', error);
+      logger.error('Failed to share session:', error);
     } finally {
       setIsSharing(false);
     }
