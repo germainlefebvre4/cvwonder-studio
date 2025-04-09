@@ -91,8 +91,8 @@ export default function SessionPage() {
         if (!response.ok) {
           if (response.status === 404) {
             toast({
-              title: "Session Not Found",
-              description: "This session no longer exists or was never created.",
+              title: "Session Not Found or Expired",
+              description: "This session was never created or no longer exists.",
               variant: "destructive",
             });
             router.push('/');
