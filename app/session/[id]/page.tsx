@@ -21,7 +21,7 @@ import {
 import { Session } from '@/lib/types';
 import { getAllThemes } from '@/lib/themes';
 import defaultCV from '@/lib/defaultCV';
-import { AlertCircle, FileDown, RefreshCw, Share2, Github } from 'lucide-react';
+import { CircleAlert, MessageCircleWarning, FileDown, RefreshCw, Share2, Github, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
@@ -57,6 +57,7 @@ export default function SessionPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [cv, setCV] = useState(defaultCV);
   const [error, setError] = useState<string | null>(null);
+  const [previewMessage, setPreviewMessage] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [selectedTheme, setSelectedTheme] = useState('default');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -250,6 +251,7 @@ export default function SessionPage() {
 
   // Manual refresh function for the preview
   const handleRefreshPreview = () => {
+    console.log(`Preview refreshing`);
     // Check YAML validity before refreshing
     const isValid = validateYaml(currentYamlRef.current);
     if (!isValid) {
@@ -262,6 +264,8 @@ export default function SessionPage() {
     
     // Generate preview with current YAML and selected theme
     generatePreview(currentYamlRef.current, selectedTheme);
+    setPreviewMessage("");
+    console.log(`Preview refreshed`);
   };
 
   // Effect to update the iframe content when renderHtml changes
@@ -450,6 +454,13 @@ export default function SessionPage() {
     );
   }
 
+  const handleSelectChange = (value: string) => {
+    setSelectedTheme(value);
+    console.log('Selected value:', value);
+    setPreviewMessage("Refresh the preview to see the changes");
+  };
+
+
   return (
     <div className="h-screen flex flex-col scroll-disabled main-session">
       <header className="flex-none border-b p-4 bg-background">
@@ -458,9 +469,7 @@ export default function SessionPage() {
           <div className="flex items-center space-x-4">
             <Select
               value={selectedTheme}
-              onValueChange={(value) => {
-                setSelectedTheme(value);
-              }}
+              onValueChange={handleSelectChange}
             >
               <SelectTrigger className="w-[250px]">
                 <SelectValue placeholder="Select a theme">
@@ -470,7 +479,7 @@ export default function SessionPage() {
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>Official themes</SelectLabel>
-                  {themes.length > 0 ? (
+                  {
                     themes.map((theme) => (
                       <SelectItem
                         key={theme.slug}
@@ -479,9 +488,7 @@ export default function SessionPage() {
                         {theme.name}
                       </SelectItem>
                     ))
-                  ) : (
-                    <SelectItem key="default" value="default">Unknown</SelectItem>
-                  )}
+                  }
                 </SelectGroup>
               </SelectContent>
             </Select>
@@ -511,7 +518,7 @@ export default function SessionPage() {
       
       {apiError && (
         <Alert variant="destructive" className="mx-4 my-2 flex-none">
-          <AlertCircle className="h-4 w-4" />
+          <CircleAlert className="h-4 w-4" />
           <AlertDescription>{apiError}</AlertDescription>
         </Alert>
       )}
@@ -524,7 +531,7 @@ export default function SessionPage() {
             </h2>
             {error && (
               <div className="text-red-500 text-sm flex items-center">
-                <AlertCircle className="h-4 w-4 mr-1" />
+                <CircleAlert className="h-4 w-4 mr-1" />
                 {error}
               </div>
             )}
@@ -558,6 +565,12 @@ export default function SessionPage() {
             <h2 className="text-sm font-medium">
               Preview ({themes.find(t => t.slug === selectedTheme)?.name})
             </h2>
+            {previewMessage && (
+              <div className="text-blue-500 text-sm flex items-center">
+                {previewMessage}
+                <Info className="h-4 w-4 mr-1 ml-1" />
+              </div>
+            )}
             <Button 
               variant="ghost" 
               size="sm" 
