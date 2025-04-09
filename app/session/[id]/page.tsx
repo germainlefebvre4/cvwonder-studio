@@ -252,7 +252,6 @@ export default function SessionPage() {
 
   // Manual refresh function for the preview
   const handleRefreshPreview = () => {
-    logger.info(`Preview refreshing`);
     // Check YAML validity before refreshing
     const isValid = validateYaml(currentYamlRef.current);
     if (!isValid) {
@@ -266,7 +265,6 @@ export default function SessionPage() {
     // Generate preview with current YAML and selected theme
     generatePreview(currentYamlRef.current, selectedTheme);
     setPreviewMessage("");
-    logger.info(`Preview refreshed`);
   };
 
   // Effect to update the iframe content when renderHtml changes
@@ -572,10 +570,10 @@ export default function SessionPage() {
             )}
             <Button 
               variant="ghost" 
-              size="sm" 
+              size="lg"
               onClick={handleRefreshPreview}
               disabled={isGenerating || !yamlValid}
-              className="flex items-center text-xs gap-1"
+              className="flex items-center text-sm gap-1"
             >
               <RefreshCw className={`h-3 w-3 ${isGenerating ? 'animate-spin' : ''}`} />
               Refresh
