@@ -30,6 +30,7 @@ import { join } from 'path';
 import { configureMonacoYamlEditor } from '@/lib/monaco-config';
 
 import { logger } from '@/lib/logger';
+import { APP_ENV, CVWONDER_VERSION } from '@/lib/environment';
 
 
 // Get writable base directory depending on environment
@@ -111,7 +112,7 @@ export default function SessionPage() {
 
         // Wait for the minimum loading duration
         const elapsedTime = Date.now() - startTime;
-        if (elapsedTime < loadingDuration) {
+        if (elapsedTime < loadingDuration && APP_ENV === 'production') {
           await new Promise(resolve => setTimeout(resolve, loadingDuration - elapsedTime));
         }
         setIsLoading(false);
@@ -471,7 +472,7 @@ export default function SessionPage() {
     <div className="h-screen flex flex-col scroll-disabled main-session">
       <header className="flex-none border-b p-4 bg-background">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">CV Wonder Studio</h1>
+          <h1 className="text-2xl font-bold">CV Wonder Studio v{CVWONDER_VERSION}</h1>
           <div className="flex items-center space-x-4">
             <Select
               value={selectedTheme}
