@@ -406,6 +406,7 @@ export default function SessionPage() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         const errorMsg = errorData?.message || 'Failed to generate PDF';
+        logger.error(`Session ${id} - PDF generation error:`, errorMsg);
         throw new Error(errorMsg);
       }
 
@@ -494,14 +495,14 @@ export default function SessionPage() {
               <Share2 className="mr-2 h-4 w-4" />
               Share
             </Button>
-            {/* <Button variant="outline" onClick={handleDownloadPDF} disabled={isGenerating}>
+            <Button variant="outline" onClick={handleDownloadPDF} disabled={isGenerating}>
               {isGenerating ? (
                 <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <FileDown className="mr-2 h-4 w-4" />
               )}
               {isGenerating ? 'Generating...' : 'Download PDF'}
-            </Button> */}
+            </Button>
             <Link
               href="https://github.com/germainlefebvre4/cvwonder-studio"
               target="_blank"

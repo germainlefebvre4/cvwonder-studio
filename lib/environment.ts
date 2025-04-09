@@ -6,3 +6,4 @@ import { LogLevel } from "./logger";
 
 export const LOG_LEVEL: LogLevel = process.env.LOG_LEVEL as LogLevel || 'info';
 export const CVWONDER_VERSION: string = process.env.CVWONDER_VERSION || '0.3.0';
+export const CVWONDER_PDF_GENERATION_PORT: number = parseInt(process.env.CVWONDER_PDF_GENERATION_PORT || '9889', 10);

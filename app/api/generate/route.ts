@@ -7,6 +7,7 @@ import { existsSync } from 'fs';
 import { downloadCVWonderBinary, getCVWonderBinaryPath, installCVWonderTheme } from '@/lib/initialize-server';
 import { getSession } from '@/lib/sessions';
 import { logger } from '@/lib/logger';
+import { CVWONDER_PDF_GENERATION_PORT } from '@/lib/environment';
 
 const execAsync = promisify(exec);
 
@@ -180,12 +181,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate CV
-    const cvwonderCommand = `${cvwonderPath} generate --input="${cvPath}" --theme="${theme}" --format="${format}" --output="${outputDir}"`;
+    const cvwonderCommand = `${cvwonderPath} generate --input="${cvPath}" --theme="${theme}" --format="${format}" --output="${outputDir}" --port=${CVWONDER_PDF_GENERATION_PORT}`;
     const command = `cd ${process.cwd()} && ${cvwonderCommand}`;
     logger.info(`Session ${sessionId} - Executing command ${cvwonderCommand}`);
+
     
     try {
       const { stdout, stderr } = await execAsync(command);
+      // logger.info('CVWonder command stdout:', stdout);
+      // logger.info('CVWonder command stderr:', stderr);
     } catch (execError: unknown) {
       // Type cast the error to our custom interface
       const typedError = execError as ExecError;
