@@ -19,9 +19,9 @@ const getBaseDir = () => {
 };
 
 // Build the cvwonder binary URL with version support
-const CVWONDER_VERSION = process.env.CVWONDER_VERSION || 'v0.3.0';
+const CVWONDER_VERSION = process.env.CVWONDER_VERSION;
 const CVWONDER_BASE_URL = 'https://github.com/germainlefebvre4/cvwonder/releases';
-const CVWONDER_DOWNLOAD_URL = `${CVWONDER_BASE_URL}/download/${CVWONDER_VERSION}/cvwonder_linux_amd64`;
+const CVWONDER_DOWNLOAD_URL = `${CVWONDER_BASE_URL}/download/v${CVWONDER_VERSION}/cvwonder_linux_amd64`;
 
 // Use appropriate directory paths based on environment
 const BINARY_PATH = join(getBaseDir(), 'bin');
