@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import Editor, { OnMount } from '@monaco-editor/react';
+import MonacoEditor, { OnMount } from '@monaco-editor/react';
 import * as yaml from 'js-yaml';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -534,24 +534,26 @@ export default function SessionPage() {
             )}
           </div>
           <div className="flex-1 min-h-0">
-            <Editor
+            <MonacoEditor
               height="100%"
               defaultLanguage="yaml"
               value={cv}
               onChange={handleEditorChange}
               onMount={handleEditorDidMount}
               options={{
-                minimap: { enabled: false },
+                minimap: { enabled: true },
                 lineNumbers: 'on',
                 scrollBeyondLastLine: false,
                 wordWrap: 'on',
                 formatOnPaste: true,
                 formatOnType: true,
                 suggest: {
-                  showWords: true,
-                  showSnippets: true,
+                  // showWords: true,
+                  // showSnippets: true,
                   showProperties: true
-                }
+                },
+                smoothScrolling: true,
+                glyphMargin: true,
               }}
             />
           </div>
