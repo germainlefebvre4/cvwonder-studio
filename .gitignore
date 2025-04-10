@@ -36,7 +36,7 @@ yarn-error.log*
 next-env.d.ts
 
 # CV Wonder
-/bin/cvwonder
+/bin/cvwonder*
 /tmp/
 /sessions/*/
 

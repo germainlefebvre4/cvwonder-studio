@@ -205,9 +205,7 @@ export async function POST(req: NextRequest) {
         }
         return NextResponse.json({ 
           error: 'Failed to generate CV', 
-          message: typedError instanceof Error ? 
-            (typedError.message + (typedError.stderr ? `: ${typedError.stderr}` : '')) : 
-            'Unknown error during generation',
+          message: typedError instanceof Error ? typedError.stderr : 'Unknown error during generation',
           command: command
         }, { status: 500 });
       }

@@ -10,7 +10,11 @@ services:
       - "3000:3000"
     environment:
       - DATABASE_URL=postgresql://cvwonder:cvwonder@database:5432/cvwonder
-    
+      - LOG_LEVEL=info
+      - CVWONDER_VERSION=0.3.0
+      - CVWONDER_PDF_GENERATION_PORT=9889
+      - REACT_APP_APP_ENV=development
+
   database:
     image: postgres:latest
     environment:
