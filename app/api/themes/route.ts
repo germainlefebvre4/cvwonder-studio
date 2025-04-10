@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
           description: theme.description,
           githubRepoUrl: theme.githubRepoUrl,
           previewUrl: theme.previewUrl,
+          compatibleWith: theme.compatibleWith || "v0.3.0",
         }));
       })
       .catch((error) => {

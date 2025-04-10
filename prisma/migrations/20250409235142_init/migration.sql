@@ -6,6 +6,7 @@ CREATE TABLE "Theme" (
     "description" TEXT,
     "githubRepoUrl" TEXT,
     "previewUrl" TEXT,
+    "compatibleWith" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
