@@ -25,21 +25,24 @@ const themes = [
     slug: 'default',
     description: 'Default theme for CV Wonder',
     githubRepoUrl: 'https://github.com/germainlefebvre4/cvwonder-theme-default',
-    previewUrl: 'https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-default/main/preview.png'
+    previewUrl: 'https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-default/main/preview.png',
+    compatibleWith: 'v0.2.0'
   },
   {
     name: 'Basic',
     slug: 'basic',
     description: 'Basic theme for CV Wonder',
     githubRepoUrl: 'https://github.com/germainlefebvre4/cvwonder-theme-basic',
-    previewUrl: 'https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-basic/main/preview.png'
+    previewUrl: 'https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-basic/main/preview.png',
+    compatibleWith: 'v0.2.0'
   },
   {
     name: 'Horizon Timeline',
     slug: 'horizon-timeline',
     description: 'Horizon Timeline theme for CV Wonder',
     githubRepoUrl: 'https://github.com/germainlefebvre4/cvwonder-theme-horizon-timeline',
-    previewUrl: 'https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-horizon-timeline/main/preview.png'
+    previewUrl: 'https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-horizon-timeline/main/preview.png',
+    compatibleWith: 'v0.3.1'
   }
 ];
 

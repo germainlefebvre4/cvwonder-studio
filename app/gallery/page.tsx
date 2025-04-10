@@ -24,6 +24,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/lib/logger";
 import defaultCV from "@/lib/defaultCV";
+import { ThemeDetailsDialog } from "@/components/theme-details-dialog";
 
 const GalleryPage = () => {
     const router = useRouter();
@@ -35,6 +36,8 @@ const GalleryPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isCreatingSession, setIsCreatingSession] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const themesPerPage = 6;
   const { toast } = useToast();
 
@@ -192,7 +195,16 @@ const GalleryPage = () => {
                         <span>{isCreatingSession ? 'Creating...' : 'Start my CV'}</span>
                         {!isCreatingSession && <ArrowRight className="h-5 w-5 ml-2" />}
                       </Button>
-                      <Button variant="outline" size="sm">More details</Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedTheme(theme);
+                          setIsDialogOpen(true);
+                        }}
+                      >
+                        More details
+                      </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -258,6 +270,15 @@ const GalleryPage = () => {
                 </PaginationContent>
               </Pagination>
             </div>
+          )}
+
+          {/* Theme details dialog */}
+          {selectedTheme && (
+            <ThemeDetailsDialog
+              theme={selectedTheme}
+              open={isDialogOpen}
+              onOpenChange={setIsDialogOpen}
+            />
           )}
         </>
       )}

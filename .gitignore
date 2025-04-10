@@ -39,3 +39,6 @@ next-env.d.ts
 /bin/cvwonder
 /tmp/
 /sessions/*/
+
+# React Component Preview
+previewConfig.json
