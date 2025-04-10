@@ -3,8 +3,6 @@ import prisma from "@/lib/db";
 import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
-  logger.info("[THEMES_SEARCH] Request received");
-  logger.info("[THEMES_SEARCH] Request URL:", req.url);
   try {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -53,7 +51,7 @@ export async function GET(req: NextRequest) {
       query: query || null
     });
   } catch (error) {
-    console.error('[THEMES_SEARCH]', error);
+    console.error('- API Themes Search -', error);
     return new NextResponse("Erreur interne", { status: 500 });
   }
 }
