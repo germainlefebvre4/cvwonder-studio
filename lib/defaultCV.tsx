@@ -1,7 +1,7 @@
 const defaultCV = `---
 company:
   name: Zatsit
-  logo: images/zatsit-logo.webp
+  logo: https://raw.githubusercontent.com/germainlefebvre4/cvwonder-theme-default/refs/heads/main/images/zatsit-logo.webp
 
 person:
   name: Germain
