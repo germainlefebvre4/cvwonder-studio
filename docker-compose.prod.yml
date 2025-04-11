@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: germainlefebvre4/cvwonder-studio:dev
+    image: germainlefebvre4/cvwonder-studio:latest
     container_name: cvwonder-studio
     ports:
       - "3000:3000"
