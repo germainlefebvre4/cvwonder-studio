@@ -1,0 +1,40 @@
+---
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: germainlefebvre4/cvwonder-studio:dev
+    container_name: cvwonder-studio
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://cvwonder:cvwonder@database:5432/cvwonder
+      - LOG_LEVEL=info
+      - CVWONDER_VERSION=0.3.0
+      - CVWONDER_PDF_GENERATION_PORT=9889
+      - REACT_APP_APP_ENV=production
+
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cvwonder
+      POSTGRES_PASSWORD: cvwonder
+      POSTGRES_DB: cvwonder
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8888:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - web
+
+volumes:
+  db_data:
