@@ -7,8 +7,10 @@ It provides a RESTful API for generating CVs in PDF format and managing user dat
 
 ### Prerequisites
 
+Before you begin, ensure you have the following installed on your machine.
+
 - Node.js: v22
-- PostgreSQL: v16
+  - pnpm (v10)
 
 Start the database server and create a database named `cvwonder`.
 
