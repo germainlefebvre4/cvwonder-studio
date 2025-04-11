@@ -197,11 +197,12 @@ const GalleryPage = () => {
                       </Button>
                       <Button 
                         variant="outline" 
-                        size="sm"
+                        size="lg"
                         onClick={() => {
                           setSelectedTheme(theme);
                           setIsDialogOpen(true);
                         }}
+                        className=" bg-white hover:bg-blue-600 text-black hover:text-white"
                       >
                         More details
                       </Button>
