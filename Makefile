@@ -12,3 +12,6 @@ doc-install:
 
 doc-serve:
 	poetry --directory docs/ run mkdocs serve --config-file mkdocs.yml
+
+docker-build:
+	docker build -t germainlefebvre4/cvwonder-studio:dev .
