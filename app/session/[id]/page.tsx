@@ -30,7 +30,6 @@ import { join } from 'path';
 import { configureMonacoYamlEditor } from '@/lib/monaco-config';
 
 import { logger } from '@/lib/logger';
-import { APP_ENV, CVWONDER_VERSION } from '@/lib/environment';
 
 
 // Get writable base directory depending on environment
@@ -72,6 +71,8 @@ export default function SessionPage() {
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [themes, setThemes] = useState<Theme[]>([]);
   const [themesLoaded, setThemesLoaded] = useState(false);
+  const [cvwonderVersion, setCVWonderVersion] = useState<string | null>(null);
+  const [appEnv, setAppEnv] = useState<string | null>(null);
 
   // Handler for when Monaco editor is mounted
   const handleEditorDidMount: OnMount = useCallback(async (editor, monaco) => {
@@ -80,6 +81,26 @@ export default function SessionPage() {
     await configureMonacoYamlEditor(monaco);
   }, []);
 
+
+  // Load CVWonder version
+  useEffect(() => {
+    const fetchInfo = async () => {
+      try {
+        const response = await fetch('/api/info');
+        if (!response.ok) {
+          throw new Error('Failed to fetch version info');
+        }
+        const envInfo = await response.json();
+        setCVWonderVersion(envInfo.cvwonder.version);
+        setAppEnv(envInfo.env);
+      } catch (error) {
+        logger.error('Error fetching environment information:', error);
+        setCVWonderVersion('Unknown');
+        setAppEnv('Unknown');
+      }
+    };
+    fetchInfo();
+  }, []);
 
   // Load session data when component mounts
   useEffect(() => {
@@ -112,7 +133,7 @@ export default function SessionPage() {
 
         // Wait for the minimum loading duration
         const elapsedTime = Date.now() - startTime;
-        if (elapsedTime < loadingDuration && APP_ENV === 'production') {
+        if (elapsedTime < loadingDuration && appEnv === 'production') {
           await new Promise(resolve => setTimeout(resolve, loadingDuration - elapsedTime));
         }
         setIsLoading(false);
@@ -472,7 +493,7 @@ export default function SessionPage() {
     <div className="h-screen flex flex-col scroll-disabled main-session">
       <header className="flex-none border-b p-4 bg-background">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">CV Wonder Studio v{CVWONDER_VERSION}</h1>
+          <h1 className="text-2xl font-bold">CV Wonder Studio v{cvwonderVersion}</h1>
           <div className="flex items-center space-x-4">
             <Select
               value={selectedTheme}
