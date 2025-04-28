@@ -3,7 +3,7 @@ site_name: CV Wonder Studio
 site_description: Render your CV in a few mi
 site_url: https://cvwonder-studio.readthedocs.io/
 
-repo_name: germainlefebvre4/cvwonder
+repo_name: germainlefebvre4/cvwonder-studio
 repo_url: https://github.com/germainlefebvre4/cvwonder-studio
 
 docs_dir: readthedocs
@@ -47,16 +47,26 @@ plugins:
 nav:
   - CV Wonder Studio:
     - index.md
-  - Getting Started:
-    - Write your CV : getting-started/write-cv.md
-    - Generate your CV: getting-started/download-pdf.md
-  - Gallery:
-    - Overview: gallery/overview.md
+  # - Getting Started:
+  #   - Write your CV : getting-started/write-cv.md
+  #   - Generate your CV: getting-started/download-pdf.md
+  - Getting Started: 
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quick-start.md
+    - Configuration: getting-started/configuration.md
+  - User Guide:
+    - YAML Format: user-guide/yaml-format.md
+    - Gallery: user-guide/gallery.md
+    - Export Options: user-guide/export-options.md
+    - Examples:
+      - Basic Example: user-guide/examples/basic-example.md
+      - Advanced Example: user-guide/examples/advanced-example.md
   - Contributing:
+    - Architecture: contributing/architecture.md
+    - Development Setup: contributing/development.md
     - How to contribute:
         - Issues: contributing/issues.md
         - Pull Requests: contributing/pull-requests.md
-        - Development: contributing/development.md
         - Code of Conduct: contributing/code-of-conduct.md
     - Maintainer:
         - Git workflow: contributing/maintainer/git-workflow.md
