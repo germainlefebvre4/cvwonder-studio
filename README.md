@@ -15,7 +15,7 @@ Before you begin, ensure you have the following installed on your machine.
 Start the database server and create a database named `cvwonder`.
 
 ```bash
-docker compose up -d
+docker compose up database -d
 ```
 
 ### Start the Studio
@@ -39,6 +39,7 @@ CVWONDER_VERSION=latest
 CVWONDER_PDF_GENERATION_PORT=3000
 APP_ENV=development
 LOG_LEVEL=info
+DATABASE_URL=postgres://user:password@localhost:5432/cvwonder
 ```
 
 The following environment variables are available:
@@ -49,6 +50,7 @@ The following environment variables are available:
 | `CVWONDER_PDF_GENERATION_PORT` | Port for the PDF generation service. **Must be different** from the application port `3000`. | `9889` |
 | `APP_ENV` | Environment of the application. Can be `development`, `staging`, or `production`. | `development` |
 | `LOG_LEVEL` | Log level for the application. Can be `info`, `warn`, or `error`. | `info` |
+| `DATABASE_URL` | URL for the PostgreSQL database. | `postgres://user:password@localhost:5432/cvwonder` |
 
 ## Deployment
 
@@ -57,6 +59,7 @@ The following environment variables are available:
 A Docker Compose file is provided for deploying the application in production. You can build and run the application using Docker Compose.
 
 ```bash
+cd examples/
 docker compose -f docker-compose.prod.yml up -d
 ```
 
