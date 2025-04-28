@@ -1,0 +1,255 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Generated schema for Root",
+  "type": "object",
+  "properties": {
+    "company": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "logo": {
+          "type": "string"
+        }
+      }
+    },
+    "person": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "depiction": {
+          "type": "string"
+        },
+        "profession": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "citizenship": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "site": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        }
+      }
+    },
+    "socialNetworks": {
+      "type": "object",
+      "properties": {
+        "github": {
+          "type": "string"
+        },
+        "stackoverflow": {
+          "type": "string"
+        },
+        "linkedin": {
+          "type": "string"
+        },
+        "twitter": {
+          "type": "string"
+        }
+      }
+    },
+    "abstract": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tr": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "career": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "companyName": {
+            "type": "string"
+          },
+          "companyLogo": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "string"
+          },
+          "missions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "position": {
+                  "type": "string"
+                },
+                "company": {
+                  "type": "string"
+                },
+                "location": {
+                  "type": "string"
+                },
+                "dates": {
+                  "type": "string"
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "technologies": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "description": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "project": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "technicalSkills": {
+      "type": "object",
+      "properties": {
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "competencies": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "level": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "sideProjects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "position": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "link": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "langs": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "certifications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "companyName": {
+            "type": "string"
+          },
+          "certificationName": {
+            "type": "string"
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "link": {
+            "type": "string"
+          },
+          "badge": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "education": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "schoolName": {
+            "type": "string"
+          },
+          "schoolLogo": {
+            "type": "string"
+          },
+          "degree": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "dates": {
+            "type": "string"
+          },
+          "link": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

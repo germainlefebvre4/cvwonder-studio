@@ -1,11 +1,12 @@
 import { editor, languages } from 'monaco-editor';
 import { logger } from '@/lib/logger';
+import { CVWONDER_VERSION } from '@/lib/environment';
 
 // Function to configure Monaco editor with the CVWonder schema
 export const configureMonacoYamlEditor = async (monaco: any) => {
   try {
     // Fetch the schema from the local file
-    const schema = await import('../schemas/0.3.0/cvwonder.json');
+    const schema = await import(`../schemas/${CVWONDER_VERSION}/cvwonder.json`);
 
     // Check if the YAML language is already registered
     if (!monaco.languages.getLanguages().some((lang: any) => lang.id === 'yaml')) {
