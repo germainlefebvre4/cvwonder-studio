@@ -1,0 +1,17 @@
+---
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  docker-publish:
+    uses: ./.github/workflows/docker-publish.yml
+    with:
+      version: ${{ github.ref_name }}
+    secrets: inherit
