@@ -46,3 +46,7 @@ previewConfig.json
 # Documentation
 .venv/
 .cache/
+
+# CI
+event.json
+act.secrets

@@ -28,6 +28,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Clean Themes directories
+        run: |
+          rm -rf themes/*/.git/
+          rm -rf themes/*/preview.png
+
       - name: Set versions
         id: versions
         shell: bash
