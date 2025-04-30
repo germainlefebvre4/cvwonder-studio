@@ -12,14 +12,14 @@ Before installing CVWonder Studio, make sure you have the following prerequisite
 
 ### Docker Compose
 
-The easiest way to install CVWonder Studio is through pip:
+The easiest way to install CVWonder Studio is through [docker compose](https://docs.docker.com/compose/install/):
 
 ```bash
 cd examples/
 docker compose up -d
 ```
 
-This will install the latest stable version of CVWonder Studio.
+This will install the latest stable version of CV Wonder Studio.
 
 ### Kubernetes
 
