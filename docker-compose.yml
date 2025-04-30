@@ -1,0 +1,32 @@
+---
+services:
+  web:
+    image: germainlefebvre4/cvwonder-studio:dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgres://cvwonder:cvwonder@database:5432/cvwonder
+      LOG_LEVEL: DEBUG
+      CVWONDER_VERSION: 0.3.1
+      CVWONDER_PDF_GENERATION_PORT: 9889
+    # volumes:
+    #   - .cache:/home/nextjs/.cache
+    depends_on:
+      - database
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cvwonder
+      POSTGRES_PASSWORD: cvwonder
+      POSTGRES_DB: cvwonder
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:

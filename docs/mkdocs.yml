@@ -1,0 +1,112 @@
+---
+site_name: CV Wonder Studio
+site_description: Render your CV in a few mi
+site_url: https://cvwonder-studio.readthedocs.io/
+
+repo_name: germainlefebvre4/cvwonder-studio
+repo_url: https://github.com/germainlefebvre4/cvwonder-studio
+
+docs_dir: readthedocs
+
+theme:
+  name: material
+  language: en
+  logo: logo.svg
+  favicon: logo.ico
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.path
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - navigation.footer
+    - content.code.copy
+
+plugins:
+  - search:
+      lang: en
+  - autorefs
+  - glightbox:
+      touchNavigation: true
+      loop: false
+      effect: zoom
+      slide_effect: slide
+      width: 100%
+      height: auto
+      zoomable: true
+      draggable: true
+      skip_classes:
+        - custom-skip-class-name
+      auto_caption: false
+      caption_position: bottom
+      background: white
+      shadow: true
+      manual: false
+
+nav:
+  - CV Wonder Studio:
+    - index.md
+  # - Getting Started:
+  #   - Write your CV : getting-started/write-cv.md
+  #   - Generate your CV: getting-started/download-pdf.md
+  - Getting Started: 
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quick-start.md
+    - Configuration: getting-started/configuration.md
+  - User Guide:
+    - YAML Format: user-guide/yaml-format.md
+    - Gallery: user-guide/gallery.md
+    - Export Options: user-guide/export-options.md
+    - Examples:
+      - Basic Example: user-guide/examples/basic-example.md
+      - Advanced Example: user-guide/examples/advanced-example.md
+  - Contributing:
+    - Architecture: contributing/architecture.md
+    - Development Setup: contributing/development.md
+    - How to contribute:
+        - Issues: contributing/issues.md
+        - Pull Requests: contributing/pull-requests.md
+        - Code of Conduct: contributing/code-of-conduct.md
+    - Maintainer:
+        - Git workflow: contributing/maintainer/git-workflow.md
+        - Release Flow: contributing/maintainer/release-flow.md
+    - The Team: contributing/team.md
+  - License: license.md
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - admonition
+  - codehilite
+  - tables
+  - footnotes
+  - extra
+  - pymdownx.details
+  - toc:
+      permalink: true
+  - markdown.extensions.codehilite:
+      guess_lang: false
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - markdown_include.include:
+      base_path: docs/readthedocs
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+extra:
+  generator: false
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/germainlefebvre4/cvwonder-studio
+
+extra_css:
+  - stylesheets/extra.css
+
+copyright: Copyright &copy; 2025 CV Wonder, and contributors

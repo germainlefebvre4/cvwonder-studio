@@ -1,0 +1,39 @@
+---
+services:
+  web:
+    image: germainlefebvre4/cvwonder-studio:latest
+    container_name: cvwonder-studio
+    ports:
+      - "3000:3000"
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgres://cvwonder:cvwonder@database:5432/cvwonder
+      LOG_LEVEL: INFO
+      CVWONDER_VERSION: 0.3.1
+      CVWONDER_PDF_GENERATION_PORT: 9889
+    depends_on:
+      - database
+
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cvwonder
+      POSTGRES_PASSWORD: cvwonder
+      POSTGRES_DB: cvwonder
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8888:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - web
+
+volumes:
+  db_data:
