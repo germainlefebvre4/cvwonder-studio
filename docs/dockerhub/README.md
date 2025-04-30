@@ -102,7 +102,8 @@ volumes:
 Run the compose and enjoy the CV Wonder Studio.
 
 ```bash
-docker-compose -f docker-compose.prod.yml up -d
+cd examples/
+docker compose up -d
 ```
 
 You can now access the CV Wonder Studio at [http://localhost:3000](http://localhost:3000).
