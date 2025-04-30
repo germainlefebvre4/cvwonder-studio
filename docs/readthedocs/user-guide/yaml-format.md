@@ -19,7 +19,7 @@ key: value
 For example:
 
 ```yaml
-name: John Doe
+name: Germain
 email: john.doe@example.com
 ```
 
@@ -28,9 +28,9 @@ email: john.doe@example.com
 YAML uses indentation (spaces, not tabs) to indicate nesting. Consistent indentation is crucial:
 
 ```yaml
-personal:
-  name: John Doe  # Indented under personal
-  email: john.doe@example.com  # Same level as name
+person:
+  name: Germain
+  location: Lille
 ```
 
 ### Lists
@@ -38,7 +38,7 @@ personal:
 Lists are created using hyphens:
 
 ```yaml
-skills:
+technologies:
   - Python
   - JavaScript
   - Docker
@@ -49,14 +49,11 @@ skills:
 You can create nested lists by indenting further:
 
 ```yaml
-experience:
-  - company: Company A
-    position: Developer
-    highlights:
-      - Built feature X
-      - Improved system Y
-  - company: Company B
-    position: Engineer
+languages:
+  - name: French
+    level: Mother tongue
+  - name: English
+    level: Fluent
 ```
 
 ### Multi-line Text
@@ -84,7 +81,8 @@ summary: >
 If your text includes special characters like colons or quotes, you may need to wrap the text in quotes:
 
 ```yaml
-position: "Senior Developer: Frontend Team"
+person:
+  profession: "Senior Developer: Frontend Team"
 ```
 
 ### Date Format
@@ -102,13 +100,13 @@ endDate: present    # Current position
 
 ```yaml
 # Incorrect
-personal:
-  name: John Doe
+person:
+  name: Germain
  email: john.doe@example.com  # Wrong indentation
 
 # Correct
-personal:
-  name: John Doe
+person:
+  name: Germain
   email: john.doe@example.com  # Same indentation as name
 ```
 
@@ -116,10 +114,10 @@ personal:
 
 ```yaml
 # Incorrect
-name:John Doe  # Missing space after colon
+name:Germain  # Missing space after colon
 
 # Correct
-name: John Doe  # Space after colon
+name: Germain  # Space after colon
 ```
 
 ### Tabs vs. Spaces
@@ -130,10 +128,10 @@ Always use spaces, not tabs. Many YAML parsers don't handle tabs well.
 
 ```yaml
 # Incorrect
-title: Team Lead: Frontend  # Colon causes parsing error
+profession: Team Lead: Frontend  # Colon causes parsing error
 
 # Correct
-title: "Team Lead: Frontend"  # Quotes protect special characters
+profession: "Team Lead: Frontend"  # Quotes protect special characters
 ```
 
 ## YAML Validation
@@ -157,8 +155,8 @@ You can also use online YAML validators:
 You can add comments to your CV file for your own reference. Comments start with `#` and are ignored by CVWonder:
 
 ```yaml
-personal:
-  name: John Doe
+person:
+  name: Germain
   # TODO: Add LinkedIn profile URL
   email: john.doe@example.com
 ```
@@ -168,33 +166,51 @@ personal:
 Here's a minimal valid CV in YAML format:
 
 ```yaml
-personal:
-  name: John Doe
-  title: Software Engineer
+person:
+  name: Germain
+  profession: Software Engineer
   email: john.doe@example.com
   phone: "+1 (555) 123-4567"
 
-summary: |
-  Software engineer with 5 years of experience in web development.
+socialNetworks:
+  github: germainlefebvre4
 
-experience:
-  - company: Tech Company
-    position: Software Engineer
-    startDate: 2018-01
-    endDate: present
-    summary: Developing web applications using modern technologies.
+abstract:
+  - tr: Software engineer with 5 years of experience in web development.
+
+career:
+  - companyName: Zatsit
+    duration: 10 mois, aujourd'hui
+    missions:
+        company: Adeo
+      - position: Platform Engineer
+        company: Adeo
+        summary: Construire une IDP, plateforme interne de développement, totalement managée pour aider les développeurs à se focaliser sur le code. Sur base du code source, la plateforme provisionne l'infrastructure sous-jacente, les base de données, la construction des artefact et publication sur la registry, le déploiement dans Kubernetes, l'intégration du monitoring avec Datadog et construction des Monitors.
+        technologies:
+          - ArgoCD
+          - Kubernetes
+        description:
+          - Développement de l'operator Kubernetes responsable du provisioning des bases de données
+          - Développement des Compositions Crossplane pour provisionner les base de données
+
+technicalSkills:
+  domains:
+    - name: Cloud
+      competencies:
+        - name: AWS
+          level: 80
+          level: 40
+    - name: Ops
+      competencies:
+        - name: Linux
+          level: 90
+        - name: Ansible
+          level: 90
 
 education:
-  - institution: University of Example
-    degree: Bachelor of Science
-    field: Computer Science
-    startDate: 2014
-    endDate: 2018
-
-skills:
-  - JavaScript
-  - Python
-  - Git
+  - schoolName: IG2I - Centrale
+    location: Lens, France
+    dates: 2019 - 2014
 ```
 
 For more detailed examples and sections, refer to the [CV structure](https://cvwonder.readthedocs.io/en/latest/getting-started/write-cv/) guide.
