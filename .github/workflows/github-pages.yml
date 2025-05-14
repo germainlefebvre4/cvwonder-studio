@@ -1,11 +1,11 @@
 ---
 name: GitHub Pages
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'docs/github-pages/**'
+  # pull_request:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - 'docs/github-pages/**'
   push:
     branches:
       - main
