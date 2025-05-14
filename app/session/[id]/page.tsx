@@ -73,6 +73,7 @@ export default function SessionPage() {
   const [themesLoaded, setThemesLoaded] = useState(false);
   const [cvwonderVersion, setCVWonderVersion] = useState<string | null>(null);
   const [appEnv, setAppEnv] = useState<string | null>(null);
+  const [pdfGenerationEnabled, setPdfGenerationEnabled] = useState(false);
 
   // Handler for when Monaco editor is mounted
   const handleEditorDidMount: OnMount = useCallback(async (editor, monaco) => {
@@ -93,10 +94,12 @@ export default function SessionPage() {
         const envInfo = await response.json();
         setCVWonderVersion(envInfo.cvwonder.version);
         setAppEnv(envInfo.env);
+        setPdfGenerationEnabled(Boolean(envInfo.pdfGenerationEnabled));
       } catch (error) {
         logger.error('Error fetching environment information:', error);
         setCVWonderVersion('Unknown');
         setAppEnv('Unknown');
+        setPdfGenerationEnabled(false);
       }
     };
     fetchInfo();
@@ -524,14 +527,16 @@ export default function SessionPage() {
               <Share2 className="mr-2 h-4 w-4" />
               Share
             </Button>
-            <Button variant="outline" onClick={handleDownloadPDF} disabled={isGenerating}>
+            {pdfGenerationEnabled && (
+              <Button variant="outline" onClick={handleDownloadPDF} disabled={isGenerating}>
               {isGenerating ? (
                 <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <FileDown className="mr-2 h-4 w-4" />
               )}
               {isGenerating ? 'Generating...' : 'Download PDF'}
-            </Button>
+              </Button>
+            )}
             <Link
               href="https://github.com/germainlefebvre4/cvwonder-studio"
               target="_blank"
