@@ -4,12 +4,13 @@ on:
   pull_request:
     branches:
       - main
-    # paths:
-    #   - 'docs/github-pages/**'
-#   push:
-#     branches:
-#       - main
-#       - docs/v2-docusaurus
+    paths:
+      - 'docs/github-pages/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/github-pages/**'
 
 jobs:
   build:
