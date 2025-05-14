@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Person.Name }} - CV</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="./styles.css">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const techTagContainers = document.querySelectorAll('.tech-tags');
+            
+            techTagContainers.forEach(container => {
+                const techTags = container.querySelectorAll('.tech-tag');
+                
+                if (techTags.length > 5) {
+                    // Only show first 5 tags
+                    for (let i = 5; i < techTags.length; i++) {
+                        techTags[i].classList.add('tech-tag-hidden');
+                    }
+                    
+                    // Create show more toggle
+                    const showMoreToggle = document.createElement('span');
+                    showMoreToggle.classList.add('tech-tags-toggle');
+                    showMoreToggle.innerText = `+${techTags.length - 5} More`;
+                    showMoreToggle.addEventListener('click', function() {
+                        container.querySelectorAll('.tech-tag-hidden').forEach(tag => {
+                            tag.classList.remove('tech-tag-hidden');
+                        });
+                        this.classList.add('tech-tag-hidden');
+                        showLessToggle.classList.remove('tech-tag-hidden');
+                    });
+                    container.appendChild(showMoreToggle);
+                    
+                    // Create show less toggle
+                    const showLessToggle = document.createElement('span');
+                    showLessToggle.classList.add('tech-tags-toggle', 'tech-tag-hidden');
+                    showLessToggle.innerText = 'Less';
+                    showLessToggle.addEventListener('click', function() {
+                        for (let i = 5; i < techTags.length; i++) {
+                            techTags[i].classList.add('tech-tag-hidden');
+                        }
+                        this.classList.add('tech-tag-hidden');
+                        showMoreToggle.classList.remove('tech-tag-hidden');
+                    });
+                    container.appendChild(showLessToggle);
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container hero-content">
+            <h1>{{ .Person.Name }}</h1>
+            <h2>{{ .Person.Profession }}</h2>
+            {{ range .Abstract }}
+                <p>{{ .Tr }}</p>
+            {{ end }}
+            <div class="contact-info">
+                <div class="contact-item">
+                    <i class="fas fa-envelope"></i>
+                    <a href="mailto:{{ .Person.Email }}">{{ .Person.Email }}</a>
+                </div>
+                {{ if .Person.Phone }}
+                <div class="contact-item">
+                    <i class="fas fa-phone"></i>
+                    <span>{{ .Person.Phone }}</span>
+                </div>
+                {{ end }}
+                {{ if .Person.Location }}
+                <div class="contact-item">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>{{ .Person.Location }}</span>
+                </div>
+                {{ end }}
+                {{ if .Person.Site }}
+                <div class="contact-item">
+                    <i class="fas fa-globe"></i>
+                    <a href="{{ .Person.Site }}" target="_blank">{{ .Person.Site }}</a>
+                </div>
+                {{ end }}
+            </div>
+            <div class="social-links">
+                {{ if .SocialNetworks.Github }}
+                <a href="https://github.com/{{ .SocialNetworks.Github }}" class="social-btn"target="_blank">
+                    <i class="fab fa-github"></i>
+                </a>
+                {{ end }}
+                {{ if .SocialNetworks.Linkedin }}
+                <a href="https://linkedin.com/in/{{ .SocialNetworks.Linkedin }}" class="social-btn"target="_blank">
+                    <i class="fab fa-linkedin-in"></i>
+                </a>
+                {{ end }}
+                {{ if .SocialNetworks.Twitter }}
+                <a href="https://x.com/{{ .SocialNetworks.Twitter }}" class="social-btn"target="_blank">
+                    <i class="fab fa-twitter"></i>
+                </a>
+                {{ end }}
+            </div>
+        </div>
+    </section>
+
+    <div class="content">
+        <div class="container">
+            <!-- Skills Section -->
+            <section id="skills">
+                <h2 class="section-title">Skills</h2>
+                <div class="skills">
+                    {{ range .TechnicalSkills.Domains }}
+                        <div class="skill-domain">
+                            <h3>{{ .Name }}</h3>
+                            {{ range .Competencies }}
+                                <div class="skill-item">
+                                    <div class="skill-name">
+                                        <span>{{ .Name }}</span>
+                                        <span>{{ .Level }}%</span>
+                                    </div>
+                                    <div class="skill-bar">
+                                        <div class="skill-level" style="width: {{ .Level }}%;"></div>
+                                    </div>
+                                </div>
+                            {{ end }}
+                        </div>
+                    {{ end }}
+                </div>
+            </section>
+
+            <!-- Experience Section -->
+            <section id="experience">
+                <h2 class="section-title">Professional Journey</h2>
+                <div class="timeline">
+                    {{ $count := 0 }}
+                    {{ range .Career }}
+                        {{ range .Missions }}
+                            <div class="timeline-item {{ if even $count }}left{{ else }}right{{ end }}">
+                                <div class="timeline-content">
+                                    <span class="date">{{ .Dates }}</span>
+                                    <h3>{{ .Position }}</h3>
+                                    <h4>{{ .Company }}</h4>
+                                    <p>{{ .Summary }}</p>
+                                    <ul>
+                                        {{ range .Description }}
+                                            <li>{{ . }}</li>
+                                        {{ end }}
+                                    </ul>
+                                    {{ if .Technologies }}
+                                    <div class="tech-tags">
+                                        {{ range .Technologies }}
+                                            <span class="tech-tag">{{ . }}</span>
+                                        {{ end }}
+                                    </div>
+                                    {{ end }}
+                                </div>
+                            </div>
+                            {{ $count = add $count 1 }}
+                        {{ end }}
+                    {{ end }}
+                </div>
+            </section>
+
+            <!-- Projects Section -->
+            <section id="projects">
+                <h2 class="section-title">Projects</h2>
+                <div class="projects-grid">
+                    {{ range .SideProjects }}
+                        <div class="project-card">
+                            <div class="project-content">
+                                <h3 class="project-title">{{ .Name }}</h3>
+                                <p class="project-desc">{{ .Description }}</p>
+                                {{ if .Link }}
+                                <a href="https://github.com/{{ .Link }}" class="project-link" target="_blank">
+                                    <i class="fab fa-github"></i> View Project
+                                </a>
+                                {{ end }}
+                            </div>
+                        </div>
+                    {{ end }}
+                </div>
+            </section>
+
+            <!-- Education Section -->
+            <section id="education">
+                <h2 class="section-title">Education</h2>
+                <div class="timeline">
+                    {{ $count := 0 }}
+                    {{ range .Education }}
+                        <div class="timeline-item {{ if eq $count 0 }}left{{ else }}right{{ end }}">
+                            <div class="timeline-content">
+                                <span class="date">{{ .Dates }}</span>
+                                <h3>{{ .Degree }}</h3>
+                                <h4>{{ .SchoolName }}</h4>
+                            </div>
+                        </div>
+                    {{ end }}
+                </div>
+            </section>
+
+            <!-- Languages Section -->
+            <section id="languages">
+                <h2 class="section-title">Languages</h2>
+                <div class="language-grid">
+                    {{ range .Languages }}
+                        <div class="language-item">
+                            <h3 class="language-name">{{ .Name }}</h3>
+                            <span class="language-level">{{ .Level }}</span>
+                        </div>
+                    {{ end }}
+                </div>
+            </section>
+
+            <!-- Certifications Section -->
+            <section id="certifications">
+                <h2 class="section-title">Certifications</h2>
+                <div class="certifications-grid">
+                    {{ range .Certifications }}
+                        <div class="certification-card">
+                            {{ if .Badge }}
+                            <img src="{{ .Badge }}" alt="{{ .CertificationName }}" class="cert-img">
+                            {{ end }}
+                            <h3 class="cert-title">{{ .CertificationName }}</h3>
+                            <p class="cert-issuer">{{ .Issuer }}</p>
+                            <p class="cert-date">{{ .Date }}</p>
+                            {{ if .Link }}
+                            <a href="{{ .Link }}" class="project-link" target="_blank">View Certificate</a>
+                            {{ end }}
+                        </div>
+                    {{ end }}
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p class="footer-text">©2025 {{ .Person.Name }} - All Rights Reserved</p>
+        </div>
+    </footer>
+</body>
+</html>

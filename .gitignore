@@ -46,3 +46,7 @@ previewConfig.json
 # Documentation
 .venv/
 .cache/
+
+# CV Wonder Themes
+/themes/*/.git/
+/themes/*/preview.png

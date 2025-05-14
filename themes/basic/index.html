@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Person.Name }} - CV</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="cv-container">
+        <!-- Colonne gauche (Infos, Compétences, Langues) -->
+        <aside class="left-column">
+            <div class="profile">
+                <h1>{{ .Person.Name }}</h1>
+                <h2>{{ .Person.Profession }}</h2>
+            </div>
+
+            <div class="contact">
+                <h3>Contact</h3>
+                <p><strong>Email:</strong> <a href="mailto:{{ .Person.Email }}">{{ .Person.Email }}</a></p>
+                <p><strong>Téléphone:</strong> {{ .Person.Phone }}</p>
+                <p><strong>Ville:</strong> {{ .Person.Location }}</p>
+                <p><strong>Website:</strong> <a href="{{ .Person.Site }}">{{ .Person.Site }}</a></p>
+            </div>
+
+            <div class="social">
+                <h3>Réseaux Sociaux</h3>
+                <div class="social-items">
+                    <p><a href="https://github.com/{{ .SocialNetworks.Github }}">GitHub</a></p>
+                    <p><a href="https://linkedin.com/in/{{ .SocialNetworks.Linkedin }}">LinkedIn</a></p>
+                    <p><a href="https://twitter.com/{{ .SocialNetworks.Twitter }}">Twitter</a></p>
+                </div>
+            </div>
+
+            <div class="skills">
+                <h3>Compétences</h3>
+                {{ range .TechnicalSkills.Domains }}
+                    <h4>{{ .Name }}</h4>
+                    <ul>
+                        {{ range .Competencies }}
+                            <li>{{ .Name }} - {{ .Level }}%</li>
+                        {{ end }}
+                    </ul>
+                {{ end }}
+            </div>
+
+            <div class="languages">
+                <h3>Langues</h3>
+                <ul>
+                    {{ range .Languages }}
+                        <li>{{ .Name }} - {{ .Level }}</li>
+                    {{ end }}
+                </ul>
+            </div>
+        </aside>
+
+        <!-- Colonne droite (Expérience, Projets, Éducation, Certifications) -->
+        <main class="right-column">
+            <section class="about">
+                <h3>À propos</h3>
+                {{ range .Abstract }}
+                    <p>{{ .Tr }}</p>
+                {{ end }}
+            </section>
+
+            <section class="career">
+                <h3>Expérience Professionnelle</h3>
+                {{ range .Career }}
+                    <div class="job">
+                        <h4>{{ .CompanyName }}</h4>
+                        {{ range .Missions }}
+                            <div class="mission">
+                                <p><strong>Poste:</strong> {{ .Position }}</p>
+                                <p><strong>Période:</strong> {{ .Dates }}</p>
+                                <p><strong>Résumé:</strong> {{ .Summary }}</p>
+                                <ul>
+                                    {{ range .Description }}
+                                        <li>{{ . }}</li>
+                                    {{ end }}
+                                </ul>
+                            </div>
+                        {{ end }}
+                    </div>
+                {{ end }}
+            </section>
+
+            <section class="projects">
+                <h3>Projets</h3>
+                {{ range .SideProjects }}
+                    <div class="project">
+                        <h4 class="name">{{ .Name }}</h4>
+                        <div class="position">{{ .Position }}</div>
+                        <div class="description">{{ .Description }}</div>
+                        <div class="link"><a href="https://github.com/{{ .Link }}">Voir sur GitHub</a></div>
+                    </div>
+                {{ end }}
+            </section>
+
+            <section class="education">
+                <h3>Formation</h3>
+                {{ range .Education }}
+                    <div class="education-item">
+                        <h4>{{ .Degree }}</h4>
+                        <div class="school"><strong>Établissement:</strong> {{ .SchoolName }}</div>
+                        <div class="date"><strong>Période:</strong> {{ .Dates }}</div>
+                    </div>
+                {{ end }}
+            </section>
+
+            <section class="certifications">
+                <h3>Certifications</h3>
+                {{ range .Certifications }}
+                    <div class="certification">
+                        <div class="badge">
+                            <a href="{{ .Link }}"><img src="{{ .Badge }}" alt="{{ .CertificationName }} Badge"></a>
+                        </div>
+                        <div class="de">
+                            <h4>{{ .CertificationName }}</h4>
+                            <div class="issuer"><strong>Émis par:</strong> {{ .Issuer }}</div>
+                            <div class="date"><strong>Date:</strong> {{ .Date }}</div>
+                        </div>
+                    </div>
+                {{ end }}
+            </section>
+        </main>
+    </div>
+</body>
+</html>
