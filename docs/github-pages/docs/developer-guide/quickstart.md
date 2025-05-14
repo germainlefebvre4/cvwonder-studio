@@ -73,4 +73,4 @@ Press the "Export" button to download your CV in the desired format (PDF, ...).
 - Learn more about [CV structure and fields](https://cvwonder.readthedocs.io/en/latest/getting-started/write-cv/)
 - Explore available [Themes](https://github.com/topics/cvwonder-theme)
 - Check [configuration options](configuration.md) for customizing CVWonder
-- See complete [examples](../user-guide/examples/basic-example.md)
+- See complete [examples](../user-guide/examples/basic.md)

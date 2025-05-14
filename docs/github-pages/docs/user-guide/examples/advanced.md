@@ -33,6 +33,6 @@ This example provides a comprehensive structure that you can adapt to your own n
 
 ## Next Steps
 
-- Check out the [Advanced Example](advanced-example.md) for more complex CV structures
+- Check out the [Advanced Example](advanced.md) for more complex CV structures
 - Learn more about the [CV structure](https://cvwonder.readthedocs.io/en/latest/getting-started/write-cv/)
 - Explore [Gallery](../gallery.md) to customize the appearance
