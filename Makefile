@@ -8,10 +8,16 @@ help: ## Display this help.
     @:
 
 doc-install:
-	poetry --directory docs/ lock && poetry --directory docs/ install
+	cd docs/github-pages/; \
+	pnpm install;
+
+doc-build:
+	cd docs/github-pages/; \
+	pnpm build;
 
 doc-serve:
-	poetry --directory docs/ run mkdocs serve --config-file mkdocs.yml
+	cd docs/github-pages/; \
+	pnpm start;
 
 docker-build:
 	docker build -f docker-compose.yml -t germainlefebvre4/cvwonder-studio:dev .
