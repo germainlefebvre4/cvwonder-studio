@@ -18,6 +18,7 @@ Some configuration options can also be set using environment variables. This all
 | `LOG_LEVEL` | Logging level (e.g., `debug`, `info`, `warning`, `error`). | `debug`, `info`, `warning`, `error` |
 | `CVWONDER_VERSION` | Version of the CVWonder binary to download on startup. | `0.3.0` |
 | `CVWONDER_PDF_GENERATION_PORT` | Port for PDF generation service. | `9889` |
+| `CVWONDER_PDF_GENERATION_ENABLED` | Enable or disable PDF generation service. | `true`, `false` |
 
 ## Next Steps
 

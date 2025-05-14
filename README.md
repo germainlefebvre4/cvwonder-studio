@@ -37,6 +37,7 @@ The application uses environment variables to configure some behavior. You can s
 ```env
 CVWONDER_VERSION=latest
 CVWONDER_PDF_GENERATION_PORT=3000
+CVWONDER_PDF_GENERATION_ENABLED=true
 APP_ENV=development
 LOG_LEVEL=info
 DATABASE_URL=postgres://user:password@localhost:5432/cvwonder
