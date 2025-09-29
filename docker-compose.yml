@@ -17,7 +17,20 @@ services:
     # volumes:
     #   - .cache:/home/nextjs/.cache
     depends_on:
-      - database
+      database:
+        condition: service_healthy
+  db-init:
+    image: node:22-alpine
+    entrypoint: ["sh", "-c", "corepack enable pnpm && pnpm run db:init"]
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgres://cvwonder:cvwonder@database:5432/cvwonder
+    working_dir: /app
+    volumes:
+      - .:/app
+    depends_on:
+      database:
+        condition: service_healthy
   database:
     image: postgres:16-alpine
     environment:
@@ -28,6 +41,11 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   db_data:
