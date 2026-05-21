@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cvwonder-studio
+  annotations:
+    # TLS — replace with your cert-manager issuer or equivalent
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  # tls:
+  #   - hosts:
+  #       - studio.example.com
+  #     secretName: cvwonder-studio-tls
+  rules:
+    - host: studio.example.com  # Replace with your domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cvwonder-studio
+                port:
+                  name: http

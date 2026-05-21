@@ -1,37 +1,7 @@
 ---
 services:
-  web:
-    image: germainlefebvre4/cvwonder-studio:dev
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      APP_ENV: development
-      DATABASE_URL: postgres://cvwonder:cvwonder@database:5432/cvwonder
-      LOG_LEVEL: DEBUG
-      CVWONDER_VERSION: 0.3.1
-      CVWONDER_PDF_GENERATION_PORT: 9889
-      CVWONDER_PDF_GENERATION_ENABLED: false
-    # volumes:
-    #   - .cache:/home/nextjs/.cache
-    depends_on:
-      database:
-        condition: service_healthy
-  db-init:
-    image: node:22-alpine
-    entrypoint: ["sh", "-c", "corepack enable pnpm && pnpm run db:init"]
-    environment:
-      APP_ENV: development
-      DATABASE_URL: postgres://cvwonder:cvwonder@database:5432/cvwonder
-    working_dir: /app
-    volumes:
-      - .:/app
-    depends_on:
-      database:
-        condition: service_healthy
-  database:
+  # ── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: cvwonder
@@ -40,12 +10,56 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U cvwonder"]
+      interval: 5s
       timeout: 5s
       retries: 5
 
+  # ── Go Backend (air hot-reload) ────────────────────────────────────────────
+  backend:
+    image: golang:1.25-alpine
+    working_dir: /app/backend
+    command: ["sh", "-c", "go install github.com/air-verse/air@latest && air"]
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      DATABASE_URL: "postgres://cvwonder:cvwonder@postgres:5432/cvwonder?sslmode=disable"
+      CVWONDER_BINARY_PATH: "/usr/local/bin/cvwonder"
+      SESSIONS_BASE_DIR: "/data/sessions"
+      THEMES_BUILTIN_DIR: "/app/themes"
+      THEMES_RUNTIME_DIR: "/data/themes"
+      SESSION_DURATION_DAYS: "30"
+    volumes:
+      - ./backend:/app/backend
+      - ./infra/themes:/app/themes:ro
+      - sessions_data:/data/sessions
+      - themes_data:/data/themes
+      - go_cache:/root/go
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Vite Dev Frontend ──────────────────────────────────────────────────────
+  frontend:
+    image: node:22-alpine
+    working_dir: /app/frontend
+    command: ["sh", "-c", "corepack enable && pnpm install && pnpm dev --host"]
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE: "http://localhost:8080"
+    volumes:
+      - ./frontend:/app/frontend
+      - frontend_node_modules:/app/frontend/node_modules
+    depends_on:
+      - backend
+
 volumes:
-  db_data:
+  postgres_data:
+  sessions_data:
+  themes_data:
+  go_cache:
+  frontend_node_modules:

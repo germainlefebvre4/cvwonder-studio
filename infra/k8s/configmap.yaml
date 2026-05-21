@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cvwonder-studio-config
+data:
+  PORT: "8080"
+  SESSIONS_BASE_DIR: "/data/sessions"
+  THEMES_BUILTIN_DIR: "/app/themes"
+  THEMES_RUNTIME_DIR: "/data/themes"
+  CVWONDER_BINARY_PATH: "/usr/local/bin/cvwonder"
+  SESSION_DURATION_DAYS: "30"

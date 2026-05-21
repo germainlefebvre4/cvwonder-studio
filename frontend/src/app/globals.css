@@ -1,0 +1,78 @@
+/* ── Radix Colors ──────────────────────────────────────────────────────────── */
+@import "@radix-ui/colors/blue.css";
+@import "@radix-ui/colors/blue-dark.css";
+@import "@radix-ui/colors/slate.css";
+@import "@radix-ui/colors/slate-dark.css";
+@import "@radix-ui/colors/red.css";
+@import "@radix-ui/colors/red-dark.css";
+@import "@radix-ui/colors/green.css";
+@import "@radix-ui/colors/green-dark.css";
+
+/* ── Tailwind v4 ───────────────────────────────────────────────────────────── */
+@import "tailwindcss";
+
+/* ── Semantic Tokens ──────────────────────────────────────────────────────── */
+@theme {
+  /* Text */
+  --color-text-primary:    var(--blue-12);
+  --color-text-secondary:  var(--slate-11);
+  --color-text-muted:      var(--slate-9);
+  --color-text-inverse:    var(--slate-1);
+
+  /* Surfaces */
+  --color-surface-default: var(--slate-1);
+  --color-surface-subtle:  var(--slate-2);
+  --color-surface-muted:   var(--slate-3);
+  --color-surface-overlay: var(--slate-4);
+
+  /* Accent (blue/navy) */
+  --color-accent:          var(--blue-9);
+  --color-accent-hover:    var(--blue-10);
+  --color-accent-subtle:   var(--blue-3);
+  --color-accent-text:     var(--blue-11);
+
+  /* Borders */
+  --color-border:          var(--slate-6);
+  --color-border-subtle:   var(--slate-5);
+  --color-border-strong:   var(--slate-7);
+
+  /* Semantic states */
+  --color-error:           var(--red-9);
+  --color-error-subtle:    var(--red-3);
+  --color-error-text:      var(--red-11);
+  --color-success:         var(--green-9);
+  --color-success-subtle:  var(--green-3);
+  --color-success-text:    var(--green-11);
+
+  /* Typography */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-surface-default);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}

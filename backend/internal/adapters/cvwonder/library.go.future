@@ -1,0 +1,45 @@
+# Future Library Adapter
+
+This file documents the **intended import paths** for a future `library.go` adapter
+that will replace `binary.go` once cvwonder exposes public Go packages.
+
+## Intended package imports (when cvwonder moves internal → pkg)
+
+```go
+import (
+    "github.com/germainlefebvre4/cvwonder/pkg/generator"
+    "github.com/germainlefebvre4/cvwonder/pkg/validator"
+    "github.com/germainlefebvre4/cvwonder/pkg/schema"
+)
+```
+
+## Intended implementation sketch
+
+```go
+package cvwonder
+
+type LibraryAdapter struct {
+    gen generator.Generator
+    val validator.Validator
+}
+
+func (a *LibraryAdapter) GenerateHTML(ctx context.Context, yaml, themePath, outputDir string) (*domain.GenerationResult, error) {
+    return a.gen.GenerateHTML(ctx, generator.Input{
+        YAML:      yaml,
+        ThemePath: themePath,
+        OutputDir: outputDir,
+    })
+}
+
+func (a *LibraryAdapter) Validate(ctx context.Context, yaml string) ([]domain.ValidationError, error) {
+    errs, err := a.val.Validate(ctx, yaml)
+    // map to domain.ValidationError ...
+}
+```
+
+## Migration path
+
+1. cvwonder moves `internal/generator` → `pkg/generator` with a stable API
+2. Add this file's contents as `library.go` (remove `.future` suffix)
+3. Wire `LibraryAdapter` in `cmd/api/main.go` instead of `BinaryAdapter`
+4. `binary.go` can be removed or kept as a fallback

@@ -8,13 +8,6 @@
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
 # misc
 .DS_Store
 *.pem
@@ -26,14 +19,9 @@ yarn-error.log*
 
 # local env files
 .env*
-!.env.local
-
-# vercel
-.vercel
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 # CV Wonder
 /bin/cvwonder*
@@ -47,9 +35,8 @@ previewConfig.json
 .venv/
 .cache/
 
-# CV Wonder Themes
-/themes/*/.git/
-/themes/*/preview.png
+# CV Wonder Themes (runtime download dir — canonical source is infra/themes/)
+/themes/
 
 # Docs
 docs/github-pages/node_modules/

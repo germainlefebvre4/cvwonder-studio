@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cvwonder-studio
+spec:
+  podSelector:
+    matchLabels:
+      app: cvwonder-studio
+  policyTypes:
+    - Ingress
+    - Egress
+
+  # Ingress: only allow from ingress-controller namespace
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+
+  # Egress: allow postgres (5432), DNS (53), GitHub (443), local cluster
+  egress:
+    - ports:
+        - protocol: TCP
+          port: 5432          # PostgreSQL
+    - ports:
+        - protocol: UDP
+          port: 53            # DNS
+        - protocol: TCP
+          port: 53
+    - ports:
+        - protocol: TCP
+          port: 443           # GitHub (theme downloads)

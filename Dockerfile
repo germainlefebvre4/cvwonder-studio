@@ -1,73 +1,62 @@
 # syntax=docker.io/docker/dockerfile:1
 
-FROM node:22-alpine AS base
+# ── Stage 1: Build frontend ──────────────────────────────────────────────────
+FROM node:22-alpine AS frontend-builder
 
-# Install dependencies only when needed
-FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat && \
-  apk add curl
-WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Install dependencies based on the preferred package manager
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* prisma/ ./
-RUN \
-  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/pnpm-lock.yaml* ./
+RUN pnpm install --frozen-lockfile
 
+COPY frontend/ ./
+RUN pnpm build
 
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+# ── Stage 2: Build Go backend with embedded frontend ─────────────────────────
+FROM golang:1.25-alpine AS backend-builder
 
-# Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
-# Uncomment the following line in case you want to disable telemetry during the build.
-# ENV NEXT_TELEMETRY_DISABLED=1
+WORKDIR /app/backend
+COPY backend/go.mod backend/go.sum ./
+RUN go mod download
 
-RUN \
-  if [ -f yarn.lock ]; then yarn run build; \
-  elif [ -f package-lock.json ]; then npm run build; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
+COPY backend/ ./
+# Embed the compiled frontend dist
+COPY --from=frontend-builder /app/frontend/dist ./cmd/api/dist
 
-# Production image, copy all the files and run next
-FROM base AS runner
-WORKDIR /app
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-s -w" \
+    -o /app/cvwonder-studio \
+    ./cmd/api
 
-ENV NODE_ENV=production
-# Uncomment the following line in case you want to disable telemetry during runtime.
-# ENV NEXT_TELEMETRY_DISABLED=1
+# ── Stage 3: Final minimal image ─────────────────────────────────────────────
+FROM alpine:3.21
 
-RUN apk update && \
-  apk add --no-cache curl
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Install CA certificates for HTTPS calls.
+RUN apk add --no-cache ca-certificates tzdata
 
-RUN mkdir -p /app/bin /app/themes /app/sessions && \
-    chown -R nextjs:nodejs /app/bin /app/themes /app/sessions
+# Copy cvwonder binary from official image.
+COPY --from=ghcr.io/germainlefebvre4/cvwonder:latest /usr/local/bin/cvwonder /usr/local/bin/cvwonder
 
-COPY --from=builder /app/public ./public
+# Copy the studio binary.
+COPY --from=backend-builder /app/cvwonder-studio /usr/local/bin/cvwonder-studio
 
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Copy bundled themes.
+COPY infra/themes/ /app/themes/
 
-USER nextjs
+# Copy database migrations.
+COPY --from=backend-builder /app/backend/db/migrations /app/db/migrations
 
-EXPOSE 3000
-EXPOSE 9889
+# Non-root user.
+RUN addgroup -S studio && adduser -S studio -G studio
+RUN mkdir -p /data/sessions /data/themes && chown -R studio:studio /data
+USER studio
 
-ENV PORT=3000
+EXPOSE 8080
 
-# server.js is created by next build from the standalone output
-# https://nextjs.org/docs/pages/api-reference/config/next-config-js/output
-ENV HOSTNAME="0.0.0.0"
-CMD ["node", "server.js"]
+ENV PORT=8080 \
+    THEMES_BUILTIN_DIR=/app/themes \
+    SESSIONS_BASE_DIR=/data/sessions \
+    THEMES_RUNTIME_DIR=/data/themes \
+    CVWONDER_BINARY_PATH=/usr/local/bin/cvwonder
+
+ENTRYPOINT ["/usr/local/bin/cvwonder-studio"]

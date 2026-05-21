@@ -1,0 +1,44 @@
+import { create } from 'zustand'
+
+export interface ValidationError {
+  field: string
+  message: string
+}
+
+interface StudioState {
+  yamlContent: string
+  selectedThemeId: string | null
+  validationErrors: ValidationError[]
+  previewUrl: string | null
+  isGenerating: boolean
+  isExporting: boolean
+
+  setYamlContent: (yaml: string) => void
+  setSelectedThemeId: (id: string | null) => void
+  setValidationErrors: (errors: ValidationError[]) => void
+  setPreviewUrl: (url: string | null) => void
+  setIsGenerating: (v: boolean) => void
+  setIsExporting: (v: boolean) => void
+  reset: () => void
+}
+
+const initialState = {
+  yamlContent: '',
+  selectedThemeId: null,
+  validationErrors: [],
+  previewUrl: null,
+  isGenerating: false,
+  isExporting: false,
+}
+
+export const useStudioStore = create<StudioState>((set) => ({
+  ...initialState,
+
+  setYamlContent: (yaml) => set({ yamlContent: yaml }),
+  setSelectedThemeId: (id) => set({ selectedThemeId: id }),
+  setValidationErrors: (errors) => set({ validationErrors: errors }),
+  setPreviewUrl: (url) => set({ previewUrl: url }),
+  setIsGenerating: (v) => set({ isGenerating: v }),
+  setIsExporting: (v) => set({ isExporting: v }),
+  reset: () => set(initialState),
+}))
