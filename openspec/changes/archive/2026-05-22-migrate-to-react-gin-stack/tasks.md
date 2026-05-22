@@ -121,10 +121,10 @@
 
 ## 13. End-to-End Validation
 
-- [ ] 13.1 Run `docker-compose up` and verify studio is reachable at `http://localhost:5173`
-- [ ] 13.2 Create a session, write YAML, verify preview renders in iframe
-- [ ] 13.3 Switch themes, verify preview re-renders with new theme
-- [ ] 13.4 Trigger validation with invalid YAML, verify inline editor errors appear
-- [ ] 13.5 Run `kubectl apply --dry-run=client -f infra/k8s/` and verify all manifests are valid
-- [ ] 13.6 Build the final Docker image and verify `docker run` starts the studio on port 8080
-- [ ] 13.7 Verify bundled themes appear in theme selector without network access (air-gap test)
+- [x] 13.1 Run `docker-compose up` and verify studio is reachable at `http://localhost:5173`
+- [x] 13.2 Create a session, write YAML, verify preview renders in iframe
+- [x] 13.3 Switch themes, verify preview re-renders with new theme
+- [x] 13.4 Trigger validation with invalid YAML, verify inline editor errors appear
+- [x] 13.5 Run `kubectl apply --dry-run=client -f infra/k8s/` and verify all manifests are valid
+- [x] 13.6 Build the final Docker image and verify `docker run` starts the studio on port 8080
+- [x] 13.7 Verify bundled themes appear in theme selector without network access (air-gap test)
