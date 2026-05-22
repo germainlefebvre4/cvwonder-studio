@@ -21,7 +21,7 @@ export default function StudioPage() {
   const [loading, setLoading] = useState(true)
 
   // Enable live preview & validation hooks.
-  usePreview(token ?? null)
+  const { forceRefresh, isCoolingDown } = usePreview(token ?? null)
   useValidation(token ?? null)
 
   // Load session on mount.
@@ -99,7 +99,28 @@ export default function StudioPage() {
           </Panel>
           <PanelResizeHandle className="w-1 bg-[var(--color-border)] hover:bg-[var(--color-accent)] transition-colors cursor-col-resize" />
           <Panel defaultSize={50} minSize={20}>
-            <PreviewFrame />
+            <div className="flex flex-col h-full">
+              <div className="flex items-center justify-end px-2 py-1 border-b border-[var(--color-border)] bg-[var(--color-surface-subtle)] shrink-0">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={forceRefresh}
+                      disabled={isCoolingDown}
+                    >
+                      ↺ Refresh
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {isCoolingDown ? 'Please wait…' : 'Force refresh preview'}
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <PreviewFrame />
+              </div>
+            </div>
           </Panel>
         </PanelGroup>
       </div>

@@ -12,6 +12,7 @@ interface StudioState {
   previewUrl: string | null
   isGenerating: boolean
   isExporting: boolean
+  generationId: number
 
   setYamlContent: (yaml: string) => void
   setSelectedThemeId: (id: string | null) => void
@@ -19,6 +20,7 @@ interface StudioState {
   setPreviewUrl: (url: string | null) => void
   setIsGenerating: (v: boolean) => void
   setIsExporting: (v: boolean) => void
+  incrementGenerationId: () => void
   reset: () => void
 }
 
@@ -29,6 +31,7 @@ const initialState = {
   previewUrl: null,
   isGenerating: false,
   isExporting: false,
+  generationId: 0,
 }
 
 export const useStudioStore = create<StudioState>((set) => ({
@@ -40,5 +43,6 @@ export const useStudioStore = create<StudioState>((set) => ({
   setPreviewUrl: (url) => set({ previewUrl: url }),
   setIsGenerating: (v) => set({ isGenerating: v }),
   setIsExporting: (v) => set({ isExporting: v }),
+  incrementGenerationId: () => set((s) => ({ generationId: s.generationId + 1 })),
   reset: () => set(initialState),
 }))
