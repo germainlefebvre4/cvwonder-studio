@@ -1,0 +1,21 @@
+templates:
+  - slug: minimal
+    name: "Minimal"
+    description: "Structure de base, à compléter"
+    file: templates/minimal.yaml
+  - slug: developer-fr
+    name: "Développeur (FR)"
+    description: "Profil développeur full-stack, français"
+    file: templates/developer-fr.yaml
+  - slug: developer-en
+    name: "Developer (EN)"
+    description: "Full-stack developer profile, English"
+    file: templates/developer-en.yaml
+  - slug: designer-fr
+    name: "Designer UX/UI (FR)"
+    description: "Profil designer UX/UI, français"
+    file: templates/designer-fr.yaml
+  - slug: devops-fr
+    name: "DevOps / Platform (FR)"
+    description: "Profil DevOps et Platform Engineer, français"
+    file: templates/devops-fr.yaml

@@ -12,6 +12,7 @@ import (
 
 	"github.com/germainlefebvre4/cvwonder-studio/internal/domain"
 	"github.com/germainlefebvre4/cvwonder-studio/internal/ports"
+	"github.com/germainlefebvre4/cvwonder-studio/internal/templates"
 )
 
 // CreateUsecase handles session creation.
@@ -33,7 +34,18 @@ type CreateResult struct {
 
 // Execute creates a new session: generates a random token, hashes it, persists
 // the session, and returns both the session and the raw token.
-func (uc *CreateUsecase) Execute(ctx context.Context, themeID *uuid.UUID) (*CreateResult, error) {
+// If templateID is non-nil and matches a known template slug, the session's
+// YamlContent is initialised from the embedded template. An unknown slug returns an error.
+func (uc *CreateUsecase) Execute(ctx context.Context, themeID *uuid.UUID, templateID *string) (*CreateResult, error) {
+	yamlContent := ""
+	if templateID != nil {
+		content := templates.GetContent(*templateID)
+		if content == "" {
+			return nil, fmt.Errorf("unknown template: %q", *templateID)
+		}
+		yamlContent = content
+	}
+
 	rawBytes := make([]byte, 32)
 	if _, err := rand.Read(rawBytes); err != nil {
 		return nil, fmt.Errorf("generate token bytes: %w", err)
@@ -46,7 +58,7 @@ func (uc *CreateUsecase) Execute(ctx context.Context, themeID *uuid.UUID) (*Crea
 	s := &domain.Session{
 		ID:          uuid.New(),
 		TokenHash:   tokenHash,
-		YamlContent: "",
+		YamlContent: yamlContent,
 		ThemeID:     themeID,
 		ExpiresAt:   time.Now().UTC().Add(time.Duration(uc.durationDays) * 24 * time.Hour),
 	}

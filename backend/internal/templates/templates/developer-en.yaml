@@ -1,0 +1,112 @@
+person:
+  name: Jordan Smith
+  profession: Full-Stack Software Engineer
+  location: London, UK
+  citizenship: GB
+  email: jordan.smith@example.com
+  site: https://jordansmith.dev
+  phone: "+44 7700 900 123"
+  experience:
+    since: 2017
+
+socialNetworks:
+  github: jordansmith
+  linkedin: jordan-smith-dev
+
+abstract:
+  - "Full-stack engineer with 8+ years of experience building scalable web applications and APIs. Passionate about clean architecture, developer experience, and shipping products that people love."
+  - "Strong advocate for test-driven development and continuous delivery. Comfortable leading small teams and collaborating with cross-functional stakeholders."
+
+career:
+  - companyName: Acme Corp
+    duration: "2 years, present"
+    missions:
+      - position: Senior Software Engineer
+        company: Acme Corp
+        location: London, UK
+        dates: "2024, February - present"
+        summary: "Building the next-generation customer data platform. Leading backend architecture and driving adoption of event-driven patterns across the engineering org."
+        technologies:
+          - Go
+          - TypeScript
+          - React
+          - Kafka
+          - PostgreSQL
+          - Kubernetes
+        description:
+          - Designed and implemented an event-sourcing backbone processing 500k events/day
+          - Reduced API p99 latency from 800ms to 120ms through query optimization and caching
+          - Led migration from monolith to domain-oriented services (4 bounded contexts)
+          - Onboarded and mentored 3 junior engineers
+
+  - companyName: Bright Labs
+    duration: "3 years"
+    missions:
+      - position: Software Engineer
+        company: Bright Labs
+        location: Remote
+        dates: "2021, January - 2024, January"
+        summary: "Worked on a collaborative SaaS platform for legal teams. Owned the document editing and permissions system."
+        technologies:
+          - Node.js
+          - React
+          - GraphQL
+          - MongoDB
+          - AWS Lambda
+        description:
+          - Built real-time collaborative editing using CRDTs
+          - Implemented a fine-grained RBAC permissions model
+          - Improved CI pipeline speed by 50% through parallelization and caching
+
+  - companyName: Freelance
+    duration: "4 years"
+    missions:
+      - position: Web Developer
+        company: Various clients
+        location: Remote
+        dates: "2017, June - 2020, December"
+        summary: "Designed and developed web applications and e-commerce sites for SMEs across various industries."
+        technologies:
+          - JavaScript
+          - Vue.js
+          - PHP
+          - WooCommerce
+          - MySQL
+        description:
+          - Delivered 20+ client projects on time and within budget
+          - Set up standardized project scaffolding reducing time-to-launch by 30%
+
+education:
+  - school: University of Bristol
+    degree: BSc Computer Science (2:1)
+    dates: "2014 - 2017"
+
+languages:
+  - name: English
+    level: Native
+  - name: French
+    level: Intermediate (B2)
+
+skills:
+  - category: Languages
+    items:
+      - Go
+      - TypeScript / JavaScript
+      - Python
+      - SQL
+  - category: Frameworks & Libraries
+    items:
+      - React / Next.js
+      - Node.js / NestJS
+      - gRPC / REST / GraphQL
+  - category: Infrastructure
+    items:
+      - Docker / Kubernetes
+      - AWS (ECS, Lambda, RDS)
+      - Terraform
+      - GitHub Actions
+  - category: Practices
+    items:
+      - TDD / BDD
+      - Domain-Driven Design
+      - Event-Driven Architecture

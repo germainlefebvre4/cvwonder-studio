@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/germainlefebvre4/cvwonder-studio/internal/templates"
 	sessionUC "github.com/germainlefebvre4/cvwonder-studio/internal/usecases/session"
 )
 
@@ -26,7 +27,8 @@ func NewSessionHandler(
 
 // createSessionRequest is the optional body for POST /api/v1/sessions.
 type createSessionRequest struct {
-	ThemeID *uuid.UUID `json:"theme_id"`
+	ThemeID    *uuid.UUID `json:"theme_id"`
+	TemplateID *string    `json:"template_id"`
 }
 
 // POST /api/v1/sessions
@@ -37,8 +39,12 @@ func (h *SessionHandler) Create(c *gin.Context) {
 		return
 	}
 
-	result, err := h.create.Execute(c.Request.Context(), req.ThemeID)
+	result, err := h.create.Execute(c.Request.Context(), req.ThemeID, req.TemplateID)
 	if err != nil {
+		if req.TemplateID != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -48,6 +54,21 @@ func (h *SessionHandler) Create(c *gin.Context) {
 		"session_id": result.Session.ID,
 		"expires_at": result.Session.ExpiresAt,
 	})
+}
+
+// GET /api/v1/templates
+func (h *SessionHandler) ListTemplates(c *gin.Context) {
+	entries := templates.GetCatalog()
+	type templateResponse struct {
+		Slug        string `json:"slug"`
+		Name        string `json:"name"`
+		Description string `json:"description"`
+	}
+	resp := make([]templateResponse, len(entries))
+	for i, e := range entries {
+		resp[i] = templateResponse{Slug: e.Slug, Name: e.Name, Description: e.Description}
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // GET /api/v1/sessions/:token

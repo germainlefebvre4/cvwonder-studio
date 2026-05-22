@@ -1,0 +1,112 @@
+person:
+  name: Alex Dupont
+  profession: Développeur Full-Stack
+  location: Paris, France
+  citizenship: FR
+  email: alex.dupont@example.com
+  site: https://alexdupont.dev
+  phone: "+33 6 12 34 56 78"
+  experience:
+    since: 2016
+
+socialNetworks:
+  github: alexdupont
+  linkedin: alex-dupont
+  twitter: alexdupont_dev
+
+abstract:
+  - "Développeur full-stack passionné par la conception de produits web robustes et maintenables. J'aime travailler au plus près des équipes produit pour transformer des besoins métier en solutions techniques élégantes."
+  - "Adepte des architectures orientées domaine, de la culture DevOps et du travail en équipe. Convaincu que la qualité du code est un investissement, pas un luxe."
+
+career:
+  - companyName: TechCorp
+    duration: "3 ans, aujourd'hui"
+    missions:
+      - position: Lead Developer
+        company: TechCorp
+        location: Paris, France
+        dates: "2023, janvier - aujourd'hui"
+        summary: "Développement et maintien d'une plateforme SaaS B2B de gestion documentaire. Responsable technique d'une équipe de 4 développeurs."
+        technologies:
+          - TypeScript
+          - React
+          - Node.js
+          - PostgreSQL
+          - Docker
+          - Kubernetes
+        description:
+          - Mise en place d'une architecture micro-services découplée
+          - Refactorisation du pipeline CI/CD (GitHub Actions + ArgoCD)
+          - Introduction de tests d'intégration automatisés (couverture +40%)
+          - Mentoring des développeurs juniors de l'équipe
+
+  - companyName: StartupXYZ
+    duration: "2 ans, 6 mois"
+    missions:
+      - position: Développeur Full-Stack
+        company: StartupXYZ
+        location: Lyon, France
+        dates: "2020, juillet - 2022, décembre"
+        summary: "Développement des fonctionnalités cœur d'une application mobile et web de mise en relation professionnelle. Stack React Native + NestJS."
+        technologies:
+          - React Native
+          - NestJS
+          - MongoDB
+          - Redis
+          - AWS
+        description:
+          - Développement de l'interface mobile (iOS et Android)
+          - Intégration des paiements via Stripe
+          - Optimisation des performances (temps de chargement -60%)
+
+  - companyName: Agence Digit
+    duration: "4 ans"
+    missions:
+      - position: Développeur Web
+        company: Agence Digit
+        location: Bordeaux, France
+        dates: "2016, septembre - 2020, juin"
+        summary: "Développement de sites et applications web pour des clients variés (PME, e-commerce, institutionnels)."
+        technologies:
+          - JavaScript
+          - Vue.js
+          - PHP
+          - Laravel
+          - MySQL
+        description:
+          - Développement de 15+ projets clients de A à Z
+          - Mise en place d'une charte de qualité interne (code review, linting)
+
+education:
+  - school: Université Paris-Saclay
+    degree: Master Informatique — Génie Logiciel
+    dates: "2014 - 2016"
+  - school: IUT de Paris
+    degree: DUT Informatique
+    dates: "2012 - 2014"
+
+languages:
+  - name: Français
+    level: Langue maternelle
+  - name: Anglais
+    level: Courant (C1)
+
+skills:
+  - category: Frontend
+    items:
+      - TypeScript / JavaScript
+      - React / Next.js
+      - Vue.js
+      - HTML5 / CSS3 / Tailwind
+  - category: Backend
+    items:
+      - Node.js / NestJS
+      - Go
+      - PHP / Laravel
+      - REST / GraphQL
+  - category: Données & Infra
+    items:
+      - PostgreSQL / MySQL / MongoDB
+      - Docker / Kubernetes
+      - AWS / GCP
+      - CI/CD (GitHub Actions, GitLab CI)

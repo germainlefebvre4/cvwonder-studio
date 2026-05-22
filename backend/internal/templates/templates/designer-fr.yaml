@@ -1,0 +1,112 @@
+person:
+  name: Marie Laurent
+  profession: Designer UX/UI
+  location: Nantes, France
+  citizenship: FR
+  email: marie.laurent@example.com
+  site: https://marielaurent.design
+  phone: "+33 6 98 76 54 32"
+  experience:
+    since: 2018
+
+socialNetworks:
+  linkedin: marie-laurent-design
+  github: marielaurent
+
+abstract:
+  - "Designer UX/UI avec 7 ans d'expérience en conception d'interfaces digitales, de la recherche utilisateur au prototype interactif. Convaincue que le bon design est celui qu'on ne remarque pas."
+  - "Habituée à travailler en étroite collaboration avec des équipes produit et développement dans des contextes agiles. Expertise particulière en design system et accessibilité."
+
+career:
+  - companyName: Produit Studio
+    duration: "3 ans, aujourd'hui"
+    missions:
+      - position: Lead Designer
+        company: Produit Studio
+        location: Nantes, France
+        dates: "2023, mars - aujourd'hui"
+        summary: "Responsable du design de deux produits SaaS B2B. Animation de l'équipe design (3 personnes) et maintien du design system partagé."
+        technologies:
+          - Figma
+          - Storybook
+          - Notion
+          - Maze
+          - Hotjar
+        description:
+          - Création et maintien d'un design system avec 120+ composants (tokens, accessibilité WCAG AA)
+          - Animation des ateliers de discovery (user interviews, card sorting, tree testing)
+          - Réduction du taux d'abandon du onboarding de 38% à 22% après refonte
+          - Collaboration étroite avec les développeurs front pour l'implémentation
+
+  - companyName: Digital Agency One
+    duration: "2 ans, 8 mois"
+    missions:
+      - position: UX/UI Designer
+        company: Digital Agency One
+        location: Paris, France
+        dates: "2020, juillet - 2023, février"
+        summary: "Design d'applications web et mobiles pour des clients dans les secteurs de la fintech, de la santé et du retail."
+        technologies:
+          - Figma
+          - Adobe XD
+          - InVision
+          - Principle
+          - Miro
+        description:
+          - Conduite des phases de recherche utilisateur (interviews, tests d'utilisabilité)
+          - Création de wireframes, maquettes haute-fidélité et prototypes interactifs
+          - Livraison de specs développeur détaillées et suivi d'implémentation
+
+  - companyName: Freelance
+    duration: "2 ans"
+    missions:
+      - position: Designer Freelance
+        company: Clients variés
+        location: Remote
+        dates: "2018, octobre - 2020, juin"
+        summary: "Design de sites vitrines, landing pages et applications mobiles pour des startups et PME."
+        technologies:
+          - Sketch
+          - Adobe Illustrator
+          - Zeplin
+        description:
+          - Refonte visuelle et UX de 10+ sites e-commerce
+          - Conception d'une charte graphique complète pour une startup santé
+
+education:
+  - school: École de Design Nantes Atlantique
+    degree: Master Design Numérique et Expérience Utilisateur
+    dates: "2016 - 2018"
+  - school: Université Paris 8
+    degree: Licence Arts Plastiques mention Design
+    dates: "2013 - 2016"
+
+languages:
+  - name: Français
+    level: Langue maternelle
+  - name: Anglais
+    level: Courant (C1)
+
+skills:
+  - category: Design & Prototypage
+    items:
+      - Figma / FigJam
+      - Adobe Creative Suite
+      - Principe / ProtoPie
+      - Storybook
+  - category: Recherche utilisateur
+    items:
+      - Interviews utilisateur
+      - Tests d'utilisabilité
+      - Card sorting / Tree testing
+      - Maze / UserTesting
+  - category: Design System
+    items:
+      - Design tokens
+      - Accessibilité (WCAG 2.1 AA)
+      - Documentation composants
+  - category: Collaboration
+    items:
+      - Miro / Notion
+      - Jira / Linear
+      - Méthodes agile (Scrum, Shape Up)

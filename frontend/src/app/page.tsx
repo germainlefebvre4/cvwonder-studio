@@ -1,6 +1,9 @@
+import * as React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
+import { SplitButton } from '@/components/ui/SplitButton'
 import { createSession } from '@/services/sessions'
+import { getTemplates, type Template } from '@/services/templates'
 
 const features = [
   {
@@ -29,9 +32,21 @@ const steps = [
 
 export default function LandingPage() {
   const navigate = useNavigate()
+  const [templates, setTemplates] = React.useState<Template[]>([])
+
+  React.useEffect(() => {
+    getTemplates()
+      .then(setTemplates)
+      .catch(() => setTemplates([]))
+  }, [])
 
   const handleStart = async () => {
     const result = await createSession()
+    navigate(`/studio/${result.token}`)
+  }
+
+  const handleTemplateSelect = async (slug: string) => {
+    const result = await createSession(undefined, slug)
     navigate(`/studio/${result.token}`)
   }
 
@@ -69,9 +84,13 @@ export default function LandingPage() {
           Write once in YAML, render with any theme, share instantly.
         </p>
         <div className="flex gap-4">
-          <Button onClick={handleStart} size="lg">
-            Start Building — it's free
-          </Button>
+          <SplitButton
+            label="Start Building — it's free"
+            onClick={handleStart}
+            size="lg"
+            options={templates.map((t) => ({ label: t.name, value: t.slug, description: t.description }))}
+            onOptionSelect={handleTemplateSelect}
+          />
           <Button
             variant="secondary"
             size="lg"

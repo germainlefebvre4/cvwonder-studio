@@ -7,6 +7,23 @@ on:
       - main
 
 jobs:
+  validate-templates:
+    name: Validate starter templates
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make cvwonder binary executable
+        run: chmod +x bin/cvwonder
+
+      - name: Validate all starter templates
+        run: |
+          for f in backend/internal/templates/templates/*.yaml; do
+            echo "Validating $f..."
+            ./bin/cvwonder validate -i "$f"
+          done
+
   build:
     runs-on: ubuntu-latest
 

@@ -1,0 +1,47 @@
+person:
+  name: Prénom Nom
+  profession: Titre professionnel
+  location: Ville, Pays
+  email: prenom.nom@email.com
+  phone: "+33 6 00 00 00 00"
+  experience:
+    since: 2015
+
+socialNetworks:
+  linkedin: prenom-nom
+  github: prenom-nom
+
+abstract:
+  - Décrivez votre parcours et votre vision professionnelle ici.
+
+career:
+  - companyName: Entreprise
+    duration: "X ans, aujourd'hui"
+    missions:
+      - position: Poste
+        company: Client ou projet
+        location: Ville, Pays
+        dates: "2022 - aujourd'hui"
+        summary: Description de la mission.
+        technologies:
+          - Technologie 1
+          - Technologie 2
+        description:
+          - Responsabilité ou réalisation clé
+
+education:
+  - school: Établissement
+    degree: Diplôme
+    dates: "2013 - 2015"
+
+languages:
+  - name: Français
+    level: Langue maternelle
+  - name: Anglais
+    level: Professionnel
+
+skills:
+  - category: Compétences techniques
+    items:
+      - Compétence 1
+      - Compétence 2

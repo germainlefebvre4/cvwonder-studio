@@ -1,0 +1,119 @@
+person:
+  name: Thomas Bernard
+  profession: Platform Engineer / DevOps
+  location: Lille, France
+  citizenship: FR
+  email: thomas.bernard@example.com
+  site: https://thomasbernard.io
+  phone: "+33 6 55 44 33 22"
+  experience:
+    since: 2015
+
+socialNetworks:
+  github: thomasbernard
+  linkedin: thomas-bernard-devops
+
+abstract:
+  - "Platform Engineer avec 10 ans d'expérience dans la conception et l'exploitation de plateformes cloud-native à grande échelle. Passionné par l'automatisation, l'observabilité et la mise en place de plateformes internes pour accélérer les équipes produit."
+  - "Contributeur open source et adepte de l'Infrastructure-as-Code. Convaincu que la fiabilité d'un système est une responsabilité partagée entre les équipes."
+
+career:
+  - companyName: CloudSystems
+    duration: "4 ans, aujourd'hui"
+    missions:
+      - position: Senior Platform Engineer
+        company: CloudSystems
+        location: Remote
+        dates: "2022, janvier - aujourd'hui"
+        summary: "Conception et maintien d'une plateforme interne de développement (IDP) utilisée par 200+ développeurs. Standardisation des workflows de CI/CD, du provisioning d'infrastructure et du déploiement Kubernetes."
+        technologies:
+          - Kubernetes
+          - Terraform
+          - ArgoCD
+          - Crossplane
+          - Backstage
+          - Prometheus / Grafana
+          - GitHub Actions
+          - Vault
+        description:
+          - Mise en place d'un IDP basé sur Backstage permettant aux développeurs de provisionner leurs infrastructures en autonomie
+          - Réduction du Time-to-Production de 3 jours à 2 heures pour un nouveau service
+          - Standardisation de 30+ pipelines CI/CD (build, test, scan, deploy)
+          - Implémentation d'un système d'observabilité unifié (métriques, logs, traces)
+
+  - companyName: Infra & Co
+    duration: "4 ans"
+    missions:
+      - position: DevOps Engineer
+        company: Infra & Co
+        location: Lille, France
+        dates: "2018, mars - 2021, décembre"
+        summary: "Accompagnement de clients grands comptes dans leur migration vers le cloud et l'adoption des pratiques DevOps."
+        technologies:
+          - AWS
+          - Ansible
+          - Terraform
+          - Docker
+          - Jenkins
+          - ELK Stack
+        description:
+          - Migration de 5 applications on-premise vers AWS (ECS, RDS, CloudFront)
+          - Formation des équipes développement aux pratiques DevOps et GitOps
+          - Mise en place de pipelines de tests d'infrastructure (Terratest, Testinfra)
+
+  - companyName: SysAdmin SARL
+    duration: "3 ans"
+    missions:
+      - position: Administrateur Systèmes Linux
+        company: SysAdmin SARL
+        location: Roubaix, France
+        dates: "2015, septembre - 2018, février"
+        summary: "Administration et supervision de parcs de serveurs Linux (Debian, CentOS). Automatisation des opérations récurrentes."
+        technologies:
+          - Linux (Debian / CentOS)
+          - Bash
+          - Ansible
+          - Nagios
+          - Nginx / Apache
+        description:
+          - Administration de 80+ serveurs Linux
+          - Automatisation du déploiement des configurations (Ansible)
+          - Mise en place de la supervision et des alertes (Nagios, PagerDuty)
+
+education:
+  - school: Université de Lille
+    degree: Licence Informatique — Systèmes et Réseaux
+    dates: "2012 - 2015"
+
+languages:
+  - name: Français
+    level: Langue maternelle
+  - name: Anglais
+    level: Courant (C1)
+
+skills:
+  - category: Orchestration & Conteneurs
+    items:
+      - Kubernetes (EKS, GKE, k3s)
+      - Docker / containerd
+      - Helm / Kustomize
+      - ArgoCD / FluxCD
+  - category: Cloud & IaC
+    items:
+      - AWS (EC2, ECS, RDS, S3, IAM)
+      - GCP (GKE, Cloud Run)
+      - Terraform / OpenTofu
+      - Crossplane
+      - Ansible
+  - category: CI/CD & Developer Platform
+    items:
+      - GitHub Actions
+      - GitLab CI
+      - Backstage
+      - Vault (HashiCorp)
+  - category: Observabilité
+    items:
+      - Prometheus / Alertmanager
+      - Grafana
+      - OpenTelemetry
+      - ELK Stack / Loki

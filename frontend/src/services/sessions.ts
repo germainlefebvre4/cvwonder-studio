@@ -11,11 +11,14 @@ export interface CreateSessionResponse {
   expires_at: string
 }
 
-export async function createSession(themeId?: string): Promise<CreateSessionResponse> {
+export async function createSession(themeId?: string, templateId?: string): Promise<CreateSessionResponse> {
+  const body: Record<string, string> = {}
+  if (themeId) body.theme_id = themeId
+  if (templateId) body.template_id = templateId
   const res = await fetch('/api/v1/sessions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(themeId ? { theme_id: themeId } : {}),
+    body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error(`createSession: ${res.status}`)
   return res.json()
