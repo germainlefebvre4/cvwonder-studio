@@ -13,9 +13,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	db "github.com/germainlefebvre4/cvwonder-studio/db/generated"
 	"github.com/germainlefebvre4/cvwonder-studio/internal/adapters/cvwonder"
 	ginhttp "github.com/germainlefebvre4/cvwonder-studio/internal/adapters/http"
 	"github.com/germainlefebvre4/cvwonder-studio/internal/adapters/repository"
+	"github.com/germainlefebvre4/cvwonder-studio/internal/admin"
 	"github.com/germainlefebvre4/cvwonder-studio/internal/config"
 	previewUC "github.com/germainlefebvre4/cvwonder-studio/internal/usecases/preview"
 	sessionUC "github.com/germainlefebvre4/cvwonder-studio/internal/usecases/session"
@@ -104,6 +106,14 @@ func main() {
 		v1.POST("/sessions/:token/validate", generationHandler.ValidateYaml)
 		v1.GET("/themes", themeHandler.List)
 	}
+
+	// Admin API
+	admin.RegisterRoutes(r, admin.AdminDeps{
+		Queries:     db.New(pool),
+		Pool:        pool,
+		Config:      cfg,
+		TokenSecret: cfg.AdminTokenSecret,
+	})
 
 	// SPA catch-all: serve embedded frontend/dist for all non-API GET routes.
 	distFS, err := fs.Sub(staticFiles, "dist")

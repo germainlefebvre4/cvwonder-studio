@@ -48,10 +48,16 @@ func (r *SessionRepository) GetByTokenHash(ctx context.Context, tokenHash string
 }
 
 func (r *SessionRepository) Update(ctx context.Context, id uuid.UUID, yamlContent *string, themeID *uuid.UUID) (*domain.Session, error) {
+	// Pass empty string when yamlContent is nil; the SQL uses NULLIF('', ...) to
+	// treat empty string as "no change".
+	yaml := ""
+	if yamlContent != nil {
+		yaml = *yamlContent
+	}
 	row, err := r.q.UpdateSession(ctx, db.UpdateSessionParams{
-		ID:          id,
-		YamlContent: yamlContent,
-		ThemeID:     themeID,
+		ID:      id,
+		Column2: yaml,
+		ThemeID: themeID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("UpdateSession: %w", err)

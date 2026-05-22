@@ -24,3 +24,27 @@ LIMIT 1;
 SELECT * FROM themes
 WHERE id = $1 AND deleted_at IS NULL
 LIMIT 1;
+
+-- name: ListThemesAdmin :many
+SELECT * FROM themes
+WHERE deleted_at IS NULL
+ORDER BY name ASC;
+
+-- name: UpdateInstalledRef :one
+UPDATE themes
+SET installed_ref = $2,
+    updated_at    = NOW()
+WHERE slug = $1
+RETURNING *;
+
+-- name: UpdateLatestRef :one
+UPDATE themes
+SET latest_ref       = $2,
+    last_checked_at  = NOW()
+WHERE slug = $1
+RETURNING *;
+
+-- name: SoftDeleteTheme :execrows
+UPDATE themes
+SET deleted_at = NOW()
+WHERE slug = $1 AND deleted_at IS NULL;

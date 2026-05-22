@@ -32,7 +32,7 @@ func (r *ConfigRepository) Get(ctx context.Context, key string) (string, error) 
 }
 
 func (r *ConfigRepository) Upsert(ctx context.Context, key, value string) error {
-	_, err := r.q.UpsertConfig(ctx, key, value)
+	_, err := r.q.UpsertConfig(ctx, db.UpsertConfigParams{Key: key, Value: value})
 	if err != nil {
 		return fmt.Errorf("UpsertConfig: %w", err)
 	}

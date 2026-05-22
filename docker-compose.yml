@@ -32,6 +32,9 @@ services:
       THEMES_BUILTIN_DIR: "/app/themes"
       THEMES_RUNTIME_DIR: "/data/themes"
       SESSION_DURATION_DAYS: "30"
+      ADMIN_USERNAME: "admin"
+      ADMIN_PASSWORD_HASH: "$2a$12$replacethiswithyourrealhashxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      ADMIN_TOKEN_SECRET: "change-me-to-a-random-secret-of-at-least-32-chars"
     volumes:
       - ./backend:/app/backend
       - ./infra/themes:/app/themes:ro

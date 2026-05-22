@@ -15,6 +15,9 @@ type Config struct {
 	ThemesRuntimeDir    string
 	ThemesBuiltinDir    string
 	SessionDurationDays int
+	AdminUsername       string
+	AdminPasswordHash   string
+	AdminTokenSecret    string
 }
 
 // Load reads configuration from environment variables, applying defaults where
@@ -28,10 +31,22 @@ func Load() (*Config, error) {
 		ThemesRuntimeDir:    getEnv("THEMES_RUNTIME_DIR", "/data/themes"),
 		ThemesBuiltinDir:    getEnv("THEMES_BUILTIN_DIR", "/app/themes"),
 		SessionDurationDays: getEnvInt("SESSION_DURATION_DAYS", 30),
+		AdminUsername:       getEnv("ADMIN_USERNAME", ""),
+		AdminPasswordHash:   getEnv("ADMIN_PASSWORD_HASH", ""),
+		AdminTokenSecret:    getEnv("ADMIN_TOKEN_SECRET", ""),
 	}
 
 	if cfg.DatabaseURL == "" {
 		return nil, fmt.Errorf("DATABASE_URL environment variable is required")
+	}
+	if cfg.AdminUsername == "" {
+		panic("ADMIN_USERNAME environment variable is required")
+	}
+	if cfg.AdminPasswordHash == "" {
+		panic("ADMIN_PASSWORD_HASH environment variable is required")
+	}
+	if cfg.AdminTokenSecret == "" {
+		panic("ADMIN_TOKEN_SECRET environment variable is required")
 	}
 
 	return cfg, nil

@@ -32,26 +32,49 @@ This will start the application in development mode. The server will be availabl
 
 ## Environment Variables
 
-The application uses environment variables to configure some behavior. You can set these variables in a `.env` file in the root directory of the project.
+The application is configured entirely via environment variables. Copy `.env.example` to `.env` and fill in the values.
 
-```env
-CVWONDER_VERSION=latest
-CVWONDER_PDF_GENERATION_PORT=3000
-CVWONDER_PDF_GENERATION_ENABLED=true
-APP_ENV=development
-LOG_LEVEL=info
-DATABASE_URL=postgres://user:password@localhost:5432/cvwonder
+```bash
+cp .env.example .env
 ```
 
-The following environment variables are available:
+### Application
 
-| Environment Variable | Description | Default |
+| Variable | Description | Default |
 | -------- | ----------- | ------- |
-| `CVWONDER_VERSION` | Version of the CVWonder binary to download. Can be a specific version (e.g., `v0.3.0`) | `0.3.0` |
-| `CVWONDER_PDF_GENERATION_PORT` | Port for the PDF generation service. **Must be different** from the application port `3000`. | `9889` |
-| `APP_ENV` | Environment of the application. Can be `development`, `staging`, or `production`. | `development` |
-| `LOG_LEVEL` | Log level for the application. Can be `info`, `warn`, or `error`. | `info` |
-| `DATABASE_URL` | URL for the PostgreSQL database. | `postgres://user:password@localhost:5432/cvwonder` |
+| `PORT` | HTTP server port | `8080` |
+| `DATABASE_URL` | PostgreSQL connection string | — (required) |
+| `CVWONDER_BINARY_PATH` | Path to the `cvwonder` binary | `/usr/local/bin/cvwonder` |
+| `SESSIONS_BASE_DIR` | Directory for session files | `/data/sessions` |
+| `SESSION_DURATION_DAYS` | How long sessions remain valid | `30` |
+| `THEMES_BUILTIN_DIR` | Directory for built-in themes | `/app/themes` |
+| `THEMES_RUNTIME_DIR` | Directory for user-installed themes | `/data/themes` |
+
+### Admin
+
+The admin section (`/admin`) requires three additional variables that **must** be set — the application will refuse to start without them.
+
+| Variable | Description |
+| -------- | ----------- |
+| `ADMIN_USERNAME` | Login username for the admin interface |
+| `ADMIN_PASSWORD_HASH` | bcrypt hash of the admin password (cost factor ≥ 12) |
+| `ADMIN_TOKEN_SECRET` | Random secret used to sign admin session tokens (32+ chars) |
+
+**Generating a password hash:**
+
+```bash
+# Using htpasswd (apache2-utils)
+htpasswd -bnBC 12 "" yourpassword | tr -d ':\n' | sed 's/$2y/$2a/'
+
+# Using Python
+python3 -c "import bcrypt; print(bcrypt.hashpw(b'yourpassword', bcrypt.gensalt(12)).decode())"
+```
+
+**Generating a token secret:**
+
+```bash
+openssl rand -hex 32
+```
 
 ## Deployment
 

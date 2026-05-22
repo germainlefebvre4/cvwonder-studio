@@ -1,0 +1,7 @@
+themes:
+  - slug: cvwonder-theme-basic
+    name: CVWonder Theme Basic
+    repo: germainlefebvre4/cvwonder-theme-basic
+  - slug: cvwonder-theme-default
+    name: CVWonder Theme Default
+    repo: germainlefebvre4/cvwonder-theme-default
