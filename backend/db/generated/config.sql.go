@@ -22,6 +22,46 @@ func (q *Queries) GetConfigByKey(ctx context.Context, key string) (SystemConfig,
 	return i, err
 }
 
+const insertConfigIfAbsent = `-- name: InsertConfigIfAbsent :exec
+INSERT INTO system_config (key, value)
+VALUES ($1, $2)
+ON CONFLICT (key) DO NOTHING
+`
+
+type InsertConfigIfAbsentParams struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+func (q *Queries) InsertConfigIfAbsent(ctx context.Context, arg InsertConfigIfAbsentParams) error {
+	_, err := q.db.Exec(ctx, insertConfigIfAbsent, arg.Key, arg.Value)
+	return err
+}
+
+const listConfig = `-- name: ListConfig :many
+SELECT key, value, updated_at FROM system_config ORDER BY key
+`
+
+func (q *Queries) ListConfig(ctx context.Context) ([]SystemConfig, error) {
+	rows, err := q.db.Query(ctx, listConfig)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SystemConfig{}
+	for rows.Next() {
+		var i SystemConfig
+		if err := rows.Scan(&i.Key, &i.Value, &i.UpdatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const upsertConfig = `-- name: UpsertConfig :one
 INSERT INTO system_config (key, value)
 VALUES ($1, $2)

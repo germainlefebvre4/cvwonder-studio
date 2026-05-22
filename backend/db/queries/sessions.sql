@@ -51,3 +51,143 @@ SELECT count(*) FROM sessions WHERE expires_at > NOW();
 -- name: CountExpiringSoonSessions :one
 SELECT count(*) FROM sessions
 WHERE expires_at > NOW() AND expires_at < NOW() + INTERVAL '24 hours';
+
+-- name: ListSessionsByUser :many
+SELECT * FROM sessions
+WHERE user_id = $1
+  AND is_archived = FALSE
+  AND expires_at > NOW()
+ORDER BY created_at DESC;
+
+-- name: ListArchivedSessionsByUser :many
+SELECT * FROM sessions
+WHERE user_id = $1
+  AND is_archived = TRUE
+  AND (archived_at IS NULL OR archived_at > NOW() - INTERVAL '30 days')
+ORDER BY archived_at DESC;
+
+-- name: ListAllSessionsByUser :many
+SELECT * FROM sessions
+WHERE user_id = $1
+ORDER BY created_at DESC;
+
+-- name: CountActiveSessionsByUser :one
+SELECT count(*) FROM sessions
+WHERE user_id = $1
+  AND is_archived = FALSE
+  AND expires_at > NOW();
+
+-- name: UpdateSessionName :one
+UPDATE sessions
+SET name       = $2,
+    updated_at = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: UpdateSessionTTL :one
+UPDATE sessions
+SET expires_at = $2,
+    updated_at = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: UpdateSessionTheme :one
+UPDATE sessions
+SET theme_id   = $2,
+    updated_at = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: ArchiveSession :one
+UPDATE sessions
+SET is_archived = TRUE,
+    archived_at = NOW(),
+    updated_at  = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: RestoreSession :one
+UPDATE sessions
+SET is_archived = FALSE,
+    archived_at = NULL,
+    updated_at  = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: DuplicateSession :one
+INSERT INTO sessions (token_hash, yaml_content, theme_id, expires_at, user_id, name)
+SELECT $2, s.yaml_content, s.theme_id, $3, s.user_id, s.name || ' (copie)'
+FROM sessions s
+WHERE s.id = $1
+RETURNING *;
+
+-- name: UpdateSessionTags :one
+UPDATE sessions
+SET tags       = $2,
+    updated_at = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: IncrementViewCount :exec
+UPDATE sessions
+SET view_count    = view_count + 1,
+    last_viewed_at = NOW()
+WHERE id = $1;
+
+-- name: UpdateLastGeneratedAt :one
+UPDATE sessions
+SET last_generated_at = NOW(),
+    updated_at        = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: SetShareToken :one
+UPDATE sessions
+SET share_token_hash = $2,
+    updated_at       = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: RevokeShareToken :one
+UPDATE sessions
+SET share_token_hash    = NULL,
+    share_password_hash = NULL,
+    updated_at          = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: SetSharePassword :one
+UPDATE sessions
+SET share_password_hash = $2,
+    updated_at          = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: GetSessionByShareToken :one
+SELECT * FROM sessions
+WHERE share_token_hash = $1
+LIMIT 1;
+
+-- name: ClaimAnonymousSession :one
+UPDATE sessions
+SET user_id    = $2,
+    updated_at = NOW()
+WHERE id = $1
+  AND user_id IS NULL
+  AND expires_at > NOW()
+RETURNING *;
+
+-- name: PurgeExpiredAnonymousSessions :exec
+DELETE FROM sessions
+WHERE user_id IS NULL
+  AND expires_at < NOW();
+
+-- name: PurgeArchivedConnectedSessionsContent :execrows
+UPDATE sessions
+SET yaml_content = '',
+    updated_at   = NOW()
+WHERE is_archived = TRUE
+  AND archived_at < NOW() - INTERVAL '30 days'
+  AND user_id IS NOT NULL
+  AND yaml_content != '';
+

@@ -19,9 +19,25 @@ type Session struct {
 	ExpiresAt   time.Time
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+	// User-ownership fields (nil = anonymous session)
+	UserID            *uuid.UUID
+	Name              *string
+	IsArchived        bool
+	ArchivedAt        *time.Time
+	ShareTokenHash    *string
+	SharePasswordHash *string
+	LastGeneratedAt   *time.Time
+	Tags              []string
+	ViewCount         int32
+	LastViewedAt      *time.Time
 }
 
 // IsExpired returns true if the session has passed its expiry time.
 func (s *Session) IsExpired() bool {
 	return time.Now().After(s.ExpiresAt)
+}
+
+// IsOwner returns true if the given userID owns this session.
+func (s *Session) IsOwner(userID uuid.UUID) bool {
+	return s.UserID != nil && *s.UserID == userID
 }

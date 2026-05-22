@@ -12,12 +12,100 @@ import (
 	uuid "github.com/google/uuid"
 )
 
+const archiveSession = `-- name: ArchiveSession :one
+UPDATE sessions
+SET is_archived = TRUE,
+    archived_at = NOW(),
+    updated_at  = NOW()
+WHERE id = $1
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+`
+
+func (q *Queries) ArchiveSession(ctx context.Context, id uuid.UUID) (Session, error) {
+	row := q.db.QueryRow(ctx, archiveSession, id)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.TokenHash,
+		&i.YamlContent,
+		&i.ThemeID,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.Name,
+		&i.IsArchived,
+		&i.ArchivedAt,
+		&i.ShareTokenHash,
+		&i.SharePasswordHash,
+		&i.LastGeneratedAt,
+		&i.Tags,
+		&i.ViewCount,
+		&i.LastViewedAt,
+	)
+	return i, err
+}
+
+const claimAnonymousSession = `-- name: ClaimAnonymousSession :one
+UPDATE sessions
+SET user_id    = $2,
+    updated_at = NOW()
+WHERE id = $1
+  AND user_id IS NULL
+  AND expires_at > NOW()
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+`
+
+type ClaimAnonymousSessionParams struct {
+	ID     uuid.UUID  `json:"id"`
+	UserID *uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) ClaimAnonymousSession(ctx context.Context, arg ClaimAnonymousSessionParams) (Session, error) {
+	row := q.db.QueryRow(ctx, claimAnonymousSession, arg.ID, arg.UserID)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.TokenHash,
+		&i.YamlContent,
+		&i.ThemeID,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.Name,
+		&i.IsArchived,
+		&i.ArchivedAt,
+		&i.ShareTokenHash,
+		&i.SharePasswordHash,
+		&i.LastGeneratedAt,
+		&i.Tags,
+		&i.ViewCount,
+		&i.LastViewedAt,
+	)
+	return i, err
+}
+
 const countActiveSessions = `-- name: CountActiveSessions :one
 SELECT count(*) FROM sessions WHERE expires_at > NOW()
 `
 
 func (q *Queries) CountActiveSessions(ctx context.Context) (int64, error) {
 	row := q.db.QueryRow(ctx, countActiveSessions)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countActiveSessionsByUser = `-- name: CountActiveSessionsByUser :one
+SELECT count(*) FROM sessions
+WHERE user_id = $1
+  AND is_archived = FALSE
+  AND expires_at > NOW()
+`
+
+func (q *Queries) CountActiveSessionsByUser(ctx context.Context, userID *uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countActiveSessionsByUser, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -79,6 +167,45 @@ func (q *Queries) DeleteSession(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const duplicateSession = `-- name: DuplicateSession :one
+INSERT INTO sessions (token_hash, yaml_content, theme_id, expires_at, user_id, name)
+SELECT $2, s.yaml_content, s.theme_id, $3, s.user_id, s.name || ' (copie)'
+FROM sessions s
+WHERE s.id = $1
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+`
+
+type DuplicateSessionParams struct {
+	ID        uuid.UUID `json:"id"`
+	TokenHash string    `json:"token_hash"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+func (q *Queries) DuplicateSession(ctx context.Context, arg DuplicateSessionParams) (Session, error) {
+	row := q.db.QueryRow(ctx, duplicateSession, arg.ID, arg.TokenHash, arg.ExpiresAt)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.TokenHash,
+		&i.YamlContent,
+		&i.ThemeID,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.Name,
+		&i.IsArchived,
+		&i.ArchivedAt,
+		&i.ShareTokenHash,
+		&i.SharePasswordHash,
+		&i.LastGeneratedAt,
+		&i.Tags,
+		&i.ViewCount,
+		&i.LastViewedAt,
+	)
+	return i, err
+}
+
 const forceExpireSession = `-- name: ForceExpireSession :execrows
 UPDATE sessions SET expires_at = NOW()
 WHERE id = $1
@@ -93,7 +220,7 @@ func (q *Queries) ForceExpireSession(ctx context.Context, id uuid.UUID) (int64, 
 }
 
 const getSessionByID = `-- name: GetSessionByID :one
-SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at FROM sessions WHERE id = $1 LIMIT 1
+SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at FROM sessions WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetSessionByID(ctx context.Context, id uuid.UUID) (Session, error) {
@@ -107,12 +234,53 @@ func (q *Queries) GetSessionByID(ctx context.Context, id uuid.UUID) (Session, er
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UserID,
+		&i.Name,
+		&i.IsArchived,
+		&i.ArchivedAt,
+		&i.ShareTokenHash,
+		&i.SharePasswordHash,
+		&i.LastGeneratedAt,
+		&i.Tags,
+		&i.ViewCount,
+		&i.LastViewedAt,
+	)
+	return i, err
+}
+
+const getSessionByShareToken = `-- name: GetSessionByShareToken :one
+SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at FROM sessions
+WHERE share_token_hash = $1
+LIMIT 1
+`
+
+func (q *Queries) GetSessionByShareToken(ctx context.Context, shareTokenHash *string) (Session, error) {
+	row := q.db.QueryRow(ctx, getSessionByShareToken, shareTokenHash)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.TokenHash,
+		&i.YamlContent,
+		&i.ThemeID,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.Name,
+		&i.IsArchived,
+		&i.ArchivedAt,
+		&i.ShareTokenHash,
+		&i.SharePasswordHash,
+		&i.LastGeneratedAt,
+		&i.Tags,
+		&i.ViewCount,
+		&i.LastViewedAt,
 	)
 	return i, err
 }
 
 const getSessionByTokenHash = `-- name: GetSessionByTokenHash :one
-SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at FROM sessions
+SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at FROM sessions
 WHERE token_hash = $1
 LIMIT 1
 `
@@ -128,14 +296,36 @@ func (q *Queries) GetSessionByTokenHash(ctx context.Context, tokenHash string) (
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UserID,
+		&i.Name,
+		&i.IsArchived,
+		&i.ArchivedAt,
+		&i.ShareTokenHash,
+		&i.SharePasswordHash,
+		&i.LastGeneratedAt,
+		&i.Tags,
+		&i.ViewCount,
+		&i.LastViewedAt,
 	)
 	return i, err
+}
+
+const incrementViewCount = `-- name: IncrementViewCount :exec
+UPDATE sessions
+SET view_count    = view_count + 1,
+    last_viewed_at = NOW()
+WHERE id = $1
+`
+
+func (q *Queries) IncrementViewCount(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, incrementViewCount, id)
+	return err
 }
 
 const insertSession = `-- name: InsertSession :one
 INSERT INTO sessions (id, token_hash, yaml_content, theme_id, expires_at)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
 `
 
 type InsertSessionParams struct {
@@ -163,12 +353,112 @@ func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) (S
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UserID,
+		&i.Name,
+		&i.IsArchived,
+		&i.ArchivedAt,
+		&i.ShareTokenHash,
+		&i.SharePasswordHash,
+		&i.LastGeneratedAt,
+		&i.Tags,
+		&i.ViewCount,
+		&i.LastViewedAt,
 	)
 	return i, err
 }
 
+const listAllSessionsByUser = `-- name: ListAllSessionsByUser :many
+SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at FROM sessions
+WHERE user_id = $1
+ORDER BY created_at DESC
+`
+
+func (q *Queries) ListAllSessionsByUser(ctx context.Context, userID *uuid.UUID) ([]Session, error) {
+	rows, err := q.db.Query(ctx, listAllSessionsByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Session{}
+	for rows.Next() {
+		var i Session
+		if err := rows.Scan(
+			&i.ID,
+			&i.TokenHash,
+			&i.YamlContent,
+			&i.ThemeID,
+			&i.ExpiresAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.UserID,
+			&i.Name,
+			&i.IsArchived,
+			&i.ArchivedAt,
+			&i.ShareTokenHash,
+			&i.SharePasswordHash,
+			&i.LastGeneratedAt,
+			&i.Tags,
+			&i.ViewCount,
+			&i.LastViewedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listArchivedSessionsByUser = `-- name: ListArchivedSessionsByUser :many
+SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at FROM sessions
+WHERE user_id = $1
+  AND is_archived = TRUE
+  AND (archived_at IS NULL OR archived_at > NOW() - INTERVAL '30 days')
+ORDER BY archived_at DESC
+`
+
+func (q *Queries) ListArchivedSessionsByUser(ctx context.Context, userID *uuid.UUID) ([]Session, error) {
+	rows, err := q.db.Query(ctx, listArchivedSessionsByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Session{}
+	for rows.Next() {
+		var i Session
+		if err := rows.Scan(
+			&i.ID,
+			&i.TokenHash,
+			&i.YamlContent,
+			&i.ThemeID,
+			&i.ExpiresAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.UserID,
+			&i.Name,
+			&i.IsArchived,
+			&i.ArchivedAt,
+			&i.ShareTokenHash,
+			&i.SharePasswordHash,
+			&i.LastGeneratedAt,
+			&i.Tags,
+			&i.ViewCount,
+			&i.LastViewedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSessionsAdmin = `-- name: ListSessionsAdmin :many
-SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at FROM sessions
+SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at FROM sessions
 WHERE ($1::text = '' OR id::text ILIKE ($1::text || '%'))
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
@@ -197,6 +487,16 @@ func (q *Queries) ListSessionsAdmin(ctx context.Context, arg ListSessionsAdminPa
 			&i.ExpiresAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.UserID,
+			&i.Name,
+			&i.IsArchived,
+			&i.ArchivedAt,
+			&i.ShareTokenHash,
+			&i.SharePasswordHash,
+			&i.LastGeneratedAt,
+			&i.Tags,
+			&i.ViewCount,
+			&i.LastViewedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -208,13 +508,265 @@ func (q *Queries) ListSessionsAdmin(ctx context.Context, arg ListSessionsAdminPa
 	return items, nil
 }
 
+const listSessionsByUser = `-- name: ListSessionsByUser :many
+SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at FROM sessions
+WHERE user_id = $1
+  AND is_archived = FALSE
+  AND expires_at > NOW()
+ORDER BY created_at DESC
+`
+
+func (q *Queries) ListSessionsByUser(ctx context.Context, userID *uuid.UUID) ([]Session, error) {
+	rows, err := q.db.Query(ctx, listSessionsByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Session{}
+	for rows.Next() {
+		var i Session
+		if err := rows.Scan(
+			&i.ID,
+			&i.TokenHash,
+			&i.YamlContent,
+			&i.ThemeID,
+			&i.ExpiresAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.UserID,
+			&i.Name,
+			&i.IsArchived,
+			&i.ArchivedAt,
+			&i.ShareTokenHash,
+			&i.SharePasswordHash,
+			&i.LastGeneratedAt,
+			&i.Tags,
+			&i.ViewCount,
+			&i.LastViewedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const purgeArchivedConnectedSessionsContent = `-- name: PurgeArchivedConnectedSessionsContent :execrows
+UPDATE sessions
+SET yaml_content = '',
+    updated_at   = NOW()
+WHERE is_archived = TRUE
+  AND archived_at < NOW() - INTERVAL '30 days'
+  AND user_id IS NOT NULL
+  AND yaml_content != ''
+`
+
+func (q *Queries) PurgeArchivedConnectedSessionsContent(ctx context.Context) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeArchivedConnectedSessionsContent)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const purgeExpiredAnonymousSessions = `-- name: PurgeExpiredAnonymousSessions :exec
+DELETE FROM sessions
+WHERE user_id IS NULL
+  AND expires_at < NOW()
+`
+
+func (q *Queries) PurgeExpiredAnonymousSessions(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, purgeExpiredAnonymousSessions)
+	return err
+}
+
+const restoreSession = `-- name: RestoreSession :one
+UPDATE sessions
+SET is_archived = FALSE,
+    archived_at = NULL,
+    updated_at  = NOW()
+WHERE id = $1
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+`
+
+func (q *Queries) RestoreSession(ctx context.Context, id uuid.UUID) (Session, error) {
+	row := q.db.QueryRow(ctx, restoreSession, id)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.TokenHash,
+		&i.YamlContent,
+		&i.ThemeID,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.Name,
+		&i.IsArchived,
+		&i.ArchivedAt,
+		&i.ShareTokenHash,
+		&i.SharePasswordHash,
+		&i.LastGeneratedAt,
+		&i.Tags,
+		&i.ViewCount,
+		&i.LastViewedAt,
+	)
+	return i, err
+}
+
+const revokeShareToken = `-- name: RevokeShareToken :one
+UPDATE sessions
+SET share_token_hash    = NULL,
+    share_password_hash = NULL,
+    updated_at          = NOW()
+WHERE id = $1
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+`
+
+func (q *Queries) RevokeShareToken(ctx context.Context, id uuid.UUID) (Session, error) {
+	row := q.db.QueryRow(ctx, revokeShareToken, id)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.TokenHash,
+		&i.YamlContent,
+		&i.ThemeID,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.Name,
+		&i.IsArchived,
+		&i.ArchivedAt,
+		&i.ShareTokenHash,
+		&i.SharePasswordHash,
+		&i.LastGeneratedAt,
+		&i.Tags,
+		&i.ViewCount,
+		&i.LastViewedAt,
+	)
+	return i, err
+}
+
+const setSharePassword = `-- name: SetSharePassword :one
+UPDATE sessions
+SET share_password_hash = $2,
+    updated_at          = NOW()
+WHERE id = $1
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+`
+
+type SetSharePasswordParams struct {
+	ID                uuid.UUID `json:"id"`
+	SharePasswordHash *string   `json:"share_password_hash"`
+}
+
+func (q *Queries) SetSharePassword(ctx context.Context, arg SetSharePasswordParams) (Session, error) {
+	row := q.db.QueryRow(ctx, setSharePassword, arg.ID, arg.SharePasswordHash)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.TokenHash,
+		&i.YamlContent,
+		&i.ThemeID,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.Name,
+		&i.IsArchived,
+		&i.ArchivedAt,
+		&i.ShareTokenHash,
+		&i.SharePasswordHash,
+		&i.LastGeneratedAt,
+		&i.Tags,
+		&i.ViewCount,
+		&i.LastViewedAt,
+	)
+	return i, err
+}
+
+const setShareToken = `-- name: SetShareToken :one
+UPDATE sessions
+SET share_token_hash = $2,
+    updated_at       = NOW()
+WHERE id = $1
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+`
+
+type SetShareTokenParams struct {
+	ID             uuid.UUID `json:"id"`
+	ShareTokenHash *string   `json:"share_token_hash"`
+}
+
+func (q *Queries) SetShareToken(ctx context.Context, arg SetShareTokenParams) (Session, error) {
+	row := q.db.QueryRow(ctx, setShareToken, arg.ID, arg.ShareTokenHash)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.TokenHash,
+		&i.YamlContent,
+		&i.ThemeID,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.Name,
+		&i.IsArchived,
+		&i.ArchivedAt,
+		&i.ShareTokenHash,
+		&i.SharePasswordHash,
+		&i.LastGeneratedAt,
+		&i.Tags,
+		&i.ViewCount,
+		&i.LastViewedAt,
+	)
+	return i, err
+}
+
+const updateLastGeneratedAt = `-- name: UpdateLastGeneratedAt :one
+UPDATE sessions
+SET last_generated_at = NOW(),
+    updated_at        = NOW()
+WHERE id = $1
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+`
+
+func (q *Queries) UpdateLastGeneratedAt(ctx context.Context, id uuid.UUID) (Session, error) {
+	row := q.db.QueryRow(ctx, updateLastGeneratedAt, id)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.TokenHash,
+		&i.YamlContent,
+		&i.ThemeID,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.Name,
+		&i.IsArchived,
+		&i.ArchivedAt,
+		&i.ShareTokenHash,
+		&i.SharePasswordHash,
+		&i.LastGeneratedAt,
+		&i.Tags,
+		&i.ViewCount,
+		&i.LastViewedAt,
+	)
+	return i, err
+}
+
 const updateSession = `-- name: UpdateSession :one
 UPDATE sessions
 SET yaml_content = CASE WHEN $2::text = '' THEN yaml_content ELSE $2::text END,
     theme_id     = COALESCE($3, theme_id),
     updated_at   = NOW()
 WHERE id = $1
-RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
 `
 
 type UpdateSessionParams struct {
@@ -234,6 +786,168 @@ func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (S
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UserID,
+		&i.Name,
+		&i.IsArchived,
+		&i.ArchivedAt,
+		&i.ShareTokenHash,
+		&i.SharePasswordHash,
+		&i.LastGeneratedAt,
+		&i.Tags,
+		&i.ViewCount,
+		&i.LastViewedAt,
+	)
+	return i, err
+}
+
+const updateSessionName = `-- name: UpdateSessionName :one
+UPDATE sessions
+SET name       = $2,
+    updated_at = NOW()
+WHERE id = $1
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+`
+
+type UpdateSessionNameParams struct {
+	ID   uuid.UUID `json:"id"`
+	Name *string   `json:"name"`
+}
+
+func (q *Queries) UpdateSessionName(ctx context.Context, arg UpdateSessionNameParams) (Session, error) {
+	row := q.db.QueryRow(ctx, updateSessionName, arg.ID, arg.Name)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.TokenHash,
+		&i.YamlContent,
+		&i.ThemeID,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.Name,
+		&i.IsArchived,
+		&i.ArchivedAt,
+		&i.ShareTokenHash,
+		&i.SharePasswordHash,
+		&i.LastGeneratedAt,
+		&i.Tags,
+		&i.ViewCount,
+		&i.LastViewedAt,
+	)
+	return i, err
+}
+
+const updateSessionTTL = `-- name: UpdateSessionTTL :one
+UPDATE sessions
+SET expires_at = $2,
+    updated_at = NOW()
+WHERE id = $1
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+`
+
+type UpdateSessionTTLParams struct {
+	ID        uuid.UUID `json:"id"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+func (q *Queries) UpdateSessionTTL(ctx context.Context, arg UpdateSessionTTLParams) (Session, error) {
+	row := q.db.QueryRow(ctx, updateSessionTTL, arg.ID, arg.ExpiresAt)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.TokenHash,
+		&i.YamlContent,
+		&i.ThemeID,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.Name,
+		&i.IsArchived,
+		&i.ArchivedAt,
+		&i.ShareTokenHash,
+		&i.SharePasswordHash,
+		&i.LastGeneratedAt,
+		&i.Tags,
+		&i.ViewCount,
+		&i.LastViewedAt,
+	)
+	return i, err
+}
+
+const updateSessionTags = `-- name: UpdateSessionTags :one
+UPDATE sessions
+SET tags       = $2,
+    updated_at = NOW()
+WHERE id = $1
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+`
+
+type UpdateSessionTagsParams struct {
+	ID   uuid.UUID `json:"id"`
+	Tags []string  `json:"tags"`
+}
+
+func (q *Queries) UpdateSessionTags(ctx context.Context, arg UpdateSessionTagsParams) (Session, error) {
+	row := q.db.QueryRow(ctx, updateSessionTags, arg.ID, arg.Tags)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.TokenHash,
+		&i.YamlContent,
+		&i.ThemeID,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.Name,
+		&i.IsArchived,
+		&i.ArchivedAt,
+		&i.ShareTokenHash,
+		&i.SharePasswordHash,
+		&i.LastGeneratedAt,
+		&i.Tags,
+		&i.ViewCount,
+		&i.LastViewedAt,
+	)
+	return i, err
+}
+
+const updateSessionTheme = `-- name: UpdateSessionTheme :one
+UPDATE sessions
+SET theme_id   = $2,
+    updated_at = NOW()
+WHERE id = $1
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+`
+
+type UpdateSessionThemeParams struct {
+	ID      uuid.UUID  `json:"id"`
+	ThemeID *uuid.UUID `json:"theme_id"`
+}
+
+func (q *Queries) UpdateSessionTheme(ctx context.Context, arg UpdateSessionThemeParams) (Session, error) {
+	row := q.db.QueryRow(ctx, updateSessionTheme, arg.ID, arg.ThemeID)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.TokenHash,
+		&i.YamlContent,
+		&i.ThemeID,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.Name,
+		&i.IsArchived,
+		&i.ArchivedAt,
+		&i.ShareTokenHash,
+		&i.SharePasswordHash,
+		&i.LastGeneratedAt,
+		&i.Tags,
+		&i.ViewCount,
+		&i.LastViewedAt,
 	)
 	return i, err
 }

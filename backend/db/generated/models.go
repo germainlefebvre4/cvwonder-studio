@@ -11,13 +11,23 @@ import (
 )
 
 type Session struct {
-	ID          uuid.UUID  `json:"id"`
-	TokenHash   string     `json:"token_hash"`
-	YamlContent string     `json:"yaml_content"`
-	ThemeID     *uuid.UUID `json:"theme_id"`
-	ExpiresAt   time.Time  `json:"expires_at"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID                uuid.UUID  `json:"id"`
+	TokenHash         string     `json:"token_hash"`
+	YamlContent       string     `json:"yaml_content"`
+	ThemeID           *uuid.UUID `json:"theme_id"`
+	ExpiresAt         time.Time  `json:"expires_at"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
+	UserID            *uuid.UUID `json:"user_id"`
+	Name              *string    `json:"name"`
+	IsArchived        bool       `json:"is_archived"`
+	ArchivedAt        *time.Time `json:"archived_at"`
+	ShareTokenHash    *string    `json:"share_token_hash"`
+	SharePasswordHash *string    `json:"share_password_hash"`
+	LastGeneratedAt   *time.Time `json:"last_generated_at"`
+	Tags              []string   `json:"tags"`
+	ViewCount         int32      `json:"view_count"`
+	LastViewedAt      *time.Time `json:"last_viewed_at"`
 }
 
 type SystemConfig struct {
@@ -41,4 +51,14 @@ type Theme struct {
 	InstalledRef  *string    `json:"installed_ref"`
 	LatestRef     *string    `json:"latest_ref"`
 	LastCheckedAt *time.Time `json:"last_checked_at"`
+}
+
+type User struct {
+	ID             uuid.UUID  `json:"id"`
+	GoogleSub      string     `json:"google_sub"`
+	Email          string     `json:"email"`
+	Name           string     `json:"name"`
+	AvatarUrl      string     `json:"avatar_url"`
+	DefaultThemeID *uuid.UUID `json:"default_theme_id"`
+	CreatedAt      time.Time  `json:"created_at"`
 }

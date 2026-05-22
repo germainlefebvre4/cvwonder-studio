@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/germainlefebvre4/cvwonder-studio/internal/adapters/repository"
 	previewUC "github.com/germainlefebvre4/cvwonder-studio/internal/usecases/preview"
 	sessionUC "github.com/germainlefebvre4/cvwonder-studio/internal/usecases/session"
 	validationUC "github.com/germainlefebvre4/cvwonder-studio/internal/usecases/validation"
@@ -15,17 +16,20 @@ type GenerationHandler struct {
 	getSession *sessionUC.GetUsecase
 	preview    *previewUC.GenerateUsecase
 	validate   *validationUC.ValidateUsecase
+	config     *repository.ConfigRepository
 }
 
 func NewGenerationHandler(
 	getSession *sessionUC.GetUsecase,
 	preview *previewUC.GenerateUsecase,
 	validate *validationUC.ValidateUsecase,
+	config *repository.ConfigRepository,
 ) *GenerationHandler {
 	return &GenerationHandler{
 		getSession: getSession,
 		preview:    preview,
 		validate:   validate,
+		config:     config,
 	}
 }
 

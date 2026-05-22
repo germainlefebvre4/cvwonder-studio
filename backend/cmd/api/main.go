@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/oauth2"
 
 	db "github.com/germainlefebvre4/cvwonder-studio/db/generated"
 	"github.com/germainlefebvre4/cvwonder-studio/internal/adapters/cvwonder"
@@ -23,6 +24,7 @@ import (
 	sessionUC "github.com/germainlefebvre4/cvwonder-studio/internal/usecases/session"
 	themeUC "github.com/germainlefebvre4/cvwonder-studio/internal/usecases/theme"
 	validationUC "github.com/germainlefebvre4/cvwonder-studio/internal/usecases/validation"
+	"github.com/germainlefebvre4/cvwonder-studio/internal/userauth"
 )
 
 //go:embed dist
@@ -55,7 +57,12 @@ func main() {
 	sessionRepo := repository.NewSessionRepository(pool)
 	themeRepo := repository.NewThemeRepository(pool)
 	configRepo := repository.NewConfigRepository(pool)
-	_ = configRepo
+	userRepo := repository.NewUserRepository(pool)
+
+	// ── Seed system_config defaults ───────────────────────────────────────────
+	if err := configRepo.SeedDefaults(ctx); err != nil {
+		slog.Warn("failed to seed system_config defaults", "error", err)
+	}
 
 	// ── Adapters ──────────────────────────────────────────────────────────────
 	cvwonderAdapter := cvwonder.NewBinaryAdapter(cfg.CvwonderBinaryPath)
@@ -74,12 +81,29 @@ func main() {
 		slog.Error("failed to sync builtin themes", "error", err)
 	}
 
+	// ── OAuth / User Auth ─────────────────────────────────────────────────────
+	// Google OAuth is optional; if not configured, user auth routes return 503.
+	var oauthConfig *oauth2.Config
+	if cfg.GoogleClientID != "" && cfg.GoogleClientSecret != "" {
+		oauthConfig = userauth.NewOAuthConfig(
+			cfg.GoogleClientID,
+			cfg.GoogleClientSecret,
+			"/api/auth/callback",
+		)
+	}
+	userTokenSecret := cfg.UserTokenSecret
+	if userTokenSecret == "" {
+		userTokenSecret = cfg.AdminTokenSecret // fallback
+	}
+
 	// ── HTTP Handlers ─────────────────────────────────────────────────────────
 	sessionHandler := ginhttp.NewSessionHandler(createSessionUC, getSessionUC, updateSessionUC)
-	generationHandler := ginhttp.NewGenerationHandler(getSessionUC, generatePreviewUC, validateUC)
+	generationHandler := ginhttp.NewGenerationHandler(getSessionUC, generatePreviewUC, validateUC, configRepo)
 	themeHandler := ginhttp.NewThemeHandler(listThemesUC)
 	previewHandler := ginhttp.NewPreviewHandler(cfg.SessionsBaseDir)
 	healthHandler := ginhttp.NewHealthHandler(pool)
+	authHandler := ginhttp.NewAuthHandler(oauthConfig, userRepo, sessionRepo, db.New(pool), userTokenSecret)
+	userSessionHandler := ginhttp.NewUserSessionHandler(sessionRepo, cfg.SessionsBaseDir)
 
 	// ── Gin Router ────────────────────────────────────────────────────────────
 	gin.SetMode(gin.ReleaseMode)
@@ -88,24 +112,74 @@ func main() {
 	r.Use(ginhttp.RequestIDMiddleware())
 	r.Use(ginhttp.SlogLogger())
 	r.Use(ginhttp.RateLimiterMiddleware(100))
+	// Non-blocking user session middleware (sets user_id in context if cookie valid).
+	r.Use(userauth.UserMiddleware(userTokenSecret))
 
 	// Health
 	r.GET("/health/live", healthHandler.Live)
 	r.GET("/health/ready", healthHandler.Ready)
 
-	// Preview static file serving
+	// Preview static file serving (legacy token-based)
 	r.GET("/preview/:token/*filepath", previewHandler.ServeFile)
 
-	// API v1
+	// Public CV viewer (session-id-based)
+	r.GET("/p/:id", userSessionHandler.ServePublic)
+
+	// API v1 (anonymous + user-aware session endpoints)
 	v1 := r.Group("/api/v1")
 	{
-		v1.POST("/sessions", sessionHandler.Create)
+		// Session CRUD (anonymous-compatible)
+		v1.POST("/sessions", ginhttp.SessionCreationRateLimitMiddleware(configRepo), sessionHandler.Create)
 		v1.GET("/sessions/:token", sessionHandler.Get)
-		v1.PATCH("/sessions/:token", sessionHandler.Update)
+		v1.PATCH("/sessions/:token", ginhttp.YamlSizeLimitMiddleware(configRepo), sessionHandler.Update)
 		v1.POST("/sessions/:token/preview", generationHandler.GeneratePreview)
 		v1.POST("/sessions/:token/validate", generationHandler.ValidateYaml)
 		v1.GET("/themes", themeHandler.List)
 	}
+
+	// User auth routes
+	auth := r.Group("/api/auth")
+	{
+		auth.GET("/login", authHandler.Login)
+		auth.GET("/callback", authHandler.Callback)
+		auth.POST("/logout", authHandler.Logout)
+		auth.GET("/me", userauth.RequireUser(), authHandler.Me)
+		auth.DELETE("/account", userauth.RequireUser(), authHandler.DeleteAccount)
+		auth.GET("/account/export", userauth.RequireUser(), authHandler.ExportAccount)
+	}
+
+	// User session management (requires authentication)
+	apiSessions := r.Group("/api/sessions")
+	apiSessions.Use(userauth.RequireUser())
+	{
+		apiSessions.GET("", userSessionHandler.List)
+		apiSessions.PATCH("/:id/name", userSessionHandler.RenameSSession)
+		apiSessions.PATCH("/:id/ttl", userSessionHandler.UpdateTTL)
+		apiSessions.PATCH("/:id/theme", userSessionHandler.UpdateTheme)
+		apiSessions.POST("/:id/archive", userSessionHandler.Archive)
+		apiSessions.POST("/:id/restore", userSessionHandler.Restore)
+		apiSessions.POST("/:id/duplicate", userSessionHandler.Duplicate)
+		apiSessions.DELETE("/:id", userSessionHandler.Delete)
+		apiSessions.GET("/:id/export", userSessionHandler.Export)
+		apiSessions.POST("/:id/share", userSessionHandler.CreateShare)
+		apiSessions.DELETE("/:id/share", userSessionHandler.RevokeShare)
+		apiSessions.PUT("/:id/share/password", userSessionHandler.SetSharePassword)
+		apiSessions.PATCH("/:id/tags", userSessionHandler.UpdateTags)
+	}
+
+	// Public shared session view (no auth needed)
+	r.GET("/api/sessions/shared/:id/:token", userSessionHandler.GetShared)
+
+	// User profile routes
+	users := r.Group("/api/users/me")
+	users.Use(userauth.RequireUser())
+	{
+		users.GET("/tags", authHandler.GetMyTags)
+		users.PATCH("/default-theme", authHandler.UpdateDefaultTheme)
+	}
+
+	// Public limits endpoint
+	r.GET("/api/config/limits", userSessionHandler.GetLimits)
 
 	// Admin API
 	admin.RegisterRoutes(r, admin.AdminDeps{
@@ -114,6 +188,9 @@ func main() {
 		Config:      cfg,
 		TokenSecret: cfg.AdminTokenSecret,
 	})
+
+	// ── Periodic purge job ────────────────────────────────────────────────────
+	go runPurgeJob(sessionRepo)
 
 	// SPA catch-all: serve embedded frontend/dist for all non-API GET routes.
 	distFS, err := fs.Sub(staticFiles, "dist")
@@ -162,4 +239,22 @@ func main() {
 		slog.Error("graceful shutdown failed", "error", err)
 	}
 	slog.Info("server exited")
+}
+
+// runPurgeJob runs two periodic passes:
+// 1. Immediate deletion of expired anonymous sessions.
+// 2. Purge content of archived connected sessions older than 30 days.
+// Using a single ticker makes the job idempotent and safe for multi-replica deployments.
+func runPurgeJob(sessions *repository.SessionRepository) {
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+	for range ticker.C {
+		ctx := context.Background()
+		if err := sessions.PurgeExpiredAnonymous(ctx); err != nil {
+			slog.Warn("purge anonymous sessions failed", "error", err)
+		}
+		if _, err := sessions.PurgeArchivedConnectedContent(ctx); err != nil {
+			slog.Warn("purge archived connected sessions failed", "error", err)
+		}
+	}
 }

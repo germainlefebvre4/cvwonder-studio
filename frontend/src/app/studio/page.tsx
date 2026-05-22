@@ -4,6 +4,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
 import { getSession, updateSession } from '@/services/sessions'
 import { useStudioStore } from '@/store/studio'
+import { useUserStore } from '@/store/user'
 import { usePreview } from '@/hooks/usePreview'
 import { useValidation } from '@/hooks//useValidation'
 
@@ -12,13 +13,17 @@ import PreviewFrame from '@/components/features/preview/PreviewFrame'
 import ThemeSelector from '@/components/features/theme/ThemeSelector'
 import { Button } from '@/components/ui/Button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/Tooltip'
+import ExpiryWarningBanner from '@/components/user/ExpiryWarningBanner'
+import PrivacyNotice from '@/components/user/PrivacyNotice'
 
 export default function StudioPage() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
 
-  const { setYamlContent, setSelectedThemeId, reset } = useStudioStore()
+  const { setYamlContent, setSelectedThemeId, reset, yamlContent } = useStudioStore()
+  const { isAuthenticated } = useUserStore()
   const [loading, setLoading] = useState(true)
+  const [expiresAt, setExpiresAt] = useState<string | null>(null)
 
   // Enable live preview & validation hooks.
   const { forceRefresh, isCoolingDown } = usePreview(token ?? null)
@@ -31,15 +36,20 @@ export default function StudioPage() {
     getSession(token)
       .then((session) => {
         if (!session) {
-          navigate('/')
+          navigate('/404-session')
           return
         }
         setYamlContent(session.yaml_content)
         if (session.theme_id) setSelectedThemeId(session.theme_id)
+        setExpiresAt(session.expires_at)
+        // Store anon token in localStorage for session claiming (task 14.1)
+        if (!isAuthenticated) {
+          localStorage.setItem('anon_session_token', token)
+        }
       })
-      .catch(() => navigate('/'))
+      .catch(() => navigate('/404-session'))
       .finally(() => setLoading(false))
-  }, [token, navigate, reset, setYamlContent, setSelectedThemeId])
+  }, [token, navigate, reset, setYamlContent, setSelectedThemeId, isAuthenticated])
 
   const handleYamlChange = async (yaml: string) => {
     setYamlContent(yaml)
@@ -58,6 +68,16 @@ export default function StudioPage() {
     navigator.clipboard.writeText(window.location.href)
   }
 
+  const handleYamlDownload = () => {
+    const blob = new Blob([yamlContent], { type: 'text/yaml' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'resume.yaml'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center text-[var(--color-text-muted)]">
@@ -68,6 +88,9 @@ export default function StudioPage() {
 
   return (
     <div className="flex flex-col h-screen">
+      {/* Expiry warning for anonymous sessions */}
+      {expiresAt && <ExpiryWarningBanner expiresAt={expiresAt} isAuthenticated={isAuthenticated} />}
+
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <header className="flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface-subtle)] shrink-0">
         <div className="flex items-center gap-3">
@@ -82,12 +105,28 @@ export default function StudioPage() {
           <ThemeSelector onThemeChange={handleThemeChange} />
           <Tooltip>
             <TooltipTrigger asChild>
+              <Button variant="ghost" size="sm" onClick={handleYamlDownload}>
+                ⬇ YAML
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Télécharger le YAML</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button variant="ghost" size="sm" onClick={handleCopyLink}>
                 🔗 Share
               </Button>
             </TooltipTrigger>
             <TooltipContent>Copy session link</TooltipContent>
           </Tooltip>
+          {!isAuthenticated && (
+            <a
+              href="/login"
+              className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
+            >
+              Se connecter
+            </a>
+          )}
         </div>
       </header>
 
@@ -124,6 +163,7 @@ export default function StudioPage() {
           </Panel>
         </PanelGroup>
       </div>
+      <PrivacyNotice />
     </div>
   )
 }

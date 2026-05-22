@@ -35,6 +35,23 @@ spec:
                 secretKeyRef:
                   name: cvwonder-studio-secrets
                   key: database-url
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cvwonder-studio-secrets
+                  key: google-client-id
+                  optional: true
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cvwonder-studio-secrets
+                  key: google-client-secret
+                  optional: true
+            - name: USER_TOKEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cvwonder-studio-secrets
+                  key: user-token-secret
           resources:
             requests:
               cpu: "100m"

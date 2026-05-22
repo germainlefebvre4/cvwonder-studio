@@ -18,6 +18,10 @@ type Config struct {
 	AdminUsername       string
 	AdminPasswordHash   string
 	AdminTokenSecret    string
+	// Google OAuth / user auth
+	GoogleClientID     string
+	GoogleClientSecret string
+	UserTokenSecret    string
 }
 
 // Load reads configuration from environment variables, applying defaults where
@@ -34,6 +38,9 @@ func Load() (*Config, error) {
 		AdminUsername:       getEnv("ADMIN_USERNAME", ""),
 		AdminPasswordHash:   getEnv("ADMIN_PASSWORD_HASH", ""),
 		AdminTokenSecret:    getEnv("ADMIN_TOKEN_SECRET", ""),
+		GoogleClientID:      getEnv("GOOGLE_CLIENT_ID", ""),
+		GoogleClientSecret:  getEnv("GOOGLE_CLIENT_SECRET", ""),
+		UserTokenSecret:     getEnv("USER_TOKEN_SECRET", ""),
 	}
 
 	if cfg.DatabaseURL == "" {
