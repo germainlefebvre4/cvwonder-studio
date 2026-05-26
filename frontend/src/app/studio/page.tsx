@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
 import { getSession, updateSession } from '@/services/sessions'
+import { listThemes } from '@/services/themes'
+import { getTemplateContent } from '@/services/templates'
 import { useStudioStore } from '@/store/studio'
 import { useUserStore } from '@/store/user'
 import { usePreview } from '@/hooks/usePreview'
@@ -11,6 +13,7 @@ import { useValidation } from '@/hooks//useValidation'
 import YamlEditor from '@/components/features/editor/YamlEditor'
 import PreviewFrame from '@/components/features/preview/PreviewFrame'
 import ThemeSelector from '@/components/features/theme/ThemeSelector'
+import TemplatePicker from '@/components/features/onboarding/TemplatePicker'
 import { Button } from '@/components/ui/Button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/Tooltip'
 import ExpiryWarningBanner from '@/components/user/ExpiryWarningBanner'
@@ -24,6 +27,9 @@ export default function StudioPage() {
   const { isAuthenticated } = useUserStore()
   const [loading, setLoading] = useState(true)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
+  // Controls whether the TemplatePicker is shown. Set once at load time,
+  // never flips back to true even if the user clears their YAML.
+  const [showPicker, setShowPicker] = useState(false)
 
   // Enable live preview & validation hooks.
   const { forceRefresh, isCoolingDown } = usePreview(token ?? null)
@@ -34,17 +40,36 @@ export default function StudioPage() {
     if (!token) return
     reset()
     getSession(token)
-      .then((session) => {
+      .then(async (session) => {
         if (!session) {
           navigate('/404-session')
           return
         }
         setYamlContent(session.yaml_content)
-        if (session.theme_id) setSelectedThemeId(session.theme_id)
+
+        if (session.theme_id) {
+          setSelectedThemeId(session.theme_id)
+        } else {
+          // Auto-select first available theme when session has none.
+          try {
+            const themes = await listThemes()
+            if (themes.length > 0) {
+              setSelectedThemeId(themes[0].id)
+              updateSession(token, { theme_id: themes[0].id }).catch(() => {})
+            }
+          } catch {
+            // Silent failure — Studio continues without a theme.
+          }
+        }
+
         setExpiresAt(session.expires_at)
-        // Store anon token in localStorage for session claiming (task 14.1)
+        // Store anon token in localStorage for session claiming.
         if (!isAuthenticated) {
           localStorage.setItem('anon_session_token', token)
+        }
+        // Show the template picker only for fresh empty sessions.
+        if (!session.yaml_content) {
+          setShowPicker(true)
         }
       })
       .catch(() => navigate('/404-session'))
@@ -62,6 +87,12 @@ export default function StudioPage() {
     if (token) {
       await updateSession(token, { theme_id: themeId }).catch(() => {})
     }
+  }
+
+  const handleTemplateSelect = async (slug: string) => {
+    const content = await getTemplateContent(slug)
+    setShowPicker(false)
+    await handleYamlChange(content)
   }
 
   const handleCopyLink = () => {
@@ -134,7 +165,11 @@ export default function StudioPage() {
       <div className="flex-1 overflow-hidden">
         <PanelGroup direction="horizontal" className="h-full">
           <Panel defaultSize={50} minSize={20}>
-            <YamlEditor token={token!} onUpdate={handleYamlChange} />
+            {showPicker ? (
+              <TemplatePicker onSelect={handleTemplateSelect} />
+            ) : (
+              <YamlEditor token={token!} onUpdate={handleYamlChange} />
+            )}
           </Panel>
           <PanelResizeHandle className="w-1 bg-[var(--color-border)] hover:bg-[var(--color-accent)] transition-colors cursor-col-resize" />
           <Panel defaultSize={50} minSize={20}>

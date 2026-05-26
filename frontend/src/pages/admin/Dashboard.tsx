@@ -1,10 +1,22 @@
 import { useEffect, useState } from 'react'
 import { getDashboard, DashboardStats } from '@/services/admin'
+import {
+  PersonIcon,
+  TimerIcon,
+  LayersIcon,
+  CubeIcon,
+  DownloadIcon,
+  InfoCircledIcon,
+  ArchiveIcon,
+} from '@radix-ui/react-icons'
 
-function StatCard({ label, value }: { label: string; value: number | string }) {
+function StatCard({ label, value, icon }: { label: string; value: number | string; icon?: React.ReactNode }) {
   return (
     <div className="border border-[var(--color-border)] rounded-lg p-4 bg-[var(--color-surface-default)]">
-      <p className="text-xs text-[var(--color-text-secondary)] mb-1">{label}</p>
+      <div className="flex items-center gap-1.5 mb-1">
+        {icon && <span className="text-[var(--color-text-muted)]">{icon}</span>}
+        <p className="text-xs text-[var(--color-text-secondary)]">{label}</p>
+      </div>
       <p className="text-2xl font-semibold text-[var(--color-text-primary)]">{value}</p>
     </div>
   )
@@ -43,8 +55,8 @@ export default function Dashboard() {
               Sessions
             </h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <StatCard label="Active" value={stats.sessions.active} />
-              <StatCard label="Expiring within 24h" value={stats.sessions.expiring_soon} />
+              <StatCard label="Active" value={stats.sessions.active} icon={<PersonIcon />} />
+              <StatCard label="Expiring within 24h" value={stats.sessions.expiring_soon} icon={<TimerIcon />} />
             </div>
           </section>
 
@@ -53,9 +65,9 @@ export default function Dashboard() {
               Themes
             </h2>
             <div className="grid gap-4 sm:grid-cols-3">
-              <StatCard label="Total" value={stats.themes.total} />
-              <StatCard label="Built-in" value={stats.themes.builtin} />
-              <StatCard label="Runtime" value={stats.themes.runtime} />
+              <StatCard label="Total" value={stats.themes.total} icon={<LayersIcon />} />
+              <StatCard label="Built-in" value={stats.themes.builtin} icon={<CubeIcon />} />
+              <StatCard label="Runtime" value={stats.themes.runtime} icon={<DownloadIcon />} />
             </div>
           </section>
 
@@ -64,8 +76,8 @@ export default function Dashboard() {
               System
             </h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <StatCard label="Binary Version" value={stats.system.binary_version} />
-              <StatCard label="Themes Storage" value={formatBytes(stats.system.themes_storage_bytes)} />
+              <StatCard label="Binary Version" value={stats.system.binary_version} icon={<InfoCircledIcon />} />
+              <StatCard label="Themes Storage" value={formatBytes(stats.system.themes_storage_bytes)} icon={<ArchiveIcon />} />
             </div>
           </section>
         </div>

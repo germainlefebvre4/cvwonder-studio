@@ -1,19 +1,9 @@
 import { useEffect, useState } from 'react'
 import { getSystemHealth, SystemHealth } from '@/services/admin'
+import { Badge } from '@/components/ui/Badge'
 
 function StatusBadge({ value }: { value: string }) {
-  const ok = value === 'ok'
-  return (
-    <span
-      className={
-        ok
-          ? 'text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700'
-          : 'text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600'
-      }
-    >
-      {value}
-    </span>
-  )
+  return <Badge variant={value === 'ok' ? 'success' : 'error'}>{value}</Badge>
 }
 
 function HealthRow({ label, value }: { label: string; value: string }) {

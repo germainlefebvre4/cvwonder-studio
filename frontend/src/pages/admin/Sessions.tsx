@@ -1,12 +1,14 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   listAdminSessions,
   expireSession,
   deleteAdminSession,
   purgeExpiredSessions,
   PaginatedSessions,
-  AdminSession,
 } from '@/services/admin'
+import { Badge } from '@/components/ui/Badge'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { PersonIcon, MagnifyingGlassIcon } from '@radix-ui/react-icons'
 
 export default function Sessions() {
   const [data, setData] = useState<PaginatedSessions | null>(null)
@@ -15,7 +17,8 @@ export default function Sessions() {
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
   const [inputQ, setInputQ] = useState('')
-  const [busy, setBusy] = useState<string | null>(null)
+  const [purgeResult, setPurgeResult] = useState<number | null>(null)
+  const purgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const perPage = 20
 
   const load = useCallback(async () => {
@@ -32,61 +35,51 @@ export default function Sessions() {
 
   useEffect(() => { load() }, [load])
 
+  useEffect(() => () => {
+    if (purgeTimerRef.current) clearTimeout(purgeTimerRef.current)
+  }, [])
+
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     setPage(1)
     setQ(inputQ)
   }
 
-  async function handleExpire(session: AdminSession) {
-    if (!confirm(`Force-expire session ${session.id.slice(0, 8)}…?`)) return
-    setBusy(session.id)
-    try {
-      await expireSession(session.id)
-      await load()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
-    } finally {
-      setBusy(null)
-    }
+  function clearSearch() {
+    setQ('')
+    setInputQ('')
+    setPage(1)
   }
 
-  async function handleDelete(session: AdminSession) {
-    if (!confirm(`Delete session ${session.id.slice(0, 8)}…? This is irreversible.`)) return
-    setBusy(session.id)
-    try {
-      await deleteAdminSession(session.id)
-      await load()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  async function handlePurge() {
-    if (!confirm('Purge all expired sessions? This is irreversible.')) return
-    try {
-      const res = await purgeExpiredSessions()
-      alert(`Purged ${res.deleted_count} session(s)`)
-      await load()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Purge failed')
-    }
+  function showPurgeResult(count: number) {
+    setPurgeResult(count)
+    setError('')
+    if (purgeTimerRef.current) clearTimeout(purgeTimerRef.current)
+    purgeTimerRef.current = setTimeout(() => setPurgeResult(null), 4000)
   }
 
   const totalPages = data ? Math.ceil(data.total_items / perPage) : 1
+  const isEmpty = !loading && (!data || data.items.length === 0)
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-lg font-semibold text-[var(--color-text-primary)]">Sessions</h1>
-        <button
-          onClick={handlePurge}
-          className="px-3 py-1.5 text-xs border border-[var(--color-error)] text-[var(--color-error)] rounded hover:bg-[var(--color-error)] hover:text-white transition-colors"
+        <ConfirmDialog
+          title="Purge expired sessions"
+          description="All expired sessions will be permanently deleted. This action is irreversible."
+          confirmLabel="Purge all"
+          variant="danger"
+          onConfirm={async () => {
+            const res = await purgeExpiredSessions()
+            showPurgeResult(res.deleted_count)
+            await load()
+          }}
         >
-          Purge Expired
-        </button>
+          <button className="px-3 py-1.5 text-xs border border-[var(--color-error)] text-[var(--color-error)] rounded hover:bg-[var(--color-error)] hover:text-white transition-colors">
+            Purge Expired
+          </button>
+        </ConfirmDialog>
       </div>
 
       {/* Search */}
@@ -107,11 +100,32 @@ export default function Sessions() {
       </form>
 
       {error && <p className="text-sm text-[var(--color-error)] mb-4">{error}</p>}
+      {purgeResult !== null && (
+        <p className="text-sm text-[var(--color-success-text)] mb-4">
+          {purgeResult} session{purgeResult !== 1 ? 's' : ''} purged.
+        </p>
+      )}
 
       {loading ? (
         <p className="text-sm text-[var(--color-text-secondary)]">Loading…</p>
-      ) : !data || data.items.length === 0 ? (
-        <p className="text-sm text-[var(--color-text-secondary)]">No sessions found.</p>
+      ) : isEmpty ? (
+        q ? (
+          <div className="flex flex-col items-center gap-3 py-16 text-[var(--color-text-muted)]">
+            <MagnifyingGlassIcon width={28} height={28} />
+            <p className="text-sm">No sessions match '{q}'</p>
+            <button
+              onClick={clearSearch}
+              className="text-xs text-[var(--color-accent-text)] hover:underline"
+            >
+              Clear search
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3 py-16 text-[var(--color-text-muted)]">
+            <PersonIcon width={28} height={28} />
+            <p className="text-sm">No sessions yet</p>
+          </div>
+        )
       ) : (
         <>
           <div className="border border-[var(--color-border)] rounded-lg overflow-hidden mb-4">
@@ -126,7 +140,7 @@ export default function Sessions() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]">
-                {data.items.map((session) => (
+                {data!.items.map((session) => (
                   <tr key={session.id} className="hover:bg-[var(--color-surface-subtle)]">
                     <td className="px-4 py-2 font-mono text-xs text-[var(--color-text-primary)]">
                       {session.id.slice(0, 8)}…
@@ -135,15 +149,9 @@ export default function Sessions() {
                       {new Date(session.expires_at).toLocaleString()}
                     </td>
                     <td className="px-4 py-2">
-                      <span
-                        className={
-                          session.is_expired
-                            ? 'text-xs px-1.5 py-0.5 rounded-full bg-red-50 text-red-600'
-                            : 'text-xs px-1.5 py-0.5 rounded-full bg-green-50 text-green-700'
-                        }
-                      >
+                      <Badge variant={session.is_expired ? 'error' : 'success'}>
                         {session.is_expired ? 'expired' : 'active'}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-4 py-2 text-xs text-[var(--color-text-secondary)]">
                       {new Date(session.created_at).toLocaleString()}
@@ -151,21 +159,35 @@ export default function Sessions() {
                     <td className="px-4 py-2">
                       <div className="flex gap-2 justify-end">
                         {!session.is_expired && (
-                          <button
-                            disabled={busy === session.id}
-                            onClick={() => handleExpire(session)}
-                            className="px-2 py-1 text-xs border border-[var(--color-border)] rounded hover:bg-[var(--color-surface-overlay)] disabled:opacity-50 transition-colors"
+                          <ConfirmDialog
+                            title="Force-expire session"
+                            description={`Session ${session.id.slice(0, 8)}… will be marked as expired immediately.`}
+                            confirmLabel="Expire"
+                            variant="primary"
+                            onConfirm={async () => {
+                              await expireSession(session.id)
+                              await load()
+                            }}
                           >
-                            Expire
-                          </button>
+                            <button className="px-2 py-1 text-xs border border-[var(--color-border)] rounded hover:bg-[var(--color-surface-overlay)] transition-colors">
+                              Expire
+                            </button>
+                          </ConfirmDialog>
                         )}
-                        <button
-                          disabled={busy === session.id}
-                          onClick={() => handleDelete(session)}
-                          className="px-2 py-1 text-xs border border-[var(--color-error)] text-[var(--color-error)] rounded hover:bg-[var(--color-error)] hover:text-white disabled:opacity-50 transition-colors"
+                        <ConfirmDialog
+                          title="Delete session"
+                          description={`Session ${session.id.slice(0, 8)}… will be permanently deleted. This is irreversible.`}
+                          confirmLabel="Delete"
+                          variant="danger"
+                          onConfirm={async () => {
+                            await deleteAdminSession(session.id)
+                            await load()
+                          }}
                         >
-                          Delete
-                        </button>
+                          <button className="px-2 py-1 text-xs border border-[var(--color-error)] text-[var(--color-error)] rounded hover:bg-[var(--color-error)] hover:text-white transition-colors">
+                            Delete
+                          </button>
+                        </ConfirmDialog>
                       </div>
                     </td>
                   </tr>
@@ -177,7 +199,7 @@ export default function Sessions() {
           {/* Pagination */}
           <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
             <span>
-              {data.total_items} session{data.total_items !== 1 ? 's' : ''}
+              {data!.total_items} session{data!.total_items !== 1 ? 's' : ''}
             </span>
             <div className="flex gap-1">
               <button

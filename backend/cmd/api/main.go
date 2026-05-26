@@ -136,6 +136,7 @@ func main() {
 		v1.POST("/sessions/:token/validate", generationHandler.ValidateYaml)
 		v1.GET("/themes", themeHandler.List)
 		v1.GET("/templates", sessionHandler.ListTemplates)
+		v1.GET("/templates/:slug", sessionHandler.GetTemplateContent)
 	}
 
 	// User auth routes

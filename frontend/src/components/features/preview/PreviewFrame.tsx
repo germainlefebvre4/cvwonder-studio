@@ -1,5 +1,68 @@
 import { useStudioStore } from '@/store/studio'
 
+function CvSkeleton() {
+  return (
+    <div className="h-full w-full p-8 overflow-hidden animate-pulse" aria-hidden="true">
+      {/* Header — name + contact */}
+      <div className="mb-6">
+        <div className="h-7 w-48 rounded bg-[var(--color-surface-muted)] mb-2" />
+        <div className="h-4 w-72 rounded bg-[var(--color-surface-muted)] opacity-60" />
+      </div>
+      <div className="h-px w-full bg-[var(--color-border)] mb-6" />
+      {/* Two-column body */}
+      <div className="flex gap-6">
+        {/* Left column — sections */}
+        <div className="flex-1 space-y-5">
+          <div>
+            <div className="h-4 w-24 rounded bg-[var(--color-surface-muted)] mb-3" />
+            <div className="space-y-2">
+              <div className="h-3 w-full rounded bg-[var(--color-surface-muted)] opacity-70" />
+              <div className="h-3 w-5/6 rounded bg-[var(--color-surface-muted)] opacity-70" />
+              <div className="h-3 w-4/6 rounded bg-[var(--color-surface-muted)] opacity-50" />
+            </div>
+          </div>
+          <div>
+            <div className="h-4 w-28 rounded bg-[var(--color-surface-muted)] mb-3" />
+            <div className="space-y-2">
+              <div className="h-3 w-full rounded bg-[var(--color-surface-muted)] opacity-70" />
+              <div className="h-3 w-3/4 rounded bg-[var(--color-surface-muted)] opacity-70" />
+              <div className="h-3 w-5/6 rounded bg-[var(--color-surface-muted)] opacity-50" />
+              <div className="h-3 w-2/3 rounded bg-[var(--color-surface-muted)] opacity-40" />
+            </div>
+          </div>
+          <div>
+            <div className="h-4 w-20 rounded bg-[var(--color-surface-muted)] mb-3" />
+            <div className="space-y-2">
+              <div className="h-3 w-full rounded bg-[var(--color-surface-muted)] opacity-70" />
+              <div className="h-3 w-4/5 rounded bg-[var(--color-surface-muted)] opacity-60" />
+            </div>
+          </div>
+        </div>
+        {/* Right column — skills/sidebar */}
+        <div className="w-36 space-y-4">
+          <div>
+            <div className="h-4 w-16 rounded bg-[var(--color-surface-muted)] mb-3" />
+            <div className="space-y-2">
+              <div className="h-3 w-full rounded bg-[var(--color-surface-muted)] opacity-70" />
+              <div className="h-3 w-4/5 rounded bg-[var(--color-surface-muted)] opacity-60" />
+              <div className="h-3 w-3/4 rounded bg-[var(--color-surface-muted)] opacity-50" />
+              <div className="h-3 w-full rounded bg-[var(--color-surface-muted)] opacity-70" />
+              <div className="h-3 w-2/3 rounded bg-[var(--color-surface-muted)] opacity-50" />
+            </div>
+          </div>
+          <div>
+            <div className="h-4 w-20 rounded bg-[var(--color-surface-muted)] mb-3" />
+            <div className="space-y-2">
+              <div className="h-3 w-full rounded bg-[var(--color-surface-muted)] opacity-70" />
+              <div className="h-3 w-3/5 rounded bg-[var(--color-surface-muted)] opacity-50" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function PreviewFrame() {
   const previewUrl = useStudioStore((s) => s.previewUrl)
   const isGenerating = useStudioStore((s) => s.isGenerating)
@@ -30,9 +93,7 @@ export default function PreviewFrame() {
           title="CV Preview"
         />
       ) : (
-        <div className="flex h-full items-center justify-center text-[var(--color-text-muted)] text-sm">
-          Preview will appear here after the first generation.
-        </div>
+        <CvSkeleton />
       )}
     </div>
   )

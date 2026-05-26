@@ -71,6 +71,17 @@ func (h *SessionHandler) ListTemplates(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+// GET /api/v1/templates/:slug
+func (h *SessionHandler) GetTemplateContent(c *gin.Context) {
+	slug := c.Param("slug")
+	content := templates.GetContent(slug)
+	if content == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "template not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"yaml_content": content})
+}
+
 // GET /api/v1/sessions/:token
 func (h *SessionHandler) Get(c *gin.Context) {
 	rawToken := c.Param("token")

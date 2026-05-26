@@ -19,6 +19,8 @@ export function usePreview(token: string | null) {
   const cooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Guard against concurrent in-flight requests.
   const inFlightRef = useRef(false)
+  // Ensures the immediate first-generation fires only once per hook lifetime.
+  const hasTriggeredInitialRef = useRef(false)
 
   /**
    * Fire a preview generation request.
@@ -71,6 +73,15 @@ export function usePreview(token: string | null) {
     const cancel = triggerGeneration(token, false)
     return cancel
   }, [debouncedYaml, debouncedTheme, token, triggerGeneration])
+
+  // Immediate first-generation: fires once as soon as YAML + theme are both ready,
+  // bypassing the debounce. Subsequent edits use the debounced path above.
+  useEffect(() => {
+    if (!token || !yamlContent || !selectedThemeId) return
+    if (hasTriggeredInitialRef.current) return
+    hasTriggeredInitialRef.current = true
+    triggerGeneration(token, true)
+  }, [token, yamlContent, selectedThemeId, triggerGeneration])
 
   // Force refresh: bypasses debounce, blocked during cooldown.
   const forceRefresh = useCallback(() => {
