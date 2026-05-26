@@ -2,7 +2,7 @@ import * as React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { SplitButton } from '@/components/ui/SplitButton'
-import { createSession } from '@/services/sessions'
+import { createSession, RateLimitError } from '@/services/sessions'
 import { getTemplates, type Template } from '@/services/templates'
 
 const features = [
@@ -33,6 +33,8 @@ const steps = [
 export default function LandingPage() {
   const navigate = useNavigate()
   const [templates, setTemplates] = React.useState<Template[]>([])
+  const [rateLimitedUntil, setRateLimitedUntil] = React.useState<Date | null>(null)
+  const [secondsLeft, setSecondsLeft] = React.useState(0)
 
   React.useEffect(() => {
     getTemplates()
@@ -40,14 +42,44 @@ export default function LandingPage() {
       .catch(() => setTemplates([]))
   }, [])
 
+  React.useEffect(() => {
+    if (!rateLimitedUntil) return
+    const tick = () => {
+      const remaining = Math.ceil((rateLimitedUntil.getTime() - Date.now()) / 1000)
+      if (remaining <= 0) {
+        setSecondsLeft(0)
+        setRateLimitedUntil(null)
+      } else {
+        setSecondsLeft(remaining)
+      }
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [rateLimitedUntil])
+
+  const handleRateLimitError = (err: unknown) => {
+    if (err instanceof RateLimitError) {
+      setRateLimitedUntil(new Date(Date.now() + err.retryAfter * 1000))
+    }
+  }
+
   const handleStart = async () => {
-    const result = await createSession()
-    navigate(`/studio/${result.token}`)
+    try {
+      const result = await createSession()
+      navigate(`/studio/${result.token}`)
+    } catch (err) {
+      handleRateLimitError(err)
+    }
   }
 
   const handleTemplateSelect = async (slug: string) => {
-    const result = await createSession(undefined, slug)
-    navigate(`/studio/${result.token}`)
+    try {
+      const result = await createSession(undefined, slug)
+      navigate(`/studio/${result.token}`)
+    } catch (err) {
+      handleRateLimitError(err)
+    }
   }
 
   return (
@@ -85,9 +117,10 @@ export default function LandingPage() {
         </p>
         <div className="flex gap-4">
           <SplitButton
-            label="Start Building — it's free"
+            label={secondsLeft > 0 ? `Réessayez dans ${secondsLeft}s…` : "Start Building — it's free"}
             onClick={handleStart}
             size="lg"
+            disabled={secondsLeft > 0}
             options={templates.map((t) => ({ label: t.name, value: t.slug, description: t.description }))}
             onOptionSelect={handleTemplateSelect}
           />
@@ -101,6 +134,12 @@ export default function LandingPage() {
             </a>
           </Button>
         </div>
+        {secondsLeft > 0 && (
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            Trop de tentatives. Réessayez dans <strong>{secondsLeft}s</strong> ou{' '}
+            <a href="/login" className="underline text-[var(--color-accent-text)]">connectez-vous</a>.
+          </p>
+        )}
       </section>
 
       {/* ── Features ──────────────────────────────────────────────────────── */}

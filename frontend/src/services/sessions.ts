@@ -11,6 +11,17 @@ export interface CreateSessionResponse {
   expires_at: string
 }
 
+export class RateLimitError extends Error {
+  retryAfter: number
+  constructor(retryAfter: number) {
+    super(`Rate limited. Retry after ${retryAfter}s`)
+    this.name = 'RateLimitError'
+    this.retryAfter = retryAfter
+  }
+}
+
+const FALLBACK_RETRY_AFTER = 1200 // 3 sessions/hour → 3600/3
+
 export async function createSession(themeId?: string, templateId?: string): Promise<CreateSessionResponse> {
   const body: Record<string, string> = {}
   if (themeId) body.theme_id = themeId
@@ -20,6 +31,10 @@ export async function createSession(themeId?: string, templateId?: string): Prom
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
+  if (res.status === 429) {
+    const retryAfter = parseInt(res.headers.get('Retry-After') ?? '', 10)
+    throw new RateLimitError(isNaN(retryAfter) ? FALLBACK_RETRY_AFTER : retryAfter)
+  }
   if (!res.ok) throw new Error(`createSession: ${res.status}`)
   return res.json()
 }

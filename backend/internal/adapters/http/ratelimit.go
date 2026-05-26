@@ -2,7 +2,9 @@ package http
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -48,7 +50,12 @@ func init() {
 
 // SessionCreationRateLimitMiddleware limits session creation by IP.
 // The limit is read from system_config key `session_creation_rate_limit_per_hour`.
+// Set DISABLE_SESSION_CREATION_RATE_LIMIT=true to bypass in development.
 func SessionCreationRateLimitMiddleware(cfg *repository.ConfigRepository) gin.HandlerFunc {
+	if os.Getenv("DISABLE_SESSION_CREATION_RATE_LIMIT") == "true" {
+		slog.Warn("session creation rate limit is DISABLED — dev only, do not use in production")
+		return func(c *gin.Context) { c.Next() }
+	}
 	return func(c *gin.Context) {
 		limitPerHour := 3 // default
 		if cfg != nil {
