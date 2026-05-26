@@ -35,7 +35,7 @@ export function usePreview(token: string | null) {
     let cancelled = false
     inFlightRef.current = true
 
-    // Start shared cooldown — prevents force-refresh during this interval.
+    // Start shared cooldown - prevents force-refresh during this interval.
     setIsCoolingDown(true)
     if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current)
     cooldownTimerRef.current = setTimeout(() => setIsCoolingDown(false), PREVIEW_DEBOUNCE_MS)

@@ -90,10 +90,10 @@ export default function InstalledThemes() {
                   <td className="px-4 py-2 text-[var(--color-text-primary)]">{theme.name}</td>
                   <td className="px-4 py-2 font-mono text-xs text-[var(--color-text-secondary)]">{theme.slug}</td>
                   <td className="px-4 py-2 font-mono text-xs text-[var(--color-text-secondary)]">
-                    {theme.installed_ref ?? '—'}
+                    {theme.installed_ref ?? '-'}
                   </td>
                   <td className="px-4 py-2 font-mono text-xs text-[var(--color-text-secondary)]">
-                    {theme.latest_ref ?? '—'}
+                    {theme.latest_ref ?? '-'}
                     {theme.latest_ref && theme.installed_ref && theme.latest_ref !== theme.installed_ref && (
                       <span className="ml-1 text-[var(--color-warning)] font-semibold">↑</span>
                     )}

@@ -17,7 +17,7 @@ interface Props {
 }
 
 function formatDate(iso: string | null | undefined) {
-  if (!iso) return '—'
+  if (!iso) return '-'
   return new Date(iso).toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: 'short',

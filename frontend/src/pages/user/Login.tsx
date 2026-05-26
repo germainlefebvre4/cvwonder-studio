@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useUserStore } from '@/store/user'
 
 /**
- * Login page — redirects the user to Google OAuth.
+ * Login page - redirects the user to Google OAuth.
  * If the user has an anonymous session token in localStorage, it is passed
  * to the backend so the session can be claimed after login (task 14.1).
  */

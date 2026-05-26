@@ -77,7 +77,7 @@ export default function ShareDialog({ sessionId, hasShare, onClose }: Props) {
         {shareUrl && (
           <div className="flex flex-col gap-2">
             <p className="text-xs text-gray-500">
-              Copiez ce lien maintenant — il ne sera plus affiché.
+              Copiez ce lien maintenant - il ne sera plus affiché.
             </p>
             <div className="flex gap-2">
               <input

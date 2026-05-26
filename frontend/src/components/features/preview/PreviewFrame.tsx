@@ -3,7 +3,7 @@ import { useStudioStore } from '@/store/studio'
 function CvSkeleton() {
   return (
     <div className="h-full w-full p-8 overflow-hidden animate-pulse" aria-hidden="true">
-      {/* Header — name + contact */}
+      {/* Header - name + contact */}
       <div className="mb-6">
         <div className="h-7 w-48 rounded bg-[var(--color-surface-muted)] mb-2" />
         <div className="h-4 w-72 rounded bg-[var(--color-surface-muted)] opacity-60" />
@@ -11,7 +11,7 @@ function CvSkeleton() {
       <div className="h-px w-full bg-[var(--color-border)] mb-6" />
       {/* Two-column body */}
       <div className="flex gap-6">
-        {/* Left column — sections */}
+        {/* Left column - sections */}
         <div className="flex-1 space-y-5">
           <div>
             <div className="h-4 w-24 rounded bg-[var(--color-surface-muted)] mb-3" />
@@ -38,7 +38,7 @@ function CvSkeleton() {
             </div>
           </div>
         </div>
-        {/* Right column — skills/sidebar */}
+        {/* Right column - skills/sidebar */}
         <div className="w-36 space-y-4">
           <div>
             <div className="h-4 w-16 rounded bg-[var(--color-surface-muted)] mb-3" />

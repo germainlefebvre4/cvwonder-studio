@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom'
 
 /**
- * Public CV viewer page — embeds the backend-served /p/:id endpoint in an iframe.
+ * Public CV viewer page - embeds the backend-served /p/:id endpoint in an iframe.
  * The backend injects the CVWonder bandeau, so we just frame it.
  */
 export default function PublicViewerPage() {

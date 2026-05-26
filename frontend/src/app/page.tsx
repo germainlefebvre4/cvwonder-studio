@@ -21,7 +21,7 @@ const features = [
   {
     icon: '⚡',
     title: 'Instant Preview',
-    description: 'See your CV rendered live in the browser as you type — no rebuild, no refresh.',
+    description: 'See your CV rendered live in the browser as you type - no rebuild, no refresh.',
   },
 ]
 
@@ -129,7 +129,7 @@ export default function LandingPage() {
         </p>
         <div className="flex gap-4">
           <SplitButton
-            label={secondsLeft > 0 ? `Réessayez dans ${secondsLeft}s…` : "Start Building — it's free"}
+            label={secondsLeft > 0 ? `Réessayez dans ${secondsLeft}s…` : "Start Building - it's free"}
             onClick={handleStart}
             size="lg"
             disabled={secondsLeft > 0}

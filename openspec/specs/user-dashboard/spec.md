@@ -24,7 +24,18 @@ Le système SHALL afficher clairement le nombre de sessions actives par rapport 
 
 #### Scenario: Quota atteint
 - **WHEN** l'utilisateur a atteint sa limite de sessions
-- **THEN** le bouton "Créer une session" est désactivé avec un tooltip expliquant la limite ; un message encourage à archiver des sessions existantes
+- **THEN** le bouton "+ Nouvelle session" est masqué ; un message encourage à archiver des sessions existantes
+
+### Requirement: Le dashboard permet de créer une nouvelle session directement
+Depuis le dashboard, l'utilisateur connecté SHALL pouvoir créer une nouvelle session sans repasser par la landing page. Le bouton "+ Nouvelle session" SHALL appeler directement l'API de création de session et rediriger vers l'éditeur.
+
+#### Scenario: Création de session depuis le dashboard
+- **WHEN** l'utilisateur connecté clique sur le bouton "+ Nouvelle session" (quota non atteint)
+- **THEN** le système crée une nouvelle session liée à son compte via `POST /api/v1/sessions` et redirige vers `/studio/:token`
+
+#### Scenario: Rate limit sur la création de session
+- **WHEN** l'utilisateur dépasse la limite de création de sessions (rate limit)
+- **THEN** un message d'erreur est affiché sur le dashboard indiquant qu'il doit attendre avant de créer une nouvelle session ; aucune navigation n'est effectuée
 
 ### Requirement: Le dashboard permet d'effectuer les actions de gestion de session
 Depuis le dashboard, l'utilisateur connecté SHALL pouvoir effectuer les actions suivantes sur chaque session : ouvrir l'éditeur, renommer, dupliquer, modifier le TTL, archiver, supprimer définitivement, générer un lien de partage, et exporter en ZIP.

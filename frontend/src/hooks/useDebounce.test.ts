@@ -52,7 +52,7 @@ describe('useDebounce', () => {
     rerender({ value: 'c' })
     act(() => { vi.advanceTimersByTime(200) })
 
-    // Still on 'a' — timer was reset twice
+    // Still on 'a' - timer was reset twice
     expect(result.current).toBe('a')
 
     act(() => { vi.advanceTimersByTime(100) })

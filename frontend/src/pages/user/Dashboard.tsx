@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUserStore } from '@/store/user'
 import { listSessions, SessionListResponse, exportAccount, deleteAccount } from '@/services/user'
+import { createSession, RateLimitError } from '@/services/sessions'
 import SessionList from '@/components/user/SessionList'
 import UserHeader from '@/components/user/UserHeader'
 import TagFilter from '@/components/user/TagFilter'
@@ -13,6 +14,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<SessionListResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [rateLimitMsg, setRateLimitMsg] = useState<string | null>(null)
 
   const fetchSessions = useCallback(async () => {
     setLoading(true)
@@ -43,7 +45,7 @@ export default function DashboardPage() {
           selectedTags.every((t) => s.tags.includes(t)),
         )
 
-  const quota = data ? `${data.active} / ${data.max}` : '—'
+  const quota = data ? `${data.active} / ${data.max}` : '-'
   const quotaPercent = data ? Math.round((data.active / data.max) * 100) : 0
   const quotaFull = data ? data.active >= data.max : false
 
@@ -77,6 +79,18 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleNewSession() {
+    try {
+      const result = await createSession()
+      navigate(`/studio/${result.token}`)
+    } catch (e) {
+      if (e instanceof RateLimitError) {
+        const mins = Math.ceil(e.retryAfter / 60)
+        setRateLimitMsg(`Limite atteinte. Réessayez dans ${mins} min.`)
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[var(--color-surface-subtle)] flex flex-col">
       <header className="bg-[var(--color-surface-default)] border-b border-[var(--color-border)]">
@@ -87,7 +101,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8 flex-1 flex flex-col gap-6">
+      <main className="w-full max-w-6xl mx-auto px-4 py-8 flex-1 flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Mes sessions</h1>
           <div className="flex gap-2">
@@ -98,14 +112,17 @@ export default function DashboardPage() {
               Mon compte
             </a>
             {!quotaFull && (
-              <a
-                href="/"
+              <button
+                onClick={handleNewSession}
                 className="text-sm px-3 py-1.5 bg-[var(--color-accent)] text-[var(--color-text-inverse)] rounded-[var(--radius-sm)] hover:bg-[var(--color-accent-hover)]"
               >
                 + Nouvelle session
-              </a>
+              </button>
             )}
           </div>
+          {rateLimitMsg && (
+            <p className="text-[var(--color-error-text)] text-xs mt-1">{rateLimitMsg}</p>
+          )}
         </div>
 
         {/* Quota banner */}

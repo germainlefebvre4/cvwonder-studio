@@ -34,7 +34,7 @@ function renderDashboard() {
   )
 }
 
-describe('DashboardPage — quota logic', () => {
+describe('DashboardPage - quota logic', () => {
   beforeEach(() => {
     useUserStore.setState({ user: fakeUser, isAuthenticated: true, isLoading: false })
   })

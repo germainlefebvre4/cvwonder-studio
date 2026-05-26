@@ -6,7 +6,7 @@ describe('cn', () => {
     expect(cn('foo', 'bar')).toBe('foo bar')
   })
 
-  it('resolves tailwind conflicts — last wins', () => {
+  it('resolves tailwind conflicts - last wins', () => {
     // twMerge keeps the last conflicting utility
     const result = cn('p-2', 'p-4')
     expect(result).toBe('p-4')

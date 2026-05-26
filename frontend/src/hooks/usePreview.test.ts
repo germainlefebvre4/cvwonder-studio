@@ -45,7 +45,7 @@ describe('usePreview', () => {
     useStudioStore.getState().setYamlContent('firstname: Jane')
     renderHook(() => usePreview(null))
 
-    // Wait past debounce — preview should not be set.
+    // Wait past debounce - preview should not be set.
     await new Promise((r) => setTimeout(r, 1500))
     expect(useStudioStore.getState().previewUrl).toBeNull()
   }, 3000)

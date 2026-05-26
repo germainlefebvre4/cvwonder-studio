@@ -32,7 +32,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/studio/:token" element={<StudioPage />} />
           <Route path="/login" element={<UserLogin />} />
           <Route path="/404-session" element={<SessionExpired />} />
-          {/* Public viewer served by backend — this SPA route is a fallback */}
+          {/* Public viewer served by backend - this SPA route is a fallback */}
           <Route path="/viewer/:id" element={<PublicViewer />} />
           {/* Shared session */}
           <Route path="/s/:id/:token" element={<SharedSession />} />

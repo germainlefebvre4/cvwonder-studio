@@ -59,7 +59,7 @@ export default function StudioPage() {
               updateSession(token, { theme_id: themes[0].id }).catch(() => {})
             }
           } catch {
-            // Silent failure — Studio continues without a theme.
+            // Silent failure - Studio continues without a theme.
           }
         }
 
