@@ -1,4 +1,3 @@
-package session
 package session_test
 
 import (
@@ -26,8 +25,8 @@ func (f *fakeSessionRepo) GetByTokenHash(_ context.Context, _ string) (*domain.S
 func (f *fakeSessionRepo) Update(_ context.Context, _ uuid.UUID, _ *string, _ *uuid.UUID) (*domain.Session, error) {
 	return nil, nil
 }
-func (f *fakeSessionRepo) Delete(_ context.Context, _ uuid.UUID) error     { return nil }
-func (f *fakeSessionRepo) DeleteExpired(_ context.Context) error            { return nil }
+func (f *fakeSessionRepo) Delete(_ context.Context, _ uuid.UUID) error { return nil }
+func (f *fakeSessionRepo) DeleteExpired(_ context.Context) error       { return nil }
 
 func TestCreateUsecase_NoTemplate(t *testing.T) {
 	repo := &fakeSessionRepo{}
