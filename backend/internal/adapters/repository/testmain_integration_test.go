@@ -1,4 +1,3 @@
-package repository
 //go:build integration
 
 package repository_test

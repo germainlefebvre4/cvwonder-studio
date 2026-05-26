@@ -1,4 +1,3 @@
-package testhelpers
 // Package testhelpers provides reusable fake implementations of port interfaces
 // for use in unit tests throughout the backend.
 package testhelpers

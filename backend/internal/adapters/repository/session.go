@@ -30,6 +30,7 @@ func (r *SessionRepository) Insert(ctx context.Context, s *domain.Session) (*dom
 		YamlContent: s.YamlContent,
 		ThemeID:     s.ThemeID,
 		ExpiresAt:   s.ExpiresAt,
+		UserID:      s.UserID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("InsertSession: %w", err)

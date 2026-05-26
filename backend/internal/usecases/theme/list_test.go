@@ -1,4 +1,3 @@
-package theme
 package theme_test
 
 import (

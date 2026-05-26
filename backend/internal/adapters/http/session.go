@@ -8,6 +8,7 @@ import (
 
 	"github.com/germainlefebvre4/cvwonder-studio/internal/templates"
 	sessionUC "github.com/germainlefebvre4/cvwonder-studio/internal/usecases/session"
+	"github.com/germainlefebvre4/cvwonder-studio/internal/userauth"
 )
 
 // SessionHandler handles session CRUD endpoints.
@@ -39,7 +40,12 @@ func (h *SessionHandler) Create(c *gin.Context) {
 		return
 	}
 
-	result, err := h.create.Execute(c.Request.Context(), req.ThemeID, req.TemplateID)
+	var userID *uuid.UUID
+	if id, ok := userauth.GetUserID(c); ok {
+		userID = &id
+	}
+
+	result, err := h.create.Execute(c.Request.Context(), userID, req.ThemeID, req.TemplateID)
 	if err != nil {
 		if req.TemplateID != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

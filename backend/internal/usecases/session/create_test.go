@@ -30,9 +30,9 @@ func (f *fakeSessionRepo) DeleteExpired(_ context.Context) error       { return 
 
 func TestCreateUsecase_NoTemplate(t *testing.T) {
 	repo := &fakeSessionRepo{}
-	uc := sessionUC.NewCreateUsecase(repo, 7)
+	uc := sessionUC.NewCreateUsecase(repo, 7, 24)
 
-	result, err := uc.Execute(context.Background(), nil, nil)
+	result, err := uc.Execute(context.Background(), nil, nil, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -46,10 +46,10 @@ func TestCreateUsecase_NoTemplate(t *testing.T) {
 
 func TestCreateUsecase_WithValidTemplate(t *testing.T) {
 	repo := &fakeSessionRepo{}
-	uc := sessionUC.NewCreateUsecase(repo, 7)
+	uc := sessionUC.NewCreateUsecase(repo, 7, 24)
 
 	slug := "minimal"
-	result, err := uc.Execute(context.Background(), nil, &slug)
+	result, err := uc.Execute(context.Background(), nil, nil, &slug)
 	if err != nil {
 		t.Fatalf("unexpected error for known template %q: %v", slug, err)
 	}
@@ -60,11 +60,41 @@ func TestCreateUsecase_WithValidTemplate(t *testing.T) {
 
 func TestCreateUsecase_WithUnknownTemplate(t *testing.T) {
 	repo := &fakeSessionRepo{}
-	uc := sessionUC.NewCreateUsecase(repo, 7)
+	uc := sessionUC.NewCreateUsecase(repo, 7, 24)
 
 	slug := "nonexistent-template"
-	_, err := uc.Execute(context.Background(), nil, &slug)
+	_, err := uc.Execute(context.Background(), nil, nil, &slug)
 	if err == nil {
 		t.Fatal("expected error for unknown template slug, got nil")
+	}
+}
+
+func TestCreateUsecase_WithUserID_LinksSession(t *testing.T) {
+	repo := &fakeSessionRepo{}
+	uc := sessionUC.NewCreateUsecase(repo, 7, 24)
+
+	userID := uuid.New()
+	result, err := uc.Execute(context.Background(), &userID, nil, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Session.UserID == nil {
+		t.Fatal("expected UserID to be set on session, got nil")
+	}
+	if *result.Session.UserID != userID {
+		t.Fatalf("expected UserID %v, got %v", userID, *result.Session.UserID)
+	}
+}
+
+func TestCreateUsecase_Anonymous_UserIDIsNil(t *testing.T) {
+	repo := &fakeSessionRepo{}
+	uc := sessionUC.NewCreateUsecase(repo, 7, 24)
+
+	result, err := uc.Execute(context.Background(), nil, nil, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Session.UserID != nil {
+		t.Fatalf("expected UserID to be nil for anonymous session, got %v", result.Session.UserID)
 	}
 }

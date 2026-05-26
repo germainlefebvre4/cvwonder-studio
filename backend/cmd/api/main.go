@@ -68,7 +68,7 @@ func main() {
 	cvwonderAdapter := cvwonder.NewBinaryAdapter(cfg.CvwonderBinaryPath)
 
 	// ── Usecases ──────────────────────────────────────────────────────────────
-	createSessionUC := sessionUC.NewCreateUsecase(sessionRepo, cfg.SessionDurationDays)
+	createSessionUC := sessionUC.NewCreateUsecase(sessionRepo, cfg.SessionDurationDays, 24)
 	getSessionUC := sessionUC.NewGetUsecase(sessionRepo)
 	updateSessionUC := sessionUC.NewUpdateUsecase(sessionRepo, themeRepo)
 	generatePreviewUC := previewUC.NewGenerateUsecase(sessionRepo, themeRepo, cvwonderAdapter, cfg.SessionsBaseDir)

@@ -17,12 +17,13 @@ import (
 
 // CreateUsecase handles session creation.
 type CreateUsecase struct {
-	sessions     ports.SessionRepository
-	durationDays int
+	sessions          ports.SessionRepository
+	userDurationDays  int
+	anonDurationHours int
 }
 
-func NewCreateUsecase(sessions ports.SessionRepository, durationDays int) *CreateUsecase {
-	return &CreateUsecase{sessions: sessions, durationDays: durationDays}
+func NewCreateUsecase(sessions ports.SessionRepository, userDurationDays, anonDurationHours int) *CreateUsecase {
+	return &CreateUsecase{sessions: sessions, userDurationDays: userDurationDays, anonDurationHours: anonDurationHours}
 }
 
 // CreateResult is the output of a successful session creation.
@@ -34,9 +35,11 @@ type CreateResult struct {
 
 // Execute creates a new session: generates a random token, hashes it, persists
 // the session, and returns both the session and the raw token.
+// If userID is non-nil the session is linked to that user and uses the user TTL;
+// otherwise an anonymous session is created with the anon TTL.
 // If templateID is non-nil and matches a known template slug, the session's
 // YamlContent is initialised from the embedded template. An unknown slug returns an error.
-func (uc *CreateUsecase) Execute(ctx context.Context, themeID *uuid.UUID, templateID *string) (*CreateResult, error) {
+func (uc *CreateUsecase) Execute(ctx context.Context, userID *uuid.UUID, themeID *uuid.UUID, templateID *string) (*CreateResult, error) {
 	yamlContent := ""
 	if templateID != nil {
 		content := templates.GetContent(*templateID)
@@ -55,12 +58,20 @@ func (uc *CreateUsecase) Execute(ctx context.Context, themeID *uuid.UUID, templa
 	hash := sha256.Sum256([]byte(rawToken))
 	tokenHash := hex.EncodeToString(hash[:])
 
+	var expiresAt time.Time
+	if userID != nil {
+		expiresAt = time.Now().UTC().Add(time.Duration(uc.userDurationDays) * 24 * time.Hour)
+	} else {
+		expiresAt = time.Now().UTC().Add(time.Duration(uc.anonDurationHours) * time.Hour)
+	}
+
 	s := &domain.Session{
 		ID:          uuid.New(),
 		TokenHash:   tokenHash,
 		YamlContent: yamlContent,
 		ThemeID:     themeID,
-		ExpiresAt:   time.Now().UTC().Add(time.Duration(uc.durationDays) * 24 * time.Hour),
+		UserID:      userID,
+		ExpiresAt:   expiresAt,
 	}
 
 	saved, err := uc.sessions.Insert(ctx, s)

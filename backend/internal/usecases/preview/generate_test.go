@@ -1,4 +1,3 @@
-package preview
 package preview_test
 
 import (

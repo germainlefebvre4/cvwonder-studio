@@ -323,8 +323,8 @@ func (q *Queries) IncrementViewCount(ctx context.Context, id uuid.UUID) error {
 }
 
 const insertSession = `-- name: InsertSession :one
-INSERT INTO sessions (id, token_hash, yaml_content, theme_id, expires_at)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO sessions (id, token_hash, yaml_content, theme_id, expires_at, user_id)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
 `
 
@@ -334,6 +334,7 @@ type InsertSessionParams struct {
 	YamlContent string     `json:"yaml_content"`
 	ThemeID     *uuid.UUID `json:"theme_id"`
 	ExpiresAt   time.Time  `json:"expires_at"`
+	UserID      *uuid.UUID `json:"user_id"`
 }
 
 func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) (Session, error) {
@@ -343,6 +344,7 @@ func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) (S
 		arg.YamlContent,
 		arg.ThemeID,
 		arg.ExpiresAt,
+		arg.UserID,
 	)
 	var i Session
 	err := row.Scan(

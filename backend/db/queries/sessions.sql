@@ -1,6 +1,6 @@
 -- name: InsertSession :one
-INSERT INTO sessions (id, token_hash, yaml_content, theme_id, expires_at)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO sessions (id, token_hash, yaml_content, theme_id, expires_at, user_id)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: GetSessionByTokenHash :one
