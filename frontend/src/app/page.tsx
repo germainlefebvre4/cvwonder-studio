@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/Button'
 import { SplitButton } from '@/components/ui/SplitButton'
 import { createSession, RateLimitError } from '@/services/sessions'
 import { getTemplates, type Template } from '@/services/templates'
+import { useUserStore } from '@/store/user'
+import UserHeader from '@/components/user/UserHeader'
 
 const features = [
   {
@@ -32,6 +34,7 @@ const steps = [
 
 export default function LandingPage() {
   const navigate = useNavigate()
+  const { isAuthenticated } = useUserStore()
   const [templates, setTemplates] = React.useState<Template[]>([])
   const [rateLimitedUntil, setRateLimitedUntil] = React.useState<Date | null>(null)
   const [secondsLeft, setSecondsLeft] = React.useState(0)
@@ -96,9 +99,18 @@ export default function LandingPage() {
           <span className="text-xl font-bold text-[var(--color-text-primary)]">
             CVWonder Studio
           </span>
-          <Button onClick={handleStart} size="sm">
-            Start Building
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button onClick={handleStart} size="sm" disabled={secondsLeft > 0}>
+              Start Building
+            </Button>
+            {isAuthenticated ? (
+              <UserHeader />
+            ) : (
+              <Button variant="secondary" size="sm" asChild>
+                <a href="/login">Se connecter</a>
+              </Button>
+            )}
+          </div>
         </div>
       </header>
 

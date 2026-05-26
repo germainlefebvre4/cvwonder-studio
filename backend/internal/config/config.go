@@ -10,6 +10,7 @@ import (
 type Config struct {
 	Port                string
 	DatabaseURL         string
+	AppBaseURL          string
 	CvwonderBinaryPath  string
 	SessionsBaseDir     string
 	ThemesRuntimeDir    string
@@ -22,6 +23,9 @@ type Config struct {
 	GoogleClientID     string
 	GoogleClientSecret string
 	UserTokenSecret    string
+	// FrontendBaseURL is the public URL of the frontend SPA (e.g. http://localhost:5173 in dev).
+	// Defaults to AppBaseURL when unset, which is correct for single-origin production deployments.
+	FrontendBaseURL string
 }
 
 // Load reads configuration from environment variables, applying defaults where
@@ -30,6 +34,7 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		Port:                getEnv("PORT", "8080"),
 		DatabaseURL:         getEnv("DATABASE_URL", ""),
+		AppBaseURL:          getEnv("APP_BASE_URL", ""),
 		CvwonderBinaryPath:  getEnv("CVWONDER_BINARY_PATH", "/usr/local/bin/cvwonder"),
 		SessionsBaseDir:     getEnv("SESSIONS_BASE_DIR", "/data/sessions"),
 		ThemesRuntimeDir:    getEnv("THEMES_RUNTIME_DIR", "/data/themes"),
@@ -41,6 +46,10 @@ func Load() (*Config, error) {
 		GoogleClientID:      getEnv("GOOGLE_CLIENT_ID", ""),
 		GoogleClientSecret:  getEnv("GOOGLE_CLIENT_SECRET", ""),
 		UserTokenSecret:     getEnv("USER_TOKEN_SECRET", ""),
+	}
+	// FrontendBaseURL falls back to AppBaseURL so single-origin deployments need no extra config.
+	if cfg.FrontendBaseURL = getEnv("FRONTEND_BASE_URL", ""); cfg.FrontendBaseURL == "" {
+		cfg.FrontendBaseURL = cfg.AppBaseURL
 	}
 
 	if cfg.DatabaseURL == "" {

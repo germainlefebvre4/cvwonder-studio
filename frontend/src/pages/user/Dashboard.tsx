@@ -78,10 +78,10 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-white border-b">
+    <div className="min-h-screen bg-[var(--color-surface-subtle)] flex flex-col">
+      <header className="bg-[var(--color-surface-default)] border-b border-[var(--color-border)]">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-4">
-          <a href="/" className="font-bold text-gray-900">CVWonder Studio</a>
+          <a href="/" className="font-bold text-[var(--color-text-primary)]">CVWonder Studio</a>
           <span className="flex-1" />
           <UserHeader />
         </div>
@@ -89,18 +89,18 @@ export default function DashboardPage() {
 
       <main className="max-w-6xl mx-auto px-4 py-8 flex-1 flex flex-col gap-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Mes sessions</h1>
+          <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Mes sessions</h1>
           <div className="flex gap-2">
             <a
               href="/account"
-              className="text-sm px-3 py-1.5 border rounded hover:bg-gray-50"
+              className="text-sm px-3 py-1.5 border border-[var(--color-border)] rounded-[var(--radius-sm)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-subtle)]"
             >
               Mon compte
             </a>
             {!quotaFull && (
               <a
                 href="/"
-                className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700"
+                className="text-sm px-3 py-1.5 bg-[var(--color-accent)] text-[var(--color-text-inverse)] rounded-[var(--radius-sm)] hover:bg-[var(--color-accent-hover)]"
               >
                 + Nouvelle session
               </a>
@@ -109,36 +109,36 @@ export default function DashboardPage() {
         </div>
 
         {/* Quota banner */}
-        <div className="bg-white rounded-lg border p-4 flex items-center gap-4">
+        <div className="bg-[var(--color-surface-default)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 flex items-center gap-4">
           <div className="flex-1">
             <div className="flex justify-between text-sm mb-1">
               <span>Sessions actives</span>
-              <span className={quotaFull ? 'text-red-600 font-medium' : 'text-gray-600'}>
+              <span className={quotaFull ? 'text-[var(--color-error-text)] font-medium' : 'text-[var(--color-text-secondary)]'}>
                 {quota}
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-[var(--color-surface-overlay)] rounded-full h-2">
               <div
-                className={`h-2 rounded-full transition-all ${quotaFull ? 'bg-red-500' : 'bg-blue-500'}`}
+                className={`h-2 rounded-full transition-all ${quotaFull ? 'bg-[var(--color-error)]' : 'bg-[var(--color-accent)]'}`}
                 style={{ width: `${Math.min(quotaPercent, 100)}%` }}
               />
             </div>
           </div>
           {quotaFull && (
-            <p className="text-xs text-red-600 max-w-xs">
+            <p className="text-xs text-[var(--color-error-text)] max-w-xs">
               Quota atteint. Archivez ou supprimez des sessions pour en créer de nouvelles.
             </p>
           )}
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 border-b">
+        <div className="flex gap-4 border-b border-[var(--color-border)]">
           <button
             onClick={() => setTab('active')}
             className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
               tab === 'active'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-[var(--color-accent)] text-[var(--color-accent-text)]'
+                : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
             }`}
           >
             Actives
@@ -147,8 +147,8 @@ export default function DashboardPage() {
             onClick={() => setTab('archived')}
             className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
               tab === 'archived'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-[var(--color-accent)] text-[var(--color-accent-text)]'
+                : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
             }`}
           >
             Archivées
@@ -165,7 +165,7 @@ export default function DashboardPage() {
         )}
 
         {loading ? (
-          <div className="text-gray-400 text-sm">Chargement…</div>
+          <div className="text-[var(--color-text-muted)] text-sm">Chargement…</div>
         ) : (
           <SessionList
             sessions={filtered}

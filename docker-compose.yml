@@ -35,6 +35,8 @@ services:
       ADMIN_USERNAME: "admin"
       ADMIN_PASSWORD_HASH: "$2a$12$replacethiswithyourrealhashxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
       ADMIN_TOKEN_SECRET: "change-me-to-a-random-secret-of-at-least-32-chars"
+      APP_BASE_URL: "${APP_BASE_URL:-}"
+      # FRONTEND_BASE_URL: "" # Defaults to APP_BASE_URL. Set explicitly for split-origin deployments (e.g. separate CDN/SPA host).
       GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
       GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET:-}"
       USER_TOKEN_SECRET: "${USER_TOKEN_SECRET:-change-me-to-a-random-secret-of-at-least-32-chars}"

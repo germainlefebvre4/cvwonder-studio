@@ -88,7 +88,7 @@ func main() {
 		oauthConfig = userauth.NewOAuthConfig(
 			cfg.GoogleClientID,
 			cfg.GoogleClientSecret,
-			"/api/auth/callback",
+			cfg.AppBaseURL+"/api/auth/callback",
 		)
 	}
 	userTokenSecret := cfg.UserTokenSecret
@@ -102,7 +102,7 @@ func main() {
 	themeHandler := ginhttp.NewThemeHandler(listThemesUC)
 	previewHandler := ginhttp.NewPreviewHandler(cfg.SessionsBaseDir)
 	healthHandler := ginhttp.NewHealthHandler(pool)
-	authHandler := ginhttp.NewAuthHandler(oauthConfig, userRepo, sessionRepo, db.New(pool), userTokenSecret)
+	authHandler := ginhttp.NewAuthHandler(oauthConfig, userRepo, sessionRepo, db.New(pool), userTokenSecret, cfg.FrontendBaseURL)
 	userSessionHandler := ginhttp.NewUserSessionHandler(sessionRepo, cfg.SessionsBaseDir)
 
 	// ── Gin Router ────────────────────────────────────────────────────────────
@@ -203,12 +203,23 @@ func main() {
 	fileServer := http.FileServer(http.FS(distFS))
 	r.NoRoute(func(c *gin.Context) {
 		// Serve the file if it exists, otherwise fall back to index.html.
-		path := c.Request.URL.Path
-		if _, err := fs.Stat(distFS, path[1:]); err == nil {
-			fileServer.ServeHTTP(c.Writer, c.Request)
+		// NOTE: path "/" must not go through fs.Stat("") which matches the root
+		// directory and would trigger an http.FileServer directory listing/redirect.
+		urlPath := c.Request.URL.Path
+		if urlPath != "/" {
+			if _, err := fs.Stat(distFS, urlPath[1:]); err == nil {
+				fileServer.ServeHTTP(c.Writer, c.Request)
+				return
+			}
+		}
+		// SPA fallback: read index.html directly to avoid the http.FileServer
+		// redirect loop (/index.html → ./ → infinite 301).
+		data, err := fs.ReadFile(distFS, "index.html")
+		if err != nil {
+			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
-		c.FileFromFS("index.html", http.FS(distFS))
+		c.Data(http.StatusOK, "text/html; charset=utf-8", data)
 	})
 
 	// ── Server with Graceful Shutdown ─────────────────────────────────────────

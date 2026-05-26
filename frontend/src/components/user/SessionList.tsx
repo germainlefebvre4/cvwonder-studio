@@ -11,7 +11,7 @@ interface Props {
 export default function SessionList({ sessions, onRefresh, isArchived = false, emptyMessage }: Props) {
   if (sessions.length === 0) {
     return (
-      <div className="text-center text-gray-400 py-12 text-sm">
+      <div className="text-center text-[var(--color-text-muted)] py-12 text-sm">
         {emptyMessage ?? 'Aucune session trouvée.'}
       </div>
     )

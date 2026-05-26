@@ -9,3 +9,4 @@ data:
   THEMES_RUNTIME_DIR: "/data/themes"
   CVWONDER_BINARY_PATH: "/usr/local/bin/cvwonder"
   SESSION_DURATION_DAYS: "30"
+  APP_BASE_URL: "https://your-domain.com"

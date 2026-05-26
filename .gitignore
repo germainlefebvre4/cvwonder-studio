@@ -20,6 +20,7 @@ yarn-error.log*
 
 # local env files
 .env*
+!.env.example
 
 # typescript
 *.tsbuildinfo
@@ -28,6 +29,7 @@ yarn-error.log*
 /bin/cvwonder*
 /tmp/
 /sessions/*/
+__debug_bin*
 
 # React Component Preview
 previewConfig.json

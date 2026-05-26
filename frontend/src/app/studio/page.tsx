@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/Button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/Tooltip'
 import ExpiryWarningBanner from '@/components/user/ExpiryWarningBanner'
 import PrivacyNotice from '@/components/user/PrivacyNotice'
+import UserHeader from '@/components/user/UserHeader'
 
 export default function StudioPage() {
   const { token } = useParams<{ token: string }>()
@@ -150,10 +151,12 @@ export default function StudioPage() {
             </TooltipTrigger>
             <TooltipContent>Copy session link</TooltipContent>
           </Tooltip>
-          {!isAuthenticated && (
+          {isAuthenticated ? (
+            <UserHeader />
+          ) : (
             <a
               href="/login"
-              className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
+              className="text-xs px-2 py-1 bg-[var(--color-accent-subtle)] text-[var(--color-accent-text)] rounded hover:bg-[var(--color-surface-muted)]"
             >
               Se connecter
             </a>

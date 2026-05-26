@@ -22,11 +22,12 @@ import (
 
 // AuthHandler handles /api/auth/* routes.
 type AuthHandler struct {
-	oauthConfig *oauth2.Config
-	users       *repository.UserRepository
-	sessions    *repository.SessionRepository
-	queries     *db.Queries
-	tokenSecret string
+	oauthConfig     *oauth2.Config
+	users           *repository.UserRepository
+	sessions        *repository.SessionRepository
+	queries         *db.Queries
+	tokenSecret     string
+	frontendBaseURL string
 }
 
 // NewAuthHandler creates an AuthHandler.
@@ -36,13 +37,15 @@ func NewAuthHandler(
 	sessions *repository.SessionRepository,
 	queries *db.Queries,
 	tokenSecret string,
+	frontendBaseURL string,
 ) *AuthHandler {
 	return &AuthHandler{
-		oauthConfig: oauthConfig,
-		users:       users,
-		sessions:    sessions,
-		queries:     queries,
-		tokenSecret: tokenSecret,
+		oauthConfig:     oauthConfig,
+		users:           users,
+		sessions:        sessions,
+		queries:         queries,
+		tokenSecret:     tokenSecret,
+		frontendBaseURL: frontendBaseURL,
 	}
 }
 
@@ -56,6 +59,10 @@ type googleUserInfo struct {
 
 // GET /api/auth/login — redirect to Google OAuth with CSRF state cookie.
 func (h *AuthHandler) Login(c *gin.Context) {
+	if h.oauthConfig == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "OAuth not configured"})
+		return
+	}
 	anonTok := c.Query("anon_tok") // optional anonymous session token for claiming
 	state, err := userauth.SignOAuthState(h.tokenSecret, anonTok)
 	if err != nil {
@@ -71,6 +78,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 // GET /api/auth/callback — handle Google OAuth callback.
 func (h *AuthHandler) Callback(c *gin.Context) {
+	if h.oauthConfig == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "OAuth not configured"})
+		return
+	}
 	// Verify CSRF state.
 	cookieState, err := c.Cookie("oauth_state")
 	if err != nil || cookieState == "" {
@@ -151,7 +162,7 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		return
 	}
 	c.SetCookie("user_session", sessionToken, int((30 * 24 * time.Hour).Seconds()), "/", "", false, true)
-	c.Redirect(http.StatusFound, "/dashboard")
+	c.Redirect(http.StatusFound, h.frontendBaseURL+"/dashboard")
 }
 
 // POST /api/auth/logout — clear the user_session cookie.
