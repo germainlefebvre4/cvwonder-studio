@@ -1,11 +1,14 @@
 package http
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/germainlefebvre4/cvwonder-studio/internal/adapters/repository"
 	"github.com/germainlefebvre4/cvwonder-studio/internal/templates"
 	sessionUC "github.com/germainlefebvre4/cvwonder-studio/internal/usecases/session"
 	"github.com/germainlefebvre4/cvwonder-studio/internal/userauth"
@@ -13,17 +16,21 @@ import (
 
 // SessionHandler handles session CRUD endpoints.
 type SessionHandler struct {
-	create *sessionUC.CreateUsecase
-	get    *sessionUC.GetUsecase
-	update *sessionUC.UpdateUsecase
+	create   *sessionUC.CreateUsecase
+	get      *sessionUC.GetUsecase
+	update   *sessionUC.UpdateUsecase
+	sessions *repository.SessionRepository
+	config   *repository.ConfigRepository
 }
 
 func NewSessionHandler(
 	create *sessionUC.CreateUsecase,
 	get *sessionUC.GetUsecase,
 	update *sessionUC.UpdateUsecase,
+	sessions *repository.SessionRepository,
+	config *repository.ConfigRepository,
 ) *SessionHandler {
-	return &SessionHandler{create: create, get: get, update: update}
+	return &SessionHandler{create: create, get: get, update: update, sessions: sessions, config: config}
 }
 
 // createSessionRequest is the optional body for POST /api/v1/sessions.
@@ -43,6 +50,27 @@ func (h *SessionHandler) Create(c *gin.Context) {
 	var userID *uuid.UUID
 	if id, ok := userauth.GetUserID(c); ok {
 		userID = &id
+	}
+
+	// Enforce quota for authenticated users.
+	if userID != nil && h.sessions != nil {
+		count, err := h.sessions.CountActiveByUser(c.Request.Context(), *userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		maxSessions := int64(10)
+		if h.config != nil {
+			if v, err := h.config.Get(c.Request.Context(), "max_sessions_per_user"); err == nil && v != "" {
+				if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
+					maxSessions = n
+				}
+			}
+		}
+		if count >= maxSessions {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": fmt.Sprintf("session quota reached (%d/%d)", count, maxSessions)})
+			return
+		}
 	}
 
 	result, err := h.create.Execute(c.Request.Context(), userID, req.ThemeID, req.TemplateID)

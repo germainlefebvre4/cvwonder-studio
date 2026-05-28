@@ -15,19 +15,18 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 
-	db "github.com/germainlefebvre4/cvwonder-studio/db/generated"
 	"github.com/germainlefebvre4/cvwonder-studio/internal/adapters/repository"
 	"github.com/germainlefebvre4/cvwonder-studio/internal/userauth"
 )
 
 // AuthHandler handles /api/auth/* routes.
 type AuthHandler struct {
-	oauthConfig     *oauth2.Config
-	users           *repository.UserRepository
-	sessions        *repository.SessionRepository
-	queries         *db.Queries
-	tokenSecret     string
-	frontendBaseURL string
+	oauthConfig        *oauth2.Config
+	users              *repository.UserRepository
+	sessions           *repository.SessionRepository
+	tokenSecret        string
+	frontendBaseURL    string
+	userSessionTTLDays int
 }
 
 // NewAuthHandler creates an AuthHandler.
@@ -35,17 +34,17 @@ func NewAuthHandler(
 	oauthConfig *oauth2.Config,
 	users *repository.UserRepository,
 	sessions *repository.SessionRepository,
-	queries *db.Queries,
 	tokenSecret string,
 	frontendBaseURL string,
+	userSessionTTLDays int,
 ) *AuthHandler {
 	return &AuthHandler{
-		oauthConfig:     oauthConfig,
-		users:           users,
-		sessions:        sessions,
-		queries:         queries,
-		tokenSecret:     tokenSecret,
-		frontendBaseURL: frontendBaseURL,
+		oauthConfig:        oauthConfig,
+		users:              users,
+		sessions:           sessions,
+		tokenSecret:        tokenSecret,
+		frontendBaseURL:    frontendBaseURL,
+		userSessionTTLDays: userSessionTTLDays,
 	}
 }
 
@@ -82,20 +81,27 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "OAuth not configured"})
 		return
 	}
+
+	// Check if Google returned an error (e.g. user denied access).
+	if errParam := c.Query("error"); errParam != "" {
+		c.Redirect(http.StatusFound, h.frontendBaseURL+"/login?error=oauth_denied")
+		return
+	}
+
 	// Verify CSRF state.
 	cookieState, err := c.Cookie("oauth_state")
 	if err != nil || cookieState == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing oauth state cookie"})
+		c.Redirect(http.StatusFound, h.frontendBaseURL+"/login?error=missing_state")
 		return
 	}
 	queryState := c.Query("state")
 	if cookieState != queryState {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "state mismatch"})
+		c.Redirect(http.StatusFound, h.frontendBaseURL+"/login?error=state_mismatch")
 		return
 	}
 	anonTok, err := userauth.VerifyOAuthState(h.tokenSecret, cookieState)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid oauth state"})
+		c.Redirect(http.StatusFound, h.frontendBaseURL+"/login?error=invalid_state")
 		return
 	}
 	// Clear state cookie.
@@ -104,13 +110,13 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	// Exchange code for token.
 	code := c.Query("code")
 	if code == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing code"})
+		c.Redirect(http.StatusFound, h.frontendBaseURL+"/login?error=missing_code")
 		return
 	}
 	token, err := h.oauthConfig.Exchange(context.Background(), code)
 	if err != nil {
 		slog.Error("oauth exchange failed", "error", err)
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "oauth exchange failed"})
+		c.Redirect(http.StatusFound, h.frontendBaseURL+"/login?error=exchange_failed")
 		return
 	}
 
@@ -193,7 +199,7 @@ func (h *AuthHandler) Me(c *gin.Context) {
 	})
 }
 
-// claimAnonSession links an anonymous session to the newly-authenticated user.
+// claimAnonSession links an anonymous session to the newly-authenticated user and extends its TTL.
 func (h *AuthHandler) claimAnonSession(ctx context.Context, userID uuid.UUID, rawToken string) {
 	hash := sha256.Sum256([]byte(rawToken))
 	tokenHash := hex.EncodeToString(hash[:])
@@ -207,6 +213,12 @@ func (h *AuthHandler) claimAnonSession(ctx context.Context, userID uuid.UUID, ra
 	}
 	if err := h.sessions.ClaimAnonymousSession(ctx, session.ID, userID); err != nil {
 		slog.Warn("failed to claim anonymous session", "session_id", session.ID, "error", err)
+		return
+	}
+	// Extend TTL to user session duration.
+	newExpiry := time.Now().AddDate(0, 0, h.userSessionTTLDays)
+	if _, err := h.sessions.UpdateTTL(ctx, session.ID, newExpiry); err != nil {
+		slog.Warn("failed to extend session TTL after claim", "session_id", session.ID, "error", err)
 	}
 }
 

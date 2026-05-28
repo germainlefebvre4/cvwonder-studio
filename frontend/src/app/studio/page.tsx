@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
 import { getSession, updateSession } from '@/services/sessions'
+import { getSessionById } from '@/services/user'
 import { listThemes } from '@/services/themes'
 import { getTemplateContent } from '@/services/templates'
 import { useStudioStore } from '@/store/studio'
@@ -22,6 +23,8 @@ import UserHeader from '@/components/user/UserHeader'
 
 export default function StudioPage() {
   const { token } = useParams<{ token: string }>()
+  const [searchParams] = useSearchParams()
+  const sessionId = searchParams.get('session') // ?session=:uuid for authenticated access
   const navigate = useNavigate()
 
   const { setYamlContent, setSelectedThemeId, reset, yamlContent } = useStudioStore()
@@ -32,12 +35,41 @@ export default function StudioPage() {
   // never flips back to true even if the user clears their YAML.
   const [showPicker, setShowPicker] = useState(false)
 
-  // Enable live preview & validation hooks.
+  // Enable live preview & validation hooks (only in token mode).
   const { forceRefresh, isCoolingDown } = usePreview(token ?? null)
   useValidation(token ?? null)
 
-  // Load session on mount.
+  // Load session on mount — either via ?session=:uuid (authenticated) or :token (anon/shared).
   useEffect(() => {
+    if (sessionId) {
+      // Authenticated owner access via UUID.
+      reset()
+      getSessionById(sessionId)
+        .then(async (session) => {
+          if (!session) {
+            navigate('/404-session')
+            return
+          }
+          setYamlContent(session.yaml_content)
+          if (session.theme_id) {
+            setSelectedThemeId(session.theme_id)
+          } else {
+            try {
+              const themes = await listThemes()
+              if (themes.length > 0) {
+                setSelectedThemeId(themes[0].id)
+              }
+            } catch {
+              // Silent failure.
+            }
+          }
+          setExpiresAt(session.expires_at)
+        })
+        .catch(() => navigate('/404-session'))
+        .finally(() => setLoading(false))
+      return
+    }
+
     if (!token) return
     reset()
     getSession(token)
@@ -75,7 +107,7 @@ export default function StudioPage() {
       })
       .catch(() => navigate('/404-session'))
       .finally(() => setLoading(false))
-  }, [token, navigate, reset, setYamlContent, setSelectedThemeId, isAuthenticated])
+  }, [token, sessionId, navigate, reset, setYamlContent, setSelectedThemeId, isAuthenticated])
 
   const handleYamlChange = async (yaml: string) => {
     setYamlContent(yaml)

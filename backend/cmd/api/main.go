@@ -97,13 +97,13 @@ func main() {
 	}
 
 	// ── HTTP Handlers ─────────────────────────────────────────────────────────
-	sessionHandler := ginhttp.NewSessionHandler(createSessionUC, getSessionUC, updateSessionUC)
+	sessionHandler := ginhttp.NewSessionHandler(createSessionUC, getSessionUC, updateSessionUC, sessionRepo, configRepo)
 	generationHandler := ginhttp.NewGenerationHandler(getSessionUC, generatePreviewUC, validateUC, configRepo)
 	themeHandler := ginhttp.NewThemeHandler(listThemesUC)
 	previewHandler := ginhttp.NewPreviewHandler(cfg.SessionsBaseDir)
 	healthHandler := ginhttp.NewHealthHandler(pool)
-	authHandler := ginhttp.NewAuthHandler(oauthConfig, userRepo, sessionRepo, db.New(pool), userTokenSecret, cfg.FrontendBaseURL)
-	userSessionHandler := ginhttp.NewUserSessionHandler(sessionRepo, cfg.SessionsBaseDir)
+	authHandler := ginhttp.NewAuthHandler(oauthConfig, userRepo, sessionRepo, userTokenSecret, cfg.FrontendBaseURL, cfg.SessionDurationDays)
+	userSessionHandler := ginhttp.NewUserSessionHandler(sessionRepo, configRepo, cfg.SessionsBaseDir)
 
 	// ── Gin Router ────────────────────────────────────────────────────────────
 	gin.SetMode(gin.ReleaseMode)
@@ -155,6 +155,7 @@ func main() {
 	apiSessions.Use(userauth.RequireUser())
 	{
 		apiSessions.GET("", userSessionHandler.List)
+		apiSessions.GET("/:id", userSessionHandler.GetSession)
 		apiSessions.PATCH("/:id/name", userSessionHandler.RenameSSession)
 		apiSessions.PATCH("/:id/ttl", userSessionHandler.UpdateTTL)
 		apiSessions.PATCH("/:id/theme", userSessionHandler.UpdateTheme)

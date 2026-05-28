@@ -10,7 +10,6 @@ export interface User {
 export interface UserSession {
   id: string
   name: string | null
-  token: string
   yaml_content: string | null
   theme_id: string | null
   expires_at: string
@@ -50,6 +49,24 @@ export async function exportAccount(): Promise<Blob> {
   const res = await fetch('/api/auth/account/export')
   if (!res.ok) throw new Error(`exportAccount: ${res.status}`)
   return res.blob()
+}
+
+export interface OwnedSession {
+  id: string
+  name: string | null
+  yaml_content: string
+  theme_id: string | null
+  expires_at: string
+  is_archived: boolean
+  created_at: string
+  updated_at: string
+}
+
+export async function getSessionById(id: string): Promise<OwnedSession | null> {
+  const res = await fetch(`/api/sessions/${id}`)
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`getSessionById: ${res.status}`)
+  return res.json()
 }
 
 export async function listSessions(archived = false): Promise<SessionListResponse> {

@@ -24,14 +24,29 @@ import (
 	"github.com/germainlefebvre4/cvwonder-studio/internal/userauth"
 )
 
+const defaultMaxSessionsPerUser = 10
+
 // UserSessionHandler handles user-owned session management endpoints.
 type UserSessionHandler struct {
 	sessions    *repository.SessionRepository
+	configRepo  *repository.ConfigRepository
 	sessionsDir string
 }
 
-func NewUserSessionHandler(sessions *repository.SessionRepository, sessionsDir string) *UserSessionHandler {
-	return &UserSessionHandler{sessions: sessions, sessionsDir: sessionsDir}
+func NewUserSessionHandler(sessions *repository.SessionRepository, configRepo *repository.ConfigRepository, sessionsDir string) *UserSessionHandler {
+	return &UserSessionHandler{sessions: sessions, configRepo: configRepo, sessionsDir: sessionsDir}
+}
+
+// readMaxSessions reads max_sessions_per_user from configRepo; returns defaultMaxSessionsPerUser on error.
+func (h *UserSessionHandler) readMaxSessions(c *gin.Context) int64 {
+	if h.configRepo != nil {
+		if v, err := h.configRepo.Get(c.Request.Context(), "max_sessions_per_user"); err == nil && v != "" {
+			if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
+				return n
+			}
+		}
+	}
+	return defaultMaxSessionsPerUser
 }
 
 // sessionResponse is the JSON shape for a user session.
@@ -90,11 +105,23 @@ func (h *UserSessionHandler) List(c *gin.Context) {
 		return
 	}
 
+	active, err := h.sessions.CountActiveByUser(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	max := h.readMaxSessions(c)
+
 	resp := make([]sessionResponse, 0, len(sessions))
 	for _, s := range sessions {
 		resp = append(resp, toSessionResponse(s))
 	}
-	c.JSON(http.StatusOK, gin.H{"sessions": resp})
+	c.JSON(http.StatusOK, gin.H{
+		"sessions": resp,
+		"total":    len(resp),
+		"active":   active,
+		"max":      max,
+	})
 }
 
 // PATCH /api/sessions/:id/name
@@ -214,8 +241,7 @@ func (h *UserSessionHandler) Duplicate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	// Quota enforcement uses a default of 10; real limit could come from system_config.
-	const maxSessions = 10
+	maxSessions := h.readMaxSessions(c)
 	if count >= maxSessions {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": fmt.Sprintf("session quota reached (%d/%d)", count, maxSessions)})
 		return
@@ -504,6 +530,40 @@ func (h *UserSessionHandler) GetLimits(c *gin.Context) {
 		"max_yaml_size_kb":                        100,
 		"anon_generation_rate_limit_seconds":      5,
 		"connected_generation_rate_limit_seconds": 2,
+	})
+}
+
+// GET /api/sessions/:id — return full session (including yaml_content) to its owner.
+func (h *UserSessionHandler) GetSession(c *gin.Context) {
+	userID, isAuth := userauth.GetUserID(c)
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+
+	session, err := h.sessions.GetByID(c.Request.Context(), id)
+	if err != nil || session == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+
+	// Return 404 for non-owners to avoid revealing session existence.
+	if !isAuth || session.UserID == nil || *session.UserID != userID {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":           session.ID,
+		"name":         session.Name,
+		"yaml_content": session.YamlContent,
+		"theme_id":     session.ThemeID,
+		"expires_at":   session.ExpiresAt,
+		"is_archived":  session.IsArchived,
+		"created_at":   session.CreatedAt,
+		"updated_at":   session.UpdatedAt,
 	})
 }
 

@@ -127,7 +127,7 @@ export default function SessionCard({ session, onRefresh, isArchived = false }: 
 
       <div className="flex flex-wrap gap-2 pt-1">
         <a
-          href={`/studio/${session.token}`}
+          href={`/studio?session=${session.id}`}
           className="text-xs px-2 py-1 bg-[var(--color-accent-subtle)] text-[var(--color-accent-text)] rounded-[var(--radius-sm)] hover:bg-[var(--color-surface-muted)]"
         >
           Ouvrir

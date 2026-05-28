@@ -29,6 +29,7 @@ createRoot(document.getElementById('root')!).render(
         <AppInit />
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/studio" element={<StudioPage />} />
           <Route path="/studio/:token" element={<StudioPage />} />
           <Route path="/login" element={<UserLogin />} />
           <Route path="/404-session" element={<SessionExpired />} />
