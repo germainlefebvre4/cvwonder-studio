@@ -7,6 +7,8 @@
 @import "@radix-ui/colors/red-dark.css";
 @import "@radix-ui/colors/green.css";
 @import "@radix-ui/colors/green-dark.css";
+@import "@radix-ui/colors/amber.css";
+@import "@radix-ui/colors/amber-dark.css";
 
 /* ── Tailwind v4 ───────────────────────────────────────────────────────────── */
 @import "tailwindcss";
@@ -43,7 +45,10 @@
   --color-success:         var(--green-9);
   --color-success-subtle:  var(--green-3);
   --color-success-text:    var(--green-11);
-
+  /* Warning */
+  --color-warning:          var(--amber-9);
+  --color-warning-subtle:   var(--amber-3);
+  --color-warning-text:     var(--amber-11);
   /* Typography */
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;

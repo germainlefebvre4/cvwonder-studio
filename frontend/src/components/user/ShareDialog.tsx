@@ -123,7 +123,12 @@ export default function ShareDialog({ sessionId, hasShare, onClose }: Props) {
           </>
         )}
 
-        <button onClick={onClose} className="text-sm text-gray-400 self-end">Fermer</button>
+        <button
+          onClick={onClose}
+          className="self-end text-sm px-3 py-1.5 border border-[var(--color-border)] rounded-[var(--radius-sm)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-subtle)] transition-colors"
+        >
+          Fermer
+        </button>
       </div>
     </div>
   )
