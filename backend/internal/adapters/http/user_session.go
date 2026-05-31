@@ -63,6 +63,7 @@ type sessionResponse struct {
 	ViewCount       int32      `json:"view_count"`
 	LastViewedAt    *time.Time `json:"last_viewed_at"`
 	HasShareToken   bool       `json:"has_share_token"`
+	ShareExpiresAt  *time.Time `json:"share_expires_at"`
 	LastGeneratedAt *time.Time `json:"last_generated_at"`
 }
 
@@ -80,6 +81,7 @@ func toSessionResponse(s *domain.Session) sessionResponse {
 		ViewCount:       s.ViewCount,
 		LastViewedAt:    s.LastViewedAt,
 		HasShareToken:   s.ShareTokenHash != nil,
+		ShareExpiresAt:  s.ShareExpiresAt,
 		LastGeneratedAt: s.LastGeneratedAt,
 	}
 }
@@ -291,6 +293,25 @@ func (h *UserSessionHandler) CreateShare(c *gin.Context) {
 	if !ok {
 		return
 	}
+
+	var req struct {
+		Duration *string `json:"duration"` // "7d", "30d", or null
+	}
+	// Ignore parse errors — missing/null body means unlimited
+	c.ShouldBindJSON(&req)
+
+	var shareExpiresAt *time.Time
+	if req.Duration != nil {
+		switch *req.Duration {
+		case "7d":
+			t := time.Now().AddDate(0, 0, 7)
+			shareExpiresAt = &t
+		case "30d":
+			t := time.Now().AddDate(0, 0, 30)
+			shareExpiresAt = &t
+		}
+	}
+
 	rawBytes := make([]byte, 32)
 	if _, err := rand.Read(rawBytes); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
@@ -300,7 +321,7 @@ func (h *UserSessionHandler) CreateShare(c *gin.Context) {
 	hash := sha256.Sum256([]byte(rawToken))
 	tokenHash := hex.EncodeToString(hash[:])
 
-	if _, err := h.sessions.SetShareToken(c.Request.Context(), session.ID, tokenHash); err != nil {
+	if _, err := h.sessions.SetShareToken(c.Request.Context(), session.ID, tokenHash, shareExpiresAt); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -358,6 +379,12 @@ func (h *UserSessionHandler) GetShared(c *gin.Context) {
 
 	session, err := h.sessions.GetByShareToken(c.Request.Context(), tokenHash)
 	if err != nil || session == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+
+	// Check link expiry.
+	if session.ShareExpiresAt != nil && time.Now().After(*session.ShareExpiresAt) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}

@@ -28,6 +28,7 @@ type Session struct {
 	Tags              []string   `json:"tags"`
 	ViewCount         int32      `json:"view_count"`
 	LastViewedAt      *time.Time `json:"last_viewed_at"`
+	ShareExpiresAt    *time.Time `json:"share_expires_at"`
 }
 
 type SystemConfig struct {

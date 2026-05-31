@@ -18,7 +18,7 @@ SET is_archived = TRUE,
     archived_at = NOW(),
     updated_at  = NOW()
 WHERE id = $1
-RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at
 `
 
 func (q *Queries) ArchiveSession(ctx context.Context, id uuid.UUID) (Session, error) {
@@ -42,6 +42,7 @@ func (q *Queries) ArchiveSession(ctx context.Context, id uuid.UUID) (Session, er
 		&i.Tags,
 		&i.ViewCount,
 		&i.LastViewedAt,
+		&i.ShareExpiresAt,
 	)
 	return i, err
 }
@@ -53,7 +54,7 @@ SET user_id    = $2,
 WHERE id = $1
   AND user_id IS NULL
   AND expires_at > NOW()
-RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at
 `
 
 type ClaimAnonymousSessionParams struct {
@@ -82,6 +83,7 @@ func (q *Queries) ClaimAnonymousSession(ctx context.Context, arg ClaimAnonymousS
 		&i.Tags,
 		&i.ViewCount,
 		&i.LastViewedAt,
+		&i.ShareExpiresAt,
 	)
 	return i, err
 }
@@ -172,7 +174,7 @@ INSERT INTO sessions (token_hash, yaml_content, theme_id, expires_at, user_id, n
 SELECT $2, s.yaml_content, s.theme_id, $3, s.user_id, s.name || ' (copie)'
 FROM sessions s
 WHERE s.id = $1
-RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at
 `
 
 type DuplicateSessionParams struct {
@@ -202,6 +204,7 @@ func (q *Queries) DuplicateSession(ctx context.Context, arg DuplicateSessionPara
 		&i.Tags,
 		&i.ViewCount,
 		&i.LastViewedAt,
+		&i.ShareExpiresAt,
 	)
 	return i, err
 }
@@ -220,7 +223,7 @@ func (q *Queries) ForceExpireSession(ctx context.Context, id uuid.UUID) (int64, 
 }
 
 const getSessionByID = `-- name: GetSessionByID :one
-SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at FROM sessions WHERE id = $1 LIMIT 1
+SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at FROM sessions WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetSessionByID(ctx context.Context, id uuid.UUID) (Session, error) {
@@ -244,12 +247,13 @@ func (q *Queries) GetSessionByID(ctx context.Context, id uuid.UUID) (Session, er
 		&i.Tags,
 		&i.ViewCount,
 		&i.LastViewedAt,
+		&i.ShareExpiresAt,
 	)
 	return i, err
 }
 
 const getSessionByShareToken = `-- name: GetSessionByShareToken :one
-SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at FROM sessions
+SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at FROM sessions
 WHERE share_token_hash = $1
 LIMIT 1
 `
@@ -275,12 +279,13 @@ func (q *Queries) GetSessionByShareToken(ctx context.Context, shareTokenHash *st
 		&i.Tags,
 		&i.ViewCount,
 		&i.LastViewedAt,
+		&i.ShareExpiresAt,
 	)
 	return i, err
 }
 
 const getSessionByTokenHash = `-- name: GetSessionByTokenHash :one
-SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at FROM sessions
+SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at FROM sessions
 WHERE token_hash = $1
 LIMIT 1
 `
@@ -306,6 +311,7 @@ func (q *Queries) GetSessionByTokenHash(ctx context.Context, tokenHash string) (
 		&i.Tags,
 		&i.ViewCount,
 		&i.LastViewedAt,
+		&i.ShareExpiresAt,
 	)
 	return i, err
 }
@@ -325,7 +331,7 @@ func (q *Queries) IncrementViewCount(ctx context.Context, id uuid.UUID) error {
 const insertSession = `-- name: InsertSession :one
 INSERT INTO sessions (id, token_hash, yaml_content, theme_id, expires_at, user_id)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at
 `
 
 type InsertSessionParams struct {
@@ -365,12 +371,13 @@ func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) (S
 		&i.Tags,
 		&i.ViewCount,
 		&i.LastViewedAt,
+		&i.ShareExpiresAt,
 	)
 	return i, err
 }
 
 const listAllSessionsByUser = `-- name: ListAllSessionsByUser :many
-SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at FROM sessions
+SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at FROM sessions
 WHERE user_id = $1
 ORDER BY created_at DESC
 `
@@ -402,6 +409,7 @@ func (q *Queries) ListAllSessionsByUser(ctx context.Context, userID *uuid.UUID) 
 			&i.Tags,
 			&i.ViewCount,
 			&i.LastViewedAt,
+			&i.ShareExpiresAt,
 		); err != nil {
 			return nil, err
 		}
@@ -414,7 +422,7 @@ func (q *Queries) ListAllSessionsByUser(ctx context.Context, userID *uuid.UUID) 
 }
 
 const listArchivedSessionsByUser = `-- name: ListArchivedSessionsByUser :many
-SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at FROM sessions
+SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at FROM sessions
 WHERE user_id = $1
   AND is_archived = TRUE
   AND (archived_at IS NULL OR archived_at > NOW() - INTERVAL '30 days')
@@ -448,6 +456,7 @@ func (q *Queries) ListArchivedSessionsByUser(ctx context.Context, userID *uuid.U
 			&i.Tags,
 			&i.ViewCount,
 			&i.LastViewedAt,
+			&i.ShareExpiresAt,
 		); err != nil {
 			return nil, err
 		}
@@ -460,7 +469,7 @@ func (q *Queries) ListArchivedSessionsByUser(ctx context.Context, userID *uuid.U
 }
 
 const listSessionsAdmin = `-- name: ListSessionsAdmin :many
-SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at FROM sessions
+SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at FROM sessions
 WHERE ($1::text = '' OR id::text ILIKE ($1::text || '%'))
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
@@ -499,6 +508,7 @@ func (q *Queries) ListSessionsAdmin(ctx context.Context, arg ListSessionsAdminPa
 			&i.Tags,
 			&i.ViewCount,
 			&i.LastViewedAt,
+			&i.ShareExpiresAt,
 		); err != nil {
 			return nil, err
 		}
@@ -511,7 +521,7 @@ func (q *Queries) ListSessionsAdmin(ctx context.Context, arg ListSessionsAdminPa
 }
 
 const listSessionsByUser = `-- name: ListSessionsByUser :many
-SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at FROM sessions
+SELECT id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at FROM sessions
 WHERE user_id = $1
   AND is_archived = FALSE
   AND expires_at > NOW()
@@ -545,6 +555,7 @@ func (q *Queries) ListSessionsByUser(ctx context.Context, userID *uuid.UUID) ([]
 			&i.Tags,
 			&i.ViewCount,
 			&i.LastViewedAt,
+			&i.ShareExpiresAt,
 		); err != nil {
 			return nil, err
 		}
@@ -591,7 +602,7 @@ SET is_archived = FALSE,
     archived_at = NULL,
     updated_at  = NOW()
 WHERE id = $1
-RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at
 `
 
 func (q *Queries) RestoreSession(ctx context.Context, id uuid.UUID) (Session, error) {
@@ -615,6 +626,7 @@ func (q *Queries) RestoreSession(ctx context.Context, id uuid.UUID) (Session, er
 		&i.Tags,
 		&i.ViewCount,
 		&i.LastViewedAt,
+		&i.ShareExpiresAt,
 	)
 	return i, err
 }
@@ -623,9 +635,10 @@ const revokeShareToken = `-- name: RevokeShareToken :one
 UPDATE sessions
 SET share_token_hash    = NULL,
     share_password_hash = NULL,
+    share_expires_at    = NULL,
     updated_at          = NOW()
 WHERE id = $1
-RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at
 `
 
 func (q *Queries) RevokeShareToken(ctx context.Context, id uuid.UUID) (Session, error) {
@@ -649,6 +662,7 @@ func (q *Queries) RevokeShareToken(ctx context.Context, id uuid.UUID) (Session, 
 		&i.Tags,
 		&i.ViewCount,
 		&i.LastViewedAt,
+		&i.ShareExpiresAt,
 	)
 	return i, err
 }
@@ -658,7 +672,7 @@ UPDATE sessions
 SET share_password_hash = $2,
     updated_at          = NOW()
 WHERE id = $1
-RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at
 `
 
 type SetSharePasswordParams struct {
@@ -687,6 +701,7 @@ func (q *Queries) SetSharePassword(ctx context.Context, arg SetSharePasswordPara
 		&i.Tags,
 		&i.ViewCount,
 		&i.LastViewedAt,
+		&i.ShareExpiresAt,
 	)
 	return i, err
 }
@@ -694,18 +709,20 @@ func (q *Queries) SetSharePassword(ctx context.Context, arg SetSharePasswordPara
 const setShareToken = `-- name: SetShareToken :one
 UPDATE sessions
 SET share_token_hash = $2,
+    share_expires_at = $3,
     updated_at       = NOW()
 WHERE id = $1
-RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at
 `
 
 type SetShareTokenParams struct {
-	ID             uuid.UUID `json:"id"`
-	ShareTokenHash *string   `json:"share_token_hash"`
+	ID             uuid.UUID  `json:"id"`
+	ShareTokenHash *string    `json:"share_token_hash"`
+	ShareExpiresAt *time.Time `json:"share_expires_at"`
 }
 
 func (q *Queries) SetShareToken(ctx context.Context, arg SetShareTokenParams) (Session, error) {
-	row := q.db.QueryRow(ctx, setShareToken, arg.ID, arg.ShareTokenHash)
+	row := q.db.QueryRow(ctx, setShareToken, arg.ID, arg.ShareTokenHash, arg.ShareExpiresAt)
 	var i Session
 	err := row.Scan(
 		&i.ID,
@@ -725,6 +742,7 @@ func (q *Queries) SetShareToken(ctx context.Context, arg SetShareTokenParams) (S
 		&i.Tags,
 		&i.ViewCount,
 		&i.LastViewedAt,
+		&i.ShareExpiresAt,
 	)
 	return i, err
 }
@@ -734,7 +752,7 @@ UPDATE sessions
 SET last_generated_at = NOW(),
     updated_at        = NOW()
 WHERE id = $1
-RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at
 `
 
 func (q *Queries) UpdateLastGeneratedAt(ctx context.Context, id uuid.UUID) (Session, error) {
@@ -758,6 +776,7 @@ func (q *Queries) UpdateLastGeneratedAt(ctx context.Context, id uuid.UUID) (Sess
 		&i.Tags,
 		&i.ViewCount,
 		&i.LastViewedAt,
+		&i.ShareExpiresAt,
 	)
 	return i, err
 }
@@ -768,7 +787,7 @@ SET yaml_content = CASE WHEN $2::text = '' THEN yaml_content ELSE $2::text END,
     theme_id     = COALESCE($3, theme_id),
     updated_at   = NOW()
 WHERE id = $1
-RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at
 `
 
 type UpdateSessionParams struct {
@@ -798,6 +817,7 @@ func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (S
 		&i.Tags,
 		&i.ViewCount,
 		&i.LastViewedAt,
+		&i.ShareExpiresAt,
 	)
 	return i, err
 }
@@ -807,7 +827,7 @@ UPDATE sessions
 SET name       = $2,
     updated_at = NOW()
 WHERE id = $1
-RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at
 `
 
 type UpdateSessionNameParams struct {
@@ -836,6 +856,7 @@ func (q *Queries) UpdateSessionName(ctx context.Context, arg UpdateSessionNamePa
 		&i.Tags,
 		&i.ViewCount,
 		&i.LastViewedAt,
+		&i.ShareExpiresAt,
 	)
 	return i, err
 }
@@ -845,7 +866,7 @@ UPDATE sessions
 SET expires_at = $2,
     updated_at = NOW()
 WHERE id = $1
-RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at
 `
 
 type UpdateSessionTTLParams struct {
@@ -874,6 +895,7 @@ func (q *Queries) UpdateSessionTTL(ctx context.Context, arg UpdateSessionTTLPara
 		&i.Tags,
 		&i.ViewCount,
 		&i.LastViewedAt,
+		&i.ShareExpiresAt,
 	)
 	return i, err
 }
@@ -883,7 +905,7 @@ UPDATE sessions
 SET tags       = $2,
     updated_at = NOW()
 WHERE id = $1
-RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at
 `
 
 type UpdateSessionTagsParams struct {
@@ -912,6 +934,7 @@ func (q *Queries) UpdateSessionTags(ctx context.Context, arg UpdateSessionTagsPa
 		&i.Tags,
 		&i.ViewCount,
 		&i.LastViewedAt,
+		&i.ShareExpiresAt,
 	)
 	return i, err
 }
@@ -921,7 +944,7 @@ UPDATE sessions
 SET theme_id   = $2,
     updated_at = NOW()
 WHERE id = $1
-RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at
+RETURNING id, token_hash, yaml_content, theme_id, expires_at, created_at, updated_at, user_id, name, is_archived, archived_at, share_token_hash, share_password_hash, last_generated_at, tags, view_count, last_viewed_at, share_expires_at
 `
 
 type UpdateSessionThemeParams struct {
@@ -950,6 +973,7 @@ func (q *Queries) UpdateSessionTheme(ctx context.Context, arg UpdateSessionTheme
 		&i.Tags,
 		&i.ViewCount,
 		&i.LastViewedAt,
+		&i.ShareExpiresAt,
 	)
 	return i, err
 }

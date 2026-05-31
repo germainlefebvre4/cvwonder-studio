@@ -26,6 +26,7 @@ type Session struct {
 	ArchivedAt        *time.Time
 	ShareTokenHash    *string
 	SharePasswordHash *string
+	ShareExpiresAt    *time.Time
 	LastGeneratedAt   *time.Time
 	Tags              []string
 	ViewCount         int32

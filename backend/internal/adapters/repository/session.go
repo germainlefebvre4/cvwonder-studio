@@ -191,8 +191,8 @@ func (r *SessionRepository) UpdateTags(ctx context.Context, id uuid.UUID, tags [
 	return sessionFromDB(row), nil
 }
 
-func (r *SessionRepository) SetShareToken(ctx context.Context, id uuid.UUID, tokenHash string) (*domain.Session, error) {
-	row, err := r.q.SetShareToken(ctx, db.SetShareTokenParams{ID: id, ShareTokenHash: &tokenHash})
+func (r *SessionRepository) SetShareToken(ctx context.Context, id uuid.UUID, tokenHash string, expiresAt *time.Time) (*domain.Session, error) {
+	row, err := r.q.SetShareToken(ctx, db.SetShareTokenParams{ID: id, ShareTokenHash: &tokenHash, ShareExpiresAt: expiresAt})
 	if err != nil {
 		return nil, fmt.Errorf("SetShareToken: %w", err)
 	}
@@ -255,6 +255,7 @@ func sessionFromDB(row db.Session) *domain.Session {
 		ArchivedAt:        row.ArchivedAt,
 		ShareTokenHash:    row.ShareTokenHash,
 		SharePasswordHash: row.SharePasswordHash,
+		ShareExpiresAt:    row.ShareExpiresAt,
 		LastGeneratedAt:   row.LastGeneratedAt,
 		Tags:              row.Tags,
 		ViewCount:         row.ViewCount,

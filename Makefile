@@ -21,7 +21,7 @@ dev-backend: ## Start Go backend with air hot-reload
 	cd backend && go run ./cmd/api
 
 dev-frontend: ## Start Vite dev server
-	cd frontend && pnpm dev
+	cd frontend && npm run dev
 
 dev-themes: ## Install built-in themes into themes/ (run when themes/ is missing)
 	bin/cvwonder themes install https://github.com/germainlefebvre4/cvwonder-theme-basic

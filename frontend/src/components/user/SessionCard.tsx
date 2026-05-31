@@ -12,7 +12,7 @@ import {
 } from '@/services/user'
 import ShareDialog from './ShareDialog'
 import { formatRelativeDate, getExpiryUrgency } from '@/lib/date'
-import { getSessionBorderStatus } from '@/lib/session'
+import { getSessionBorderStatus, isShareExpired } from '@/lib/session'
 
 interface Props {
   session: UserSession
@@ -47,7 +47,8 @@ export default function SessionCard({ session, onRefresh, isArchived = false }: 
   const sessionName = session.name ?? `Session ${session.id.slice(0, 8)}`
   const borderStatus = getSessionBorderStatus(session)
   const expiryUrgency = getExpiryUrgency(session.expires_at)
-  const isShared = session.share_token_hash !== null
+  const isShared = session.has_share_token
+  const shareExpired = isShareExpired(session)
 
   async function handleRename() {
     if (!nameInput.trim()) return
@@ -198,16 +199,33 @@ export default function SessionCard({ session, onRefresh, isArchived = false }: 
         </div>
         {isShared && (
           <div className="flex items-center gap-1 text-[var(--color-accent-text)]">
-            <span>🔗 Partagée</span>
-            {session.view_count > 0 ? (
+            {shareExpired ? (
               <>
-                <span>· {session.view_count} vue{session.view_count !== 1 ? 's' : ''}</span>
-                {session.last_viewed_at && (
-                  <span>· vu {formatRelativeDate(session.last_viewed_at)}</span>
-                )}
+                <span>🔗 Partagée · lien expiré</span>
+                <button
+                  onClick={() => setShowShare(true)}
+                  className="text-xs underline text-[var(--color-accent-text)] hover:text-[var(--color-accent-hover)]"
+                >
+                  Recréer un lien
+                </button>
               </>
             ) : (
-              <span>· aucune vue</span>
+              <>
+                <span>🔗 Partagée</span>
+                {session.share_expires_at !== null && (
+                  <span>· expire {formatRelativeDate(session.share_expires_at)}</span>
+                )}
+                {session.view_count > 0 ? (
+                  <>
+                    <span>· {session.view_count} vue{session.view_count !== 1 ? 's' : ''}</span>
+                    {session.last_viewed_at && (
+                      <span>· vu {formatRelativeDate(session.last_viewed_at)}</span>
+                    )}
+                  </>
+                ) : (
+                  <span>· aucune vue</span>
+                )}
+              </>
             )}
           </div>
         )}

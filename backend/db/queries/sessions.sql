@@ -144,6 +144,7 @@ RETURNING *;
 -- name: SetShareToken :one
 UPDATE sessions
 SET share_token_hash = $2,
+    share_expires_at = $3,
     updated_at       = NOW()
 WHERE id = $1
 RETURNING *;
@@ -152,6 +153,7 @@ RETURNING *;
 UPDATE sessions
 SET share_token_hash    = NULL,
     share_password_hash = NULL,
+    share_expires_at    = NULL,
     updated_at          = NOW()
 WHERE id = $1
 RETURNING *;

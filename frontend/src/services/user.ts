@@ -15,7 +15,8 @@ export interface UserSession {
   expires_at: string
   is_archived: boolean
   archived_at: string | null
-  share_token_hash: string | null
+  has_share_token: boolean
+  share_expires_at: string | null
   last_generated_at: string | null
   tags: string[]
   view_count: number
@@ -104,8 +105,12 @@ export async function deleteSession(id: string): Promise<void> {
   if (!res.ok) throw new Error(`deleteSession: ${res.status}`)
 }
 
-export async function createShare(id: string): Promise<{ token: string; share_url: string }> {
-  const res = await fetch(`/api/sessions/${id}/share`, { method: 'POST' })
+export async function createShare(id: string, duration?: '7d' | '30d' | null): Promise<{ token: string; share_url: string }> {
+  const res = await fetch(`/api/sessions/${id}/share`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ duration: duration ?? null }),
+  })
   if (!res.ok) throw new Error(`createShare: ${res.status}`)
   return res.json()
 }
