@@ -39,8 +39,8 @@
 
 ## 7. Validation
 
-- [ ] 7.1 Local dev: start `docker compose up gotenberg -d`, set `GOTENBERG_URL=http://localhost:3001`, run Go backend, verify PDF download works end-to-end
-- [ ] 7.2 Local dev: unset `GOTENBERG_URL`, verify studio starts cleanly, PDF export returns 501 with expected JSON body
+- [x] 7.1 Local dev: start `docker compose up gotenberg -d`, set `GOTENBERG_URL=http://localhost:3001`, run Go backend, verify PDF download works end-to-end
+- [x] 7.2 Local dev: unset `GOTENBERG_URL`, verify studio starts cleanly, PDF export returns 501 with expected JSON body
 - [ ] 7.3 K8s: apply `gotenberg.yaml`, verify Gotenberg pods reach `Running` and pass `/health` readiness probe
 - [ ] 7.4 K8s: verify NetworkPolicy blocks access to Gotenberg from pods without `app: cvwonder-studio` label
 - [ ] 7.5 K8s: perform end-to-end PDF export through Ingress → studio → Gotenberg and verify PDF is downloaded correctly

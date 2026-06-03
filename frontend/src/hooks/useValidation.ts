@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import Ajv from 'ajv'
 import { useStudioStore } from '@/store/studio'
 import { validateYaml } from '@/services/generation'
+import { validateSessionYaml } from '@/services/user'
 import { useDebounce } from './useDebounce'
 
 const VALIDATION_DEBOUNCE_MS = 500
@@ -24,14 +25,18 @@ async function getSchema(): Promise<object | null> {
   return null
 }
 
-export function useValidation(token: string | null) {
+export function useValidation(token: string | null, sessionId: string | null) {
   const yamlContent = useStudioStore((s) => s.yamlContent)
   const setValidationErrors = useStudioStore((s) => s.setValidationErrors)
 
   const debouncedYaml = useDebounce(yamlContent, VALIDATION_DEBOUNCE_MS)
 
+  // Determine which identifier to use (token takes priority for backward compat)
+  const identifier = token ?? sessionId
+  const isUuidMode = !token && !!sessionId
+
   useEffect(() => {
-    if (!token || !debouncedYaml) return
+    if (!identifier || !debouncedYaml) return
 
     let cancelled = false
 
@@ -59,7 +64,10 @@ export function useValidation(token: string | null) {
 
       // 2. Server-side validation via cvwonder binary.
       try {
-        const result = await validateYaml(token)
+        // Call appropriate API based on mode
+        const result = isUuidMode
+          ? await validateSessionYaml(identifier)
+          : await validateYaml(identifier)
         if (!cancelled) {
           setValidationErrors(result.errors ?? [])
         }
@@ -70,5 +78,5 @@ export function useValidation(token: string | null) {
 
     run()
     return () => { cancelled = true }
-  }, [debouncedYaml, token, setValidationErrors])
+  }, [debouncedYaml, identifier, isUuidMode, setValidationErrors])
 }

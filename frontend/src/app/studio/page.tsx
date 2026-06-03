@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
 import { getSession, updateSession } from '@/services/sessions'
-import { getSessionById } from '@/services/user'
+import { getSessionById, updateSessionContent } from '@/services/user'
 import { listThemes } from '@/services/themes'
 import { getTemplateContent } from '@/services/templates'
 import { useStudioStore } from '@/store/studio'
@@ -35,9 +35,9 @@ export default function StudioPage() {
   // never flips back to true even if the user clears their YAML.
   const [showPicker, setShowPicker] = useState(false)
 
-  // Enable live preview & validation hooks (only in token mode).
-  const {} = usePreview(token ?? null)
-  useValidation(token ?? null)
+  // Enable live preview & validation hooks — support both token and UUID modes.
+  const {} = usePreview(token ?? null, sessionId)
+  useValidation(token ?? null, sessionId)
 
   // Load session on mount — either via ?session=:uuid (authenticated) or :token (anon/shared).
   useEffect(() => {
@@ -111,13 +111,19 @@ export default function StudioPage() {
 
   const handleYamlChange = async (yaml: string) => {
     setYamlContent(yaml)
-    if (token) {
+    // Update via UUID API if authenticated, otherwise token-based
+    if (sessionId) {
+      await updateSessionContent(sessionId, { yaml_content: yaml }).catch(() => {})
+    } else if (token) {
       await updateSession(token, { yaml_content: yaml }).catch(() => {})
     }
   }
 
   const handleThemeChange = async (themeId: string) => {
-    if (token) {
+    // Update via UUID API if authenticated, otherwise token-based
+    if (sessionId) {
+      await updateSessionContent(sessionId, { theme_id: themeId }).catch(() => {})
+    } else if (token) {
       await updateSession(token, { theme_id: themeId }).catch(() => {})
     }
   }

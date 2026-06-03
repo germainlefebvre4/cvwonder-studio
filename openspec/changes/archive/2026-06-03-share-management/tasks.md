@@ -37,8 +37,8 @@
 
 ## 7. Vérification
 
-- [ ] 7.1 Vérifier les 3 statuts de bordure sur des sessions de test : session fraîche (gris), partagée (bleu), expire dans < 7j (orange)
-- [ ] 7.2 Tester le flux de régénération : session déjà partagée → ouvrir dialog → "Révoquer et créer un nouveau lien" → nouveau lien affiché
-- [ ] 7.3 Vérifier qu'un lien avec `duration: "7d"` retourne HTTP 404 après son expiration simulée en DB
-- [ ] 7.4 Vérifier que l'indicateur "lien expiré" s'affiche correctement sur la SessionCard
+- [x] 7.1 Vérifier les 3 statuts de bordure sur des sessions de test : session fraîche (gris), partagée (bleu), expire dans < 7j (orange)
+- [x] 7.2 Tester le flux de régénération : session déjà partagée → ouvrir dialog → "Révoquer et créer un nouveau lien" → nouveau lien affiché
+- [x] 7.3 Vérifier qu'un lien avec `duration: "7d"` retourne HTTP 404 après son expiration simulée en DB
+- [x] 7.4 Vérifier que l'indicateur "lien expiré" s'affiche correctement sur la SessionCard
 - [x] 7.5 Vérifier que les tests frontend existants passent après les modifications

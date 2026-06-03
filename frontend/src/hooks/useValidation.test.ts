@@ -30,7 +30,7 @@ describe('useValidation', () => {
 
       useStudioStore.getState().setValidationErrors([{ field: '/x', message: 'old' }])
       useStudioStore.getState().setYamlContent('firstname: John')
-      renderHook(() => useValidation(TOKEN))
+      renderHook(() => useValidation(TOKEN, null))
 
       await waitFor(
         () => expect(useStudioStore.getState().validationErrors).toEqual([]),
@@ -54,7 +54,7 @@ describe('useValidation', () => {
       )
 
       useStudioStore.getState().setYamlContent('bad: yaml')
-      renderHook(() => useValidation(TOKEN))
+      renderHook(() => useValidation(TOKEN, null))
 
       await waitFor(
         () =>
@@ -69,7 +69,7 @@ describe('useValidation', () => {
 
   it('does nothing when token is null', async () => {
     useStudioStore.getState().setYamlContent('name: x')
-    renderHook(() => useValidation(null))
+    renderHook(() => useValidation(null, null))
 
     // Wait a little longer than debounce to confirm nothing happens.
     await new Promise((r) => setTimeout(r, 700))

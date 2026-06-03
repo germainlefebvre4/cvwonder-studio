@@ -31,7 +31,7 @@ describe('usePreview', () => {
       // Both yaml and theme must be set to trigger the immediate first-generation.
       useStudioStore.getState().setYamlContent('firstname: Jane')
       useStudioStore.getState().setSelectedThemeId('theme-id-1')
-      renderHook(() => usePreview(TOKEN))
+      renderHook(() => usePreview(TOKEN, null))
 
       await waitFor(
         () => expect(useStudioStore.getState().previewUrl).toBe(PREVIEW_URL),
@@ -43,7 +43,7 @@ describe('usePreview', () => {
 
   it('does nothing when token is null', async () => {
     useStudioStore.getState().setYamlContent('firstname: Jane')
-    renderHook(() => usePreview(null))
+    renderHook(() => usePreview(null, null))
 
     // Wait past debounce - preview should not be set.
     await new Promise((r) => setTimeout(r, 1500))

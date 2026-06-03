@@ -181,6 +181,62 @@ export async function updateDefaultTheme(themeId: string | null): Promise<void> 
   if (!res.ok) throw new Error(`updateDefaultTheme: ${res.status}`)
 }
 
+// UUID-based session operations for authenticated users
+export interface UpdateSessionContentRequest {
+  yaml_content?: string
+  theme_id?: string
+}
+
+export interface UpdateSessionContentResponse {
+  id: string
+  yaml_content: string
+  theme_id: string | null
+  updated_at: string
+}
+
+export async function updateSessionContent(
+  id: string,
+  updates: UpdateSessionContentRequest
+): Promise<UpdateSessionContentResponse> {
+  const res = await fetch(`/api/sessions/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  })
+  if (!res.ok) throw new Error(`updateSessionContent: ${res.status}`)
+  return res.json()
+}
+
+export interface GenerateSessionPreviewResponse {
+  preview_url: string
+}
+
+export async function generateSessionPreview(id: string): Promise<GenerateSessionPreviewResponse> {
+  const res = await fetch(`/api/sessions/${id}/preview`, {
+    method: 'POST',
+  })
+  if (!res.ok) throw new Error(`generateSessionPreview: ${res.status}`)
+  return res.json()
+}
+
+export interface ValidationError {
+  field: string
+  message: string
+}
+
+export interface ValidateSessionYamlResponse {
+  valid: boolean
+  errors: ValidationError[]
+}
+
+export async function validateSessionYaml(id: string): Promise<ValidateSessionYamlResponse> {
+  const res = await fetch(`/api/sessions/${id}/validate`, {
+    method: 'POST',
+  })
+  if (!res.ok) throw new Error(`validateSessionYaml: ${res.status}`)
+  return res.json()
+}
+
 export interface ConfigLimits {
   max_sessions_per_user: number
   anon_session_ttl_hours: number

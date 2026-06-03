@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useStudioStore } from '@/store/studio'
 import { generatePreview } from '@/services/generation'
+import { generateSessionPreview } from '@/services/user'
 import { useDebounce } from './useDebounce'
 import { PREVIEW_DEBOUNCE_MS, MIN_ANIMATION_MS } from '@/config/preview'
 
-export function usePreview(token: string | null) {
+export function usePreview(token: string | null, sessionId: string | null) {
   const yamlContent = useStudioStore((s) => s.yamlContent)
   const selectedThemeId = useStudioStore((s) => s.selectedThemeId)
   const setPreviewUrl = useStudioStore((s) => s.setPreviewUrl)
@@ -13,6 +14,10 @@ export function usePreview(token: string | null) {
 
   const debouncedYaml = useDebounce(yamlContent, PREVIEW_DEBOUNCE_MS)
   const debouncedTheme = useDebounce(selectedThemeId, PREVIEW_DEBOUNCE_MS)
+
+  // Determine which identifier to use (token takes priority for backward compat)
+  const identifier = token ?? sessionId
+  const isUuidMode = !token && !!sessionId
 
   // Cooldown state shared between auto-refresh and force-refresh.
   const [isCoolingDown, setIsCoolingDown] = useState(false)
@@ -29,7 +34,7 @@ export function usePreview(token: string | null) {
    *   silently in the background.
    * Returns a cancel callback that marks the result as stale.
    */
-  const triggerGeneration = useCallback((currentToken: string, showOverlay: boolean): (() => void) => {
+  const triggerGeneration = useCallback((currentIdentifier: string, isUuid: boolean, showOverlay: boolean): (() => void) => {
     if (inFlightRef.current) return () => {}
 
     let cancelled = false
@@ -42,7 +47,13 @@ export function usePreview(token: string | null) {
 
     if (showOverlay) setIsGenerating(true)
     const startedAt = Date.now()
-    generatePreview(currentToken)
+    
+    // Call appropriate API based on mode
+    const previewPromise = isUuid 
+      ? generateSessionPreview(currentIdentifier)
+      : generatePreview(currentIdentifier)
+    
+    previewPromise
       .then((result) => {
         if (cancelled) return
         setPreviewUrl(result.preview_url)
@@ -69,25 +80,25 @@ export function usePreview(token: string | null) {
 
   // Auto-refresh: fires after PREVIEW_DEBOUNCE_MS of inactivity on yaml/theme.
   useEffect(() => {
-    if (!token || !debouncedYaml || !debouncedTheme) return
-    const cancel = triggerGeneration(token, false)
+    if (!identifier || !debouncedYaml || !debouncedTheme) return
+    const cancel = triggerGeneration(identifier, isUuidMode, false)
     return cancel
-  }, [debouncedYaml, debouncedTheme, token, triggerGeneration])
+  }, [debouncedYaml, debouncedTheme, identifier, isUuidMode, triggerGeneration])
 
   // Immediate first-generation: fires once as soon as YAML + theme are both ready,
   // bypassing the debounce. Subsequent edits use the debounced path above.
   useEffect(() => {
-    if (!token || !yamlContent || !selectedThemeId) return
+    if (!identifier || !yamlContent || !selectedThemeId) return
     if (hasTriggeredInitialRef.current) return
     hasTriggeredInitialRef.current = true
-    triggerGeneration(token, true)
-  }, [token, yamlContent, selectedThemeId, triggerGeneration])
+    triggerGeneration(identifier, isUuidMode, true)
+  }, [identifier, isUuidMode, yamlContent, selectedThemeId, triggerGeneration])
 
   // Force refresh: bypasses debounce, blocked during cooldown.
   const forceRefresh = useCallback(() => {
-    if (!token || isCoolingDown) return
-    triggerGeneration(token, true)
-  }, [token, isCoolingDown, triggerGeneration])
+    if (!identifier || isCoolingDown) return
+    triggerGeneration(identifier, isUuidMode, true)
+  }, [identifier, isUuidMode, isCoolingDown, triggerGeneration])
 
   return { forceRefresh, isCoolingDown }
 }

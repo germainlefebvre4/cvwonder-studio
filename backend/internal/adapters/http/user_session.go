@@ -21,6 +21,9 @@ import (
 
 	"github.com/germainlefebvre4/cvwonder-studio/internal/adapters/repository"
 	"github.com/germainlefebvre4/cvwonder-studio/internal/domain"
+	previewUC "github.com/germainlefebvre4/cvwonder-studio/internal/usecases/preview"
+	sessionUC "github.com/germainlefebvre4/cvwonder-studio/internal/usecases/session"
+	validationUC "github.com/germainlefebvre4/cvwonder-studio/internal/usecases/validation"
 	"github.com/germainlefebvre4/cvwonder-studio/internal/userauth"
 )
 
@@ -31,10 +34,27 @@ type UserSessionHandler struct {
 	sessions    *repository.SessionRepository
 	configRepo  *repository.ConfigRepository
 	sessionsDir string
+	updateUC    *sessionUC.UpdateUsecase
+	previewUC   *previewUC.GenerateUsecase
+	validateUC  *validationUC.ValidateUsecase
 }
 
-func NewUserSessionHandler(sessions *repository.SessionRepository, configRepo *repository.ConfigRepository, sessionsDir string) *UserSessionHandler {
-	return &UserSessionHandler{sessions: sessions, configRepo: configRepo, sessionsDir: sessionsDir}
+func NewUserSessionHandler(
+	sessions *repository.SessionRepository,
+	configRepo *repository.ConfigRepository,
+	sessionsDir string,
+	updateUC *sessionUC.UpdateUsecase,
+	previewUC *previewUC.GenerateUsecase,
+	validateUC *validationUC.ValidateUsecase,
+) *UserSessionHandler {
+	return &UserSessionHandler{
+		sessions:    sessions,
+		configRepo:  configRepo,
+		sessionsDir: sessionsDir,
+		updateUC:    updateUC,
+		previewUC:   previewUC,
+		validateUC:  validateUC,
+	}
 }
 
 // readMaxSessions reads max_sessions_per_user from configRepo; returns defaultMaxSessionsPerUser on error.
@@ -591,6 +611,80 @@ func (h *UserSessionHandler) GetSession(c *gin.Context) {
 		"is_archived":  session.IsArchived,
 		"created_at":   session.CreatedAt,
 		"updated_at":   session.UpdatedAt,
+	})
+}
+
+// PATCH /api/sessions/:id — update YAML content and/or theme.
+func (h *UserSessionHandler) UpdateContent(c *gin.Context) {
+	_, session, ok := h.resolveOwned(c)
+	if !ok {
+		return
+	}
+
+	type updateContentRequest struct {
+		YamlContent *string    `json:"yaml_content,omitempty"`
+		ThemeID     *uuid.UUID `json:"theme_id,omitempty"`
+	}
+	var req updateContentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	updated, err := h.updateUC.Execute(c.Request.Context(), session.ID, sessionUC.UpdateInput{
+		YamlContent: req.YamlContent,
+		ThemeID:     req.ThemeID,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"id":           updated.ID,
+		"yaml_content": updated.YamlContent,
+		"theme_id":     updated.ThemeID,
+		"updated_at":   updated.UpdatedAt,
+	})
+}
+
+// POST /api/sessions/:id/preview — generate preview for UUID-based session.
+func (h *UserSessionHandler) GeneratePreview(c *gin.Context) {
+	_, session, ok := h.resolveOwned(c)
+	if !ok {
+		return
+	}
+
+	if session.ThemeID == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "session has no theme selected"})
+		return
+	}
+
+	// Use session ID as the token for UUID-based preview generation
+	result, err := h.previewUC.ExecuteForSession(c.Request.Context(), session.ID.String(), session.YamlContent, session.ThemeID)
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"preview_url": result.PreviewURL})
+}
+
+// POST /api/sessions/:id/validate — validate YAML for UUID-based session.
+func (h *UserSessionHandler) ValidateYaml(c *gin.Context) {
+	_, session, ok := h.resolveOwned(c)
+	if !ok {
+		return
+	}
+
+	result, err := h.validateUC.Execute(c.Request.Context(), session.YamlContent)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"valid":  result.Valid,
+		"errors": result.Errors,
 	})
 }
 
