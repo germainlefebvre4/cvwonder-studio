@@ -1,0 +1,41 @@
+CVWonder Studio has been installed!
+
+1. Get the application URL:
+{{- if .Values.ingress.enabled }}
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ . }}{{ $.Values.ingress.path }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "cvwonder-studio.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.service.type }}
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+  Watch its status with: kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "cvwonder-studio.fullname" . }}
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "cvwonder-studio.fullname" . }} --template "{{"{{"}}range .status.loadBalancer.ingress{{"}}"}}{{"{{"}}if .ip{{"}}"}}{{"{{"}} .ip {{"}}"}}{{"{{"}}else{{"}}"}}{{"{{"}} .hostname {{"}}"}}{{"{{"}}end{{"}}"}}{{"{{"}}end{{"}}"}}")
+  echo http://$SERVICE_IP:{{ .Values.service.port }}
+{{- else if contains "ClusterIP" .Values.service.type }}
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "{{ include "cvwonder-studio.selectorLabels" . | replace ": " "=" | replace "\n" "," }}" -o jsonpath="{.items[0].metadata.name}")
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:{{ .Values.config.port }}
+  echo "Visit http://127.0.0.1:8080"
+{{- end }}
+
+{{- if gt (int .Values.replicaCount) 1 }}
+
+⚠️  IMPORTANT — ReadWriteMany StorageClass required:
+   You have set replicaCount={{ .Values.replicaCount }}. Multiple replicas require
+   an RWX-capable StorageClass for the sessions and themes PVCs.
+   Supported options: NFS, CephFS, AWS EFS, Azure Files, GCP Filestore.
+   Set storage.sessions.storageClass and storage.themes.storageClass accordingly.
+{{- end }}
+
+{{- if and (not .Values.postgresql.enabled) (not .Values.existingSecret) (not .Values.secrets.databaseUrl) }}
+
+⚠️  WARNING — Database not configured:
+   Neither postgresql.enabled nor secrets.databaseUrl is set.
+   The application will fail to start without a valid DATABASE_URL.
+   Either:
+   - Set postgresql.enabled=true (bundled PostgreSQL)
+   - Set secrets.databaseUrl with your connection string
+   - Set existingSecret with a pre-existing Secret containing database-url
+{{- end }}

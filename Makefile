@@ -1,5 +1,5 @@
 #
-.PHONY: help run dev dev-themes build-frontend build-backend build sqlc-gen migrate lint test test-int test-frontend test-ci
+.PHONY: help run dev dev-themes build-frontend build-backend build sqlc-gen migrate lint test test-int test-frontend test-ci helm-lint helm-template helm-package
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
@@ -9,6 +9,12 @@ include .env
 export $(shell grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env | sed 's/=.*//')
 endif
 
+
+##@ Docker
+
+DOCKER_REPO ?= germainlefebvre4/cvwonder-studio
+DOCKER_TAG ?= dev
+PLATFORMS ?= linux/amd64#,linux/arm/v7,linux/arm64/v8
 
 %:
     @:
@@ -46,6 +52,16 @@ sqlc-gen: ## Run sqlc generate
 migrate: ## Run database migrations
 	cd backend && go run ./cmd/api -migrate-only
 
+# ── Helm ──────────────────────────────────────────────────────────────────────
+helm-lint: ## Lint the Helm chart
+	helm lint infra/helm/cvwonder-studio/
+
+helm-template: ## Render the Helm chart with default values
+	helm template cvwonder-studio infra/helm/cvwonder-studio/
+
+helm-package: ## Package the Helm chart into a .tgz archive
+	helm package infra/helm/cvwonder-studio/
+
 # ── Lint ──────────────────────────────────────────────────────────────────────
 lint: ## Lint backend and frontend
 	cd backend && go vet ./...
@@ -76,5 +92,13 @@ doc-serve:
 	cd docs/github-pages/; \
 	pnpm start;
 
+
+##@ Docker
+
 docker-build:
-	docker build -f docker-compose.yml -t germainlefebvre4/cvwonder-studio:dev .
+# 	docker build -t germainlefebvre4/cvwonder-studio:dev .
+	docker buildx build --platform $(PLATFORMS) -t $(DOCKER_REPO):$(DOCKER_TAG) --push .
+
+## Build and push multi-arch Docker image
+docker-build-push: docker-build
+	docker push $(DOCKER_REPO):$(DOCKER_TAG)

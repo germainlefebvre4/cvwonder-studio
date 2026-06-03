@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useUserStore } from '@/store/user'
-import { listSessions, SessionListResponse, exportAccount, deleteAccount } from '@/services/user'
+// import { useUserStore } from '@/store/user'
+import { listSessions, SessionListResponse } from '@/services/user'
 import { createSession, RateLimitError } from '@/services/sessions'
 import SessionList from '@/components/user/SessionList'
 import UserHeader from '@/components/user/UserHeader'
 import TagFilter from '@/components/user/TagFilter'
 
 export default function DashboardPage() {
-  const { user } = useUserStore()
+  // const { user } = useUserStore()
   const navigate = useNavigate()
   const [tab, setTab] = useState<'active' | 'archived'>('active')
   const [data, setData] = useState<SessionListResponse | null>(null)
@@ -49,35 +49,35 @@ export default function DashboardPage() {
   const quotaPercent = data ? Math.round((data.active / data.max) * 100) : 0
   const quotaFull = data ? data.active >= data.max : false
 
-  async function handleExportAccount() {
-    try {
-      const blob = await exportAccount()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'cvwonder-account-export.zip'
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch (e) {
-      alert('Erreur lors de l\'export des données')
-    }
-  }
+  // async function handleExportAccount() {
+  //   try {
+  //     const blob = await exportAccount()
+  //     const url = URL.createObjectURL(blob)
+  //     const a = document.createElement('a')
+  //     a.href = url
+  //     a.download = 'cvwonder-account-export.zip'
+  //     a.click()
+  //     URL.revokeObjectURL(url)
+  //   } catch (e) {
+  //     alert('Erreur lors de l\'export des données')
+  //   }
+  // }
 
-  async function handleDeleteAccount() {
-    if (
-      !confirm(
-        '⚠️ Supprimer définitivement votre compte et toutes vos sessions ? Cette action est irréversible.',
-      )
-    )
-      return
-    try {
-      await deleteAccount()
-      useUserStore.getState().setUser(null)
-      navigate('/')
-    } catch (e) {
-      alert('Erreur lors de la suppression du compte')
-    }
-  }
+  // async function handleDeleteAccount() {
+  //   if (
+  //     !confirm(
+  //       '⚠️ Supprimer définitivement votre compte et toutes vos sessions ? Cette action est irréversible.',
+  //     )
+  //   )
+  //     return
+  //   try {
+  //     await deleteAccount()
+  //     useUserStore.getState().setUser(null)
+  //     navigate('/')
+  //   } catch (e) {
+  //     alert('Erreur lors de la suppression du compte')
+  //   }
+  // }
 
   async function handleNewSession() {
     try {

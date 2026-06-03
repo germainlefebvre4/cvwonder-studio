@@ -1,0 +1,53 @@
+{{- if .Values.networkPolicy.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "cvwonder-studio.fullname" . }}
+  namespace: {{ .Values.forceNamespace | default .Release.Namespace }}
+  labels:
+    {{- include "cvwonder-studio.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "cvwonder-studio.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ## Ingress: allow only from the ingress controller namespace.
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: {{ int .Values.config.port }}
+    ## Allow intra-namespace traffic (e.g. health probes from kubelet).
+    - from:
+        - podSelector: {}
+
+  ## Egress: allow PostgreSQL, DNS, HTTPS (theme downloads), and Gotenberg (if enabled).
+  egress:
+    - ports:
+        - protocol: TCP
+          port: 5432   # PostgreSQL
+    - ports:
+        - protocol: UDP
+          port: 53     # DNS
+        - protocol: TCP
+          port: 53
+    - ports:
+        - protocol: TCP
+          port: 443    # HTTPS (GitHub theme downloads, Google OAuth)
+    {{- if .Values.gotenberg.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ include "cvwonder-studio.name" . }}
+              app.kubernetes.io/component: gotenberg
+      ports:
+        - protocol: TCP
+          port: {{ int .Values.gotenberg.service.port }}
+    {{- end }}
+{{- end }}

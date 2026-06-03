@@ -1,6 +1,5 @@
 ---
 services:
-  # ── PostgreSQL ─────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     environment:
@@ -17,7 +16,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── Go Backend (air hot-reload) ────────────────────────────────────────────
   backend:
     image: golang:1.25-alpine
     working_dir: /app/backend
@@ -31,15 +29,18 @@ services:
       SESSIONS_BASE_DIR: "/data/sessions"
       THEMES_BUILTIN_DIR: "/app/themes"
       THEMES_RUNTIME_DIR: "/data/themes"
+      MIGRATIONS_PATH: "db/migrations"
       SESSION_DURATION_DAYS: "30"
       ADMIN_USERNAME: "admin"
-      ADMIN_PASSWORD_HASH: "$2a$12$replacethiswithyourrealhashxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      ADMIN_TOKEN_SECRET: "change-me-to-a-random-secret-of-at-least-32-chars"
+      ADMIN_PASSWORD_HASH: "$2b$12$xNrFCYmNp9O8RP.uADNVlOFjRAi3hYixbJohsLanmKDyprt.lq8w2"
+      ADMIN_TOKEN_SECRET: "18f326b538b394d60beaf90aa1b45960db14443658b36084e41bdc64057e5923"
       APP_BASE_URL: "${APP_BASE_URL:-}"
       # FRONTEND_BASE_URL: "" # Defaults to APP_BASE_URL. Set explicitly for split-origin deployments (e.g. separate CDN/SPA host).
       GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
       GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET:-}"
       USER_TOKEN_SECRET: "${USER_TOKEN_SECRET:-change-me-to-a-random-secret-of-at-least-32-chars}"
+      GOTENBERG_URL: "${GOTENBERG_URL:-http://gotenberg:3000}"
+      PDF_RENDER_TIMEOUT: "${PDF_RENDER_TIMEOUT:-30}"
     volumes:
       - ./backend:/app/backend
       - ./infra/themes:/app/themes:ro
@@ -50,11 +51,11 @@ services:
       postgres:
         condition: service_healthy
 
-  # ── Vite Dev Frontend ──────────────────────────────────────────────────────
   frontend:
-    image: node:22-alpine
+    image: node:24-alpine
     working_dir: /app/frontend
-    command: ["sh", "-c", "corepack enable && pnpm install && pnpm dev --host"]
+    # command: ["sh", "-c", "corepack enable && pnpm install && pnpm dev --host"]
+    command: ["sh", "-c", "corepack enable && npm install && npm run dev -- --host"]
     ports:
       - "5173:5173"
     environment:
@@ -64,6 +65,16 @@ services:
       - frontend_node_modules:/app/frontend/node_modules
     depends_on:
       - backend
+
+  # To enable PDF export locally:
+  #   1. Start this service: docker compose up gotenberg -d
+  #   2. Set GOTENBERG_URL=http://localhost:3001 in .env.local
+  # When GOTENBERG_URL is unset, the backend starts normally with PDF export disabled (501).
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    ports:
+      - "3001:3000"
+    restart: unless-stopped
 
 volumes:
   postgres_data:

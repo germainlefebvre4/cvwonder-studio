@@ -1,0 +1,100 @@
+# Gotenberg — HTML-to-PDF service used by cvwonder-studio for PDF export.
+# Deployment, ClusterIP Service, and NetworkPolicy are bundled in this file.
+#
+# Deploy:   kubectl apply -f infra/k8s/gotenberg.yaml
+# Scale:    kubectl scale deployment gotenberg --replicas=2
+# Disable:  remove GOTENBERG_URL from the studio ConfigMap/Secret to return 501.
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gotenberg
+  labels:
+    app: gotenberg
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gotenberg
+  template:
+    metadata:
+      labels:
+        app: gotenberg
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+      containers:
+        - name: gotenberg
+          image: gotenberg/gotenberg:8
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: http
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            # Chromium requires a writable filesystem for its temporary files.
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gotenberg
+  labels:
+    app: gotenberg
+spec:
+  type: ClusterIP
+  selector:
+    app: gotenberg
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+      protocol: TCP
+
+---
+# NetworkPolicy: only pods labelled app=cvwonder-studio may reach Gotenberg.
+# All other ingress to Gotenberg is denied by default.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gotenberg-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: gotenberg
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: cvwonder-studio
+      ports:
+        - protocol: TCP
+          port: 3000

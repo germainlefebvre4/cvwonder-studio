@@ -1,0 +1,23 @@
+apiVersion: v2
+name: cvwonder-studio
+description: A Helm chart for deploying CVWonder Studio — a web-based CV editor with live YAML preview
+type: application
+version: 0.1.0
+appVersion: "latest"
+keywords:
+  - cvwonder
+  - cv
+  - resume
+  - yaml
+  - editor
+home: https://github.com/germainlefebvre4/cvwonder-studio
+sources:
+  - https://github.com/germainlefebvre4/cvwonder-studio
+maintainers:
+  - name: germainlefebvre4
+    url: https://github.com/germainlefebvre4
+dependencies:
+  - name: postgresql
+    version: 18.6.7
+    repository: oci://registry-1.docker.io/bitnamicharts
+    condition: postgresql.enabled

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 )
 
 // Config holds all application configuration loaded from environment variables.
@@ -16,6 +17,7 @@ type Config struct {
 	ThemesRuntimeDir    string
 	ThemesBuiltinDir    string
 	SessionDurationDays int
+	MigrationsPath      string
 	AdminUsername       string
 	AdminPasswordHash   string
 	AdminTokenSecret    string
@@ -26,6 +28,12 @@ type Config struct {
 	// FrontendBaseURL is the public URL of the frontend SPA (e.g. http://localhost:5173 in dev).
 	// Defaults to AppBaseURL when unset, which is correct for single-origin production deployments.
 	FrontendBaseURL string
+	// GotenbergURL is the base URL of the Gotenberg PDF rendering service.
+	// When empty, PDF export is disabled (DisabledRenderer is used).
+	GotenbergURL string
+	// PDFRenderTimeout is the maximum duration for a single PDF render request.
+	// Defaults to 30s. Configurable via PDF_RENDER_TIMEOUT (value in seconds).
+	PDFRenderTimeout time.Duration
 }
 
 // Load reads configuration from environment variables, applying defaults where
@@ -40,12 +48,15 @@ func Load() (*Config, error) {
 		ThemesRuntimeDir:    getEnv("THEMES_RUNTIME_DIR", "/data/themes"),
 		ThemesBuiltinDir:    getEnv("THEMES_BUILTIN_DIR", "/app/themes"),
 		SessionDurationDays: getEnvInt("SESSION_DURATION_DAYS", 30),
+		MigrationsPath:      getEnv("MIGRATIONS_PATH", "/app/db/migrations"),
 		AdminUsername:       getEnv("ADMIN_USERNAME", ""),
 		AdminPasswordHash:   getEnv("ADMIN_PASSWORD_HASH", ""),
 		AdminTokenSecret:    getEnv("ADMIN_TOKEN_SECRET", ""),
 		GoogleClientID:      getEnv("GOOGLE_CLIENT_ID", ""),
 		GoogleClientSecret:  getEnv("GOOGLE_CLIENT_SECRET", ""),
 		UserTokenSecret:     getEnv("USER_TOKEN_SECRET", ""),
+		GotenbergURL:        getEnv("GOTENBERG_URL", ""),
+		PDFRenderTimeout:    time.Duration(getEnvInt("PDF_RENDER_TIMEOUT", 30)) * time.Second,
 	}
 	// FrontendBaseURL falls back to AppBaseURL so single-origin deployments need no extra config.
 	if cfg.FrontendBaseURL = getEnv("FRONTEND_BASE_URL", ""); cfg.FrontendBaseURL == "" {

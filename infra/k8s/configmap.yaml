@@ -10,3 +10,5 @@ data:
   CVWONDER_BINARY_PATH: "/usr/local/bin/cvwonder"
   SESSION_DURATION_DAYS: "30"
   APP_BASE_URL: "https://your-domain.com"
+  # PDF export via Gotenberg. Remove or leave empty to disable PDF export (returns 501).
+  GOTENBERG_URL: "http://gotenberg:3000"

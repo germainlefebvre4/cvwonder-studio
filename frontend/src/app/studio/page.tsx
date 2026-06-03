@@ -36,7 +36,7 @@ export default function StudioPage() {
   const [showPicker, setShowPicker] = useState(false)
 
   // Enable live preview & validation hooks (only in token mode).
-  const { forceRefresh, isCoolingDown } = usePreview(token ?? null)
+  const {} = usePreview(token ?? null)
   useValidation(token ?? null)
 
   // Load session on mount — either via ?session=:uuid (authenticated) or :token (anon/shared).

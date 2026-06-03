@@ -10,8 +10,6 @@ services:
       DATABASE_URL: postgres://cvwonder:cvwonder@database:5432/cvwonder
       LOG_LEVEL: INFO
       CVWONDER_VERSION: 0.3.1
-      CVWONDER_PDF_GENERATION_PORT: 9889
-      CVWONDER_PDF_GENERATION_ENABLED: false
     depends_on:
       - database
 

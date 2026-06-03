@@ -1,0 +1,30 @@
+{{- if and .Values.storage.themes.enabled (not .Values.storage.themes.existingClaim) -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "cvwonder-studio.fullname" . }}-themes
+  namespace: {{ .Values.forceNamespace | default .Release.Namespace }}
+  labels:
+    {{- include "cvwonder-studio.labels" . | nindent 4 }}
+    app.kubernetes.io/component: themes
+    {{- with .Values.storage.themes.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.storage.themes.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    {{- toYaml .Values.storage.themes.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.themes.size }}
+  {{- if .Values.storage.themes.storageClass }}
+  {{- if eq "-" .Values.storage.themes.storageClass }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ .Values.storage.themes.storageClass | quote }}
+  {{- end }}
+  {{- end }}
+{{- end }}

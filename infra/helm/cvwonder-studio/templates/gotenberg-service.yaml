@@ -1,0 +1,20 @@
+{{- if .Values.gotenberg.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cvwonder-studio.fullname" . }}-gotenberg
+  namespace: {{ .Values.forceNamespace | default .Release.Namespace }}
+  labels:
+    {{- include "cvwonder-studio.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gotenberg
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "cvwonder-studio.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: gotenberg
+  ports:
+    - name: http
+      port: {{ .Values.gotenberg.service.port }}
+      targetPort: http
+      protocol: TCP
+{{- end }}

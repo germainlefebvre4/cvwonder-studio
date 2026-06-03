@@ -108,7 +108,7 @@
 
 ## 12. Docker & Kubernetes
 
-- [x] 12.1 Write multi-stage `Dockerfile`: stage 1 `node:22-alpine` (pnpm build → dist/), stage 2 `golang:1.25-alpine` (go build with embedded dist/), stage 3 `alpine:3.21` (copy binary + cvwonder binary + bundled themes)
+- [x] 12.1 Write multi-stage `Dockerfile`: stage 1 `node:24-alpine` (pnpm build → dist/), stage 2 `golang:1.25-alpine` (go build with embedded dist/), stage 3 `alpine:3.21` (copy binary + cvwonder binary + bundled themes)
 - [x] 12.2 Add cvwonder binary to Docker image: `COPY --from=ghcr.io/germainlefebvre4/cvwonder:latest /usr/local/bin/cvwonder /usr/local/bin/cvwonder` or download at build time with pinned version
 - [x] 12.3 Add bundled themes to Docker image: `COPY infra/themes/ /app/themes/`
 - [x] 12.4 Create `infra/k8s/deployment.yaml`: studio Deployment with SecurityContext, resource limits, liveness/readiness probes, PVC volume mounts

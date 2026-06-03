@@ -15,6 +15,7 @@
             "env": {
                 "DEBUG": "1",
                 "LOG_FORMAT": "text",
+                "MIGRATIONS_PATH": "db/migrations"
             },
             "showLog": true,
             "logOutput": "dap",

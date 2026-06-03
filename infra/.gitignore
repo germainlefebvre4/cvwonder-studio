@@ -1,0 +1,4 @@
+# Helm Charts
+helm/cvwonder-studio/values.test.yaml
+helm/cvwonder-studio/charts/
+themes/

@@ -16,10 +16,13 @@ import (
 
 	db "github.com/germainlefebvre4/cvwonder-studio/db/generated"
 	"github.com/germainlefebvre4/cvwonder-studio/internal/adapters/cvwonder"
+	"github.com/germainlefebvre4/cvwonder-studio/internal/adapters/gotenberg"
 	ginhttp "github.com/germainlefebvre4/cvwonder-studio/internal/adapters/http"
+	pdfadapter "github.com/germainlefebvre4/cvwonder-studio/internal/adapters/pdf"
 	"github.com/germainlefebvre4/cvwonder-studio/internal/adapters/repository"
 	"github.com/germainlefebvre4/cvwonder-studio/internal/admin"
 	"github.com/germainlefebvre4/cvwonder-studio/internal/config"
+	"github.com/germainlefebvre4/cvwonder-studio/internal/ports"
 	previewUC "github.com/germainlefebvre4/cvwonder-studio/internal/usecases/preview"
 	sessionUC "github.com/germainlefebvre4/cvwonder-studio/internal/usecases/session"
 	themeUC "github.com/germainlefebvre4/cvwonder-studio/internal/usecases/theme"
@@ -48,7 +51,7 @@ func main() {
 	defer pool.Close()
 
 	// ── Migrations ────────────────────────────────────────────────────────────
-	if err := repository.RunMigrations(ctx, cfg.DatabaseURL, "file://db/migrations"); err != nil {
+	if err := repository.RunMigrations(ctx, cfg.DatabaseURL, "file://"+cfg.MigrationsPath); err != nil {
 		slog.Error("migration failed", "error", err)
 		os.Exit(1)
 	}
@@ -66,6 +69,16 @@ func main() {
 
 	// ── Adapters ──────────────────────────────────────────────────────────────
 	cvwonderAdapter := cvwonder.NewBinaryAdapter(cfg.CvwonderBinaryPath)
+
+	// Wire PDFRenderer: use GotenbergClient when GOTENBERG_URL is set, DisabledRenderer otherwise.
+	var pdfRenderer ports.PDFRenderer
+	if cfg.GotenbergURL != "" {
+		slog.Info("PDF export enabled", "gotenberg_url", cfg.GotenbergURL)
+		pdfRenderer = gotenberg.NewGotenbergClient(cfg.GotenbergURL, cfg.PDFRenderTimeout)
+	} else {
+		slog.Info("PDF export disabled: GOTENBERG_URL not set")
+		pdfRenderer = pdfadapter.NewDisabledRenderer()
+	}
 
 	// ── Usecases ──────────────────────────────────────────────────────────────
 	createSessionUC := sessionUC.NewCreateUsecase(sessionRepo, cfg.SessionDurationDays, 24)
@@ -99,6 +112,7 @@ func main() {
 	// ── HTTP Handlers ─────────────────────────────────────────────────────────
 	sessionHandler := ginhttp.NewSessionHandler(createSessionUC, getSessionUC, updateSessionUC, sessionRepo, configRepo)
 	generationHandler := ginhttp.NewGenerationHandler(getSessionUC, generatePreviewUC, validateUC, configRepo)
+	pdfHandler := ginhttp.NewPDFHandler(getSessionUC, generatePreviewUC, pdfRenderer, cfg.SessionsBaseDir)
 	themeHandler := ginhttp.NewThemeHandler(listThemesUC)
 	previewHandler := ginhttp.NewPreviewHandler(cfg.SessionsBaseDir)
 	healthHandler := ginhttp.NewHealthHandler(pool)
@@ -134,6 +148,7 @@ func main() {
 		v1.PATCH("/sessions/:token", ginhttp.YamlSizeLimitMiddleware(configRepo), sessionHandler.Update)
 		v1.POST("/sessions/:token/preview", generationHandler.GeneratePreview)
 		v1.POST("/sessions/:token/validate", generationHandler.ValidateYaml)
+		v1.POST("/sessions/:token/export/pdf", pdfHandler.ExportPDF)
 		v1.GET("/themes", themeHandler.List)
 		v1.GET("/templates", sessionHandler.ListTemplates)
 		v1.GET("/templates/:slug", sessionHandler.GetTemplateContent)

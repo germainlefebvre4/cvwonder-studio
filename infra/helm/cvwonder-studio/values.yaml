@@ -1,0 +1,685 @@
+# yaml-language-server: $schema=values.schema.json
+# Default values for cvwonder-studio.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+## Override the name of the chart.
+##
+nameOverride: ""
+
+## Override the full name of the release.
+##
+fullnameOverride: ""
+
+## Additional labels to attach to all resources.
+##
+commonMetaLabels: {}
+
+## Image pull secrets for private registries.
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+##
+imagePullSecrets: []
+  # - name: my-registry-secret
+
+## ServiceAccount configuration.
+##
+serviceAccount:
+  ## If true, a ServiceAccount will be created.
+  ##
+  create: true
+
+  ## Name of the ServiceAccount. Defaults to the fullname if empty.
+  ##
+  name: ""
+
+  ## Annotations to add to the ServiceAccount.
+  ## e.g. for IRSA (AWS), Workload Identity (GCP), etc.
+  ##
+  annotations: {}
+
+  ## Opt out of automounting Kubernetes API credentials.
+  ##
+  automountServiceAccountToken: false
+
+## RBAC configuration.
+##
+rbac:
+  create: true
+
+## NetworkPolicy configuration.
+## ref: https://kubernetes.io/docs/concepts/services-networking/network-policies/
+##
+networkPolicy:
+  ## If true, a NetworkPolicy will be created.
+  ##
+  enabled: false
+
+## CVWonder Studio container image.
+##
+image:
+  repository: ghcr.io/germainlefebvre4/cvwonder-studio
+  ## If not set, appVersion from Chart.yaml is used. Supports templating.
+  ##
+  tag: ""
+  ## When digest is set to a non-empty value, images will be pulled by digest (regardless of tag value).
+  ##
+  digest: ""
+  pullPolicy: IfNotPresent
+
+## Number of replicas.
+## Note: replicaCount > 1 requires an RWX-capable StorageClass for storage.sessions and
+## storage.themes (e.g. NFS, CephFS, AWS EFS, Azure Files, GCP Filestore).
+## See storage.sessions.accessModes and storage.themes.accessModes.
+##
+replicaCount: 1
+
+## Number of old ReplicaSets to retain for rollback.
+##
+revisionHistoryLimit: 10
+
+## Deployment update strategy.
+## ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+##
+strategy:
+  type: Recreate
+
+## Priority class name for the pod.
+## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/
+##
+priorityClassName: ""
+
+## Runtime class name for the pod.
+## ref: https://kubernetes.io/docs/concepts/containers/runtime-class/
+##
+runtimeClassName: ""
+
+## Application configuration.
+## These values are injected as environment variables via a ConfigMap.
+##
+config:
+  ## Port the application listens on.
+  ##
+  port: "8080"
+
+  ## Directory where session data (generated CVs) is stored.
+  ##
+  sessionsBaseDir: "/data/sessions"
+
+  ## Directory where built-in themes are stored (read-only, from image layer).
+  ##
+  themesBuiltinDir: "/app/themes"
+
+  ## Directory where runtime-downloaded themes are stored.
+  ##
+  themesRuntimeDir: "/data/themes"
+
+  ## Path to the cvwonder binary inside the container.
+  ##
+  cvwonderBinaryPath: "/usr/local/bin/cvwonder"
+
+  ## Number of days before a session expires.
+  ##
+  sessionDurationDays: "30"
+
+  ## Public base URL of the application (required for OAuth callback URLs).
+  ## e.g. https://studio.example.com
+  ##
+  appBaseUrl: ""
+
+  ## Override for split-origin deployments (separate CDN or SPA host).
+  ## Defaults to appBaseUrl if not set.
+  ##
+  frontendBaseUrl: ""
+
+## Sensitive application secrets.
+## When existingSecret is set, these values are ignored and the referenced Secret is used.
+## ref: https://kubernetes.io/docs/concepts/configuration/secret/
+##
+secrets:
+  ## PostgreSQL connection string.
+  ## ref: https://www.postgresql.org/docs/current/libpq-connect.html
+  ## e.g. postgres://user:password@host:5432/dbname?sslmode=require
+  ## Ignored when postgresql.enabled is true (URL is auto-composed).
+  ##
+  databaseUrl: ""
+
+  ## HMAC signing key for user session tokens (minimum 32 characters).
+  ##
+  userTokenSecret: ""
+
+  ## Admin panel username.
+  ##
+  adminUsername: "admin"
+
+  ## Admin panel password hash (bcrypt).
+  ## Generate with: htpasswd -nbB admin 'your-password' | cut -d: -f2
+  ##
+  adminPasswordHash: ""
+
+  ## HMAC signing key for admin tokens (minimum 32 characters).
+  ##
+  adminTokenSecret: ""
+
+  ## Google OAuth 2.0 Client ID (optional).
+  ## Leave empty to disable Google authentication.
+  ## ref: https://console.cloud.google.com/apis/credentials
+  ##
+  googleClientId: ""
+
+  ## Google OAuth 2.0 Client Secret (optional).
+  ## Leave empty to disable Google authentication.
+  ##
+  googleClientSecret: ""
+
+## Reference to an existing Secret containing sensitive values.
+## When set, the chart does NOT create a Secret and values under `secrets` are ignored.
+## The Secret must contain the following keys:
+##   database-url, user-token-secret, admin-username, admin-password-hash,
+##   admin-token-secret, google-client-id, google-client-secret
+##
+existingSecret: ""
+
+## Persistent storage configuration.
+## ⚠️  ReadWriteMany (RWX) is required for replicaCount > 1.
+##    Supported RWX storage classes: NFS, CephFS, AWS EFS, Azure Files, GCP Filestore.
+##    On clusters with a RWO-only default StorageClass, set storageClass explicitly.
+##
+storage:
+  ## Session data storage (generated CV files).
+  ##
+  sessions:
+    ## If true, a PersistentVolumeClaim will be created.
+    ## If false, an emptyDir volume is used (sessions will not survive pod restarts).
+    ##
+    enabled: true
+
+    ## If defined, this existing PVC will be used instead of creating one.
+    ##
+    existingClaim: ""
+
+    ## PVC access modes.
+    ## Must include ReadWriteMany if replicaCount > 1.
+    ##
+    accessModes:
+      - ReadWriteMany
+
+    ## Storage size.
+    ##
+    size: 5Gi
+
+    ## Storage class name.
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning.
+    ## If undefined (the default), no storageClassName spec is set, using the default provisioner.
+    ##
+    # storageClass: ""
+
+    ## Additional labels for the PVC.
+    ##
+    labels: {}
+
+    ## Additional annotations for the PVC.
+    ##
+    annotations: {}
+
+  ## Runtime theme storage (downloaded themes).
+  ##
+  themes:
+    ## If true, a PersistentVolumeClaim will be created.
+    ## If false, an emptyDir volume is used (downloaded themes will not persist).
+    ##
+    enabled: true
+
+    ## If defined, this existing PVC will be used instead of creating one.
+    ##
+    existingClaim: ""
+
+    ## PVC access modes.
+    ##
+    accessModes:
+      - ReadWriteMany
+
+    ## Storage size.
+    ##
+    size: 2Gi
+
+    # storageClass: ""
+
+    ## Additional labels for the PVC.
+    ##
+    labels: {}
+
+    ## Additional annotations for the PVC.
+    ##
+    annotations: {}
+
+## Liveness probe configuration.
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+##
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+## Readiness probe configuration.
+##
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+## Startup probe configuration (disabled by default).
+##
+startupProbe:
+  enabled: false
+  httpGet:
+    path: /health/live
+    port: http
+  periodSeconds: 5
+  failureThreshold: 30
+  timeoutSeconds: 10
+
+## Resource requests and limits.
+## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+##
+resources: {}
+  # limits:
+  #   cpu: 500m
+  #   memory: 512Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+## Pod-level security context.
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+##
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+## Container-level security context.
+##
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  ## readOnlyRootFilesystem is false because the cvwonder binary writes temporary files.
+  ##
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+## Node labels for pod assignment.
+## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
+##
+nodeSelector: {}
+
+## Node tolerations for scheduling to tainted nodes.
+## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+##
+tolerations: []
+  # - key: "key"
+  #   operator: "Equal"
+  #   value: "value"
+  #   effect: "NoSchedule"
+
+## Pod affinity.
+## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity
+##
+affinity: {}
+
+## Pod anti-affinity convenience helper.
+## "soft" — scheduler prefers not to place two replicas on the same node.
+## "hard" — scheduler is required not to place two replicas on the same node.
+## ""     — disables pod anti-affinity (unless set via `affinity`).
+##
+podAntiAffinity: ""
+
+## Topology key used for anti-affinity.
+##
+podAntiAffinityTopologyKey: kubernetes.io/hostname
+
+## Pod topology spread constraints.
+## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+##
+topologySpreadConstraints: []
+
+## Annotations added to pods.
+##
+podAnnotations: {}
+
+## Labels added to pods.
+##
+podLabels: {}
+
+## Annotations added to the Deployment.
+##
+deploymentAnnotations: {}
+
+## Host aliases (entries added to /etc/hosts inside pods).
+##
+hostAliases: []
+  # - ip: "127.0.0.1"
+  #   hostnames:
+  #     - "example.com"
+
+## DNS policy for pods.
+## ref: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/
+##
+dnsPolicy: ClusterFirst
+
+## Custom DNS configuration for pods.
+##
+dnsConfig: {}
+  # nameservers:
+  #   - 1.2.3.4
+  # searches:
+  #   - ns1.svc.cluster.local
+
+## Termination grace period in seconds.
+##
+terminationGracePeriodSeconds: 30
+
+## Additional init containers for the pod.
+##
+extraInitContainers: []
+
+## Additional sidecar containers for the pod.
+##
+extraContainers: []
+
+## Additional volumes for the pod.
+##
+extraVolumes: []
+
+## Additional volume mounts for the main container.
+##
+extraVolumeMounts: []
+
+## Additional environment variables for the main container.
+##
+extraEnv: []
+  # - name: DEMO_GREETING
+  #   value: "Hello from the environment"
+  # - name: SECRET_VALUE
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: my-secret
+  #       key: my-key
+
+## Service configuration.
+##
+service:
+  ## If false, no Service will be created.
+  ##
+  enabled: true
+
+  ## Annotations added to the Service.
+  ##
+  annotations: {}
+
+  ## Labels added to the Service.
+  ##
+  labels: {}
+
+  ## Service type.
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+  ##
+  type: ClusterIP
+
+  ## Service port.
+  ##
+  port: 80
+
+  ## If type is NodePort, specify the node port.
+  ##
+  # nodePort: 30080
+
+  ## Cluster IP (only valid for ClusterIP type).
+  ##
+  clusterIP: ""
+
+  ## External IPs.
+  ##
+  externalIPs: []
+
+  ## Load balancer IP (only valid for LoadBalancer type).
+  ##
+  loadBalancerIP: ""
+
+  ## Load balancer source ranges (only valid for LoadBalancer type).
+  ##
+  loadBalancerSourceRanges: []
+
+  ## Session affinity.
+  ##
+  sessionAffinity: None
+
+## Ingress configuration.
+##
+ingress:
+  ## If true, an Ingress resource will be created.
+  ##
+  enabled: false
+
+  ## Ingress class name.
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class
+  ##
+  ingressClassName: ""
+
+  ## Ingress annotations.
+  ##
+  annotations: {}
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+  ## Additional labels for the Ingress.
+  ##
+  extraLabels: {}
+
+  ## Hostnames (passed through tpl). Must be provided if Ingress is enabled.
+  ##
+  hosts: []
+    # - studio.example.com
+
+  ## Path prefix.
+  ##
+  path: /
+
+  ## Path type.
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#path-types
+  ##
+  pathType: Prefix
+
+  ## TLS configuration. Secrets must be manually created in the namespace, or via cert-manager.
+  ##
+  tls: []
+    # - secretName: cvwonder-studio-tls
+    #   hosts:
+    #     - studio.example.com
+
+## Pod Disruption Budget configuration.
+## ref: https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
+##
+podDisruptionBudget:
+  ## If true, a PodDisruptionBudget will be created.
+  ##
+  enabled: false
+  # maxUnavailable: 1
+  # minAvailable: 1
+
+## Horizontal Pod Autoscaler configuration.
+## Note: Requires replicaCount ≥ 1 and an RWX-capable StorageClass.
+## ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+##
+autoscaling:
+  ## If true, an HorizontalPodAutoscaler will be created.
+  ##
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+## Database migration Job configuration.
+## A pre-install/pre-upgrade hook Job that runs golang-migrate before the application starts.
+## Uses Option A: copies /app/db/migrations from the app image via init container,
+## then runs the migrate/migrate CLI image against the database.
+## ref: https://helm.sh/docs/topics/charts_hooks/
+##
+migrations:
+  ## If true, a migration Job will be created as a pre-install/pre-upgrade hook.
+  ## When false (default), the app self-migrates on every pod startup.
+  ##
+  enabled: false
+
+  ## migrate/migrate CLI image.
+  ##
+  image:
+    repository: migrate/migrate
+    tag: "v4"
+    pullPolicy: IfNotPresent
+
+  ## Number of retries before considering the Job failed.
+  ##
+  backoffLimit: 3
+
+  ## Seconds to live after the Job finishes (0 = clean up immediately).
+  ## Requires Kubernetes 1.21+.
+  ##
+  ttlSecondsAfterFinished: 300
+
+  ## Resource requests and limits for the migration Job containers.
+  ##
+  resources: {}
+    # limits:
+    #   cpu: 250m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 64Mi
+
+  ## Annotations added to the migration Job.
+  ##
+  annotations: {}
+
+  ## Annotations added to the migration Job pods.
+  ##
+  podAnnotations: {}
+
+## Gotenberg PDF renderer (optional, cluster-internal only).
+## Gotenberg converts HTML to PDF using a headless Chromium browser.
+## When enabled, GOTENBERG_URL is automatically set in the main app Deployment.
+## Gotenberg is never exposed via Ingress — it is cluster-internal only.
+## ref: https://gotenberg.dev/
+##
+gotenberg:
+  ## If true, a Gotenberg Deployment and Service will be created.
+  ##
+  enabled: false
+
+  ## Gotenberg container image.
+  ##
+  image:
+    repository: gotenberg/gotenberg
+    tag: "8"
+    ## When digest is set, images will be pulled by digest (regardless of tag).
+    ##
+    digest: ""
+    pullPolicy: IfNotPresent
+
+  ## Number of Gotenberg replicas.
+  ##
+  replicaCount: 1
+
+  ## Resource requests and limits.
+  ## Note: Gotenberg uses a headless Chromium browser and is memory-intensive.
+  ##
+  resources: {}
+    # limits:
+    #   cpu: 1000m
+    #   memory: 1Gi
+    # requests:
+    #   cpu: 250m
+    #   memory: 256Mi
+
+  ## Pod-level security context for Gotenberg.
+  ##
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    runAsGroup: 1001
+
+  ## Container-level security context for Gotenberg.
+  ##
+  containerSecurityContext: {}
+
+  ## Gotenberg Service (cluster-internal only, no Ingress).
+  ##
+  service:
+    type: ClusterIP
+    port: 3000
+    annotations: {}
+
+  ## Node selector for Gotenberg pods.
+  ##
+  nodeSelector: {}
+
+  ## Tolerations for Gotenberg pods.
+  ##
+  tolerations: []
+
+  ## Annotations added to Gotenberg pods.
+  ##
+  podAnnotations: {}
+
+  ## Labels added to Gotenberg pods.
+  ##
+  podLabels: {}
+
+## PostgreSQL sub-chart (Bitnami community chart).
+## ref: https://github.com/bitnami/charts/tree/main/bitnami/postgresql
+## When enabled, DATABASE_URL is auto-composed from postgresql.auth.* values.
+## Set to false if you provide your own database via secrets.databaseUrl or existingSecret.
+##
+postgresql:
+  ## If true, a PostgreSQL instance will be deployed as a sub-chart dependency.
+  ##
+  enabled: false
+
+  auth:
+    username: cvwonder
+    ## ⚠️  Change this password in production environments.
+    password: cvwonder
+    database: cvwonder
+
+  primary:
+    persistence:
+      enabled: true
+      size: 8Gi
+
+## Force a specific namespace for all namespaced resources.
+##
+forceNamespace: ""
+
+## Extra Kubernetes manifests to deploy as an array of strings.
+##
+extraManifests: []
+  # - |
+  #   apiVersion: v1
+  #   kind: ConfigMap
+  #   metadata:
+  #     name: extra-config
+  #   data:
+  #     key: value
