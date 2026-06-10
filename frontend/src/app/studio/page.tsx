@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
@@ -10,11 +10,13 @@ import { useStudioStore } from '@/store/studio'
 import { useUserStore } from '@/store/user'
 import { usePreview } from '@/hooks/usePreview'
 import { useValidation } from '@/hooks//useValidation'
+import { useDebounce } from '@/hooks/useDebounce'
 
 import YamlEditor from '@/components/features/editor/YamlEditor'
 import PreviewFrame from '@/components/features/preview/PreviewFrame'
 import ThemeSelector from '@/components/features/theme/ThemeSelector'
 import TemplatePicker from '@/components/features/onboarding/TemplatePicker'
+import FormWizard from '@/components/features/editor/form/FormWizard'
 import { Button } from '@/components/ui/Button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/Tooltip'
 import ExpiryWarningBanner from '@/components/user/ExpiryWarningBanner'
@@ -27,13 +29,26 @@ export default function StudioPage() {
   const sessionId = searchParams.get('session') // ?session=:uuid for authenticated access
   const navigate = useNavigate()
 
-  const { setYamlContent, setSelectedThemeId, reset, yamlContent } = useStudioStore()
+  const {
+    setYamlContent,
+    setYamlFromCode,
+    setSelectedThemeId,
+    reset,
+    yamlContent,
+    viewLayout,
+    setViewLayout,
+  } = useStudioStore()
   const { isAuthenticated } = useUserStore()
   const [loading, setLoading] = useState(true)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   // Controls whether the TemplatePicker is shown. Set once at load time,
   // never flips back to true even if the user clears their YAML.
   const [showPicker, setShowPicker] = useState(false)
+
+  // Track the last successfully saved YAML to avoid redundant saves
+  const lastSavedYamlRef = useRef<string | null>(null)
+  // Centralized debounced YAML for saving changes from the Visual Assistant
+  const debouncedYamlToSave = useDebounce(yamlContent, 300)
 
   // Enable live preview & validation hooks — support both token and UUID modes.
   const {} = usePreview(token ?? null, sessionId)
@@ -51,6 +66,7 @@ export default function StudioPage() {
             return
           }
           setYamlContent(session.yaml_content)
+          lastSavedYamlRef.current = session.yaml_content
           if (session.theme_id) {
             setSelectedThemeId(session.theme_id)
           } else {
@@ -79,6 +95,7 @@ export default function StudioPage() {
           return
         }
         setYamlContent(session.yaml_content)
+        lastSavedYamlRef.current = session.yaml_content
 
         if (session.theme_id) {
           setSelectedThemeId(session.theme_id)
@@ -110,7 +127,8 @@ export default function StudioPage() {
   }, [token, sessionId, navigate, reset, setYamlContent, setSelectedThemeId, isAuthenticated])
 
   const handleYamlChange = async (yaml: string) => {
-    setYamlContent(yaml)
+    setYamlFromCode(yaml)
+    lastSavedYamlRef.current = yaml
     // Update via UUID API if authenticated, otherwise token-based
     if (sessionId) {
       await updateSessionContent(sessionId, { yaml_content: yaml }).catch(() => {})
@@ -118,6 +136,20 @@ export default function StudioPage() {
       await updateSession(token, { yaml_content: yaml }).catch(() => {})
     }
   }
+
+  // Auto-save YAML updates from Visual Assistant edits to the database
+  useEffect(() => {
+    if (!debouncedYamlToSave) return
+    if (debouncedYamlToSave === lastSavedYamlRef.current) return
+
+    lastSavedYamlRef.current = debouncedYamlToSave
+
+    if (sessionId) {
+      updateSessionContent(sessionId, { yaml_content: debouncedYamlToSave }).catch(() => {})
+    } else if (token) {
+      updateSession(token, { yaml_content: debouncedYamlToSave }).catch(() => {})
+    }
+  }, [debouncedYamlToSave, sessionId, token])
 
   const handleThemeChange = async (themeId: string) => {
     // Update via UUID API if authenticated, otherwise token-based
@@ -162,16 +194,50 @@ export default function StudioPage() {
       {expiresAt && <ExpiryWarningBanner expiresAt={expiresAt} isAuthenticated={isAuthenticated} />}
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface-subtle)] shrink-0">
+      <header className="flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface-subtle)] shrink-0 gap-4 overflow-x-auto">
         <div className="flex items-center gap-3">
           <span
-            className="text-base font-semibold text-[var(--color-text-primary)] cursor-pointer"
+            className="text-base font-semibold text-[var(--color-text-primary)] cursor-pointer mr-2 shrink-0"
             onClick={() => navigate('/')}
           >
             CVWonder Studio
           </span>
+          
+          {/* Layout Toggle Buttons Group */}
+          <div className="flex bg-[var(--color-surface-muted)] p-0.5 rounded border border-[var(--color-border)] select-none shrink-0">
+            <button
+              onClick={() => setViewLayout('code')}
+              className={`px-3 py-1 text-xs font-semibold rounded cursor-pointer transition-colors ${
+                viewLayout === 'code'
+                  ? 'bg-[var(--color-surface-default)] text-[var(--color-text-primary)] shadow-sm'
+                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+              }`}
+            >
+              📝 Code YAML
+            </button>
+            <button
+              onClick={() => setViewLayout('visual')}
+              className={`px-3 py-1 text-xs font-semibold rounded cursor-pointer transition-colors ${
+                viewLayout === 'visual'
+                  ? 'bg-[var(--color-surface-default)] text-[var(--color-text-primary)] shadow-sm'
+                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+              }`}
+            >
+              ✨ Assistant Visuel
+            </button>
+            <button
+              onClick={() => setViewLayout('split')}
+              className={`px-3 py-1 text-xs font-semibold rounded cursor-pointer transition-colors ${
+                viewLayout === 'split'
+                  ? 'bg-[var(--color-surface-default)] text-[var(--color-text-primary)] shadow-sm'
+                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+              }`}
+            >
+              💻 Mode Split
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <ThemeSelector onThemeChange={handleThemeChange} />
           <Tooltip>
             <TooltipTrigger asChild>
@@ -204,23 +270,40 @@ export default function StudioPage() {
 
       {/* ── Editor / Preview panels ──────────────────────────────────────── */}
       <div className="flex-1 overflow-hidden">
-        <PanelGroup direction="horizontal" className="h-full">
-          <Panel defaultSize={50} minSize={20}>
-            {showPicker ? (
-              <TemplatePicker onSelect={handleTemplateSelect} />
-            ) : (
-              <YamlEditor token={token!} onUpdate={handleYamlChange} />
+        {showPicker ? (
+          <TemplatePicker onSelect={handleTemplateSelect} />
+        ) : (
+          <PanelGroup key={viewLayout} direction="horizontal" className="h-full">
+            {/* Panel 1: YAML Code Editor */}
+            {(viewLayout === 'code' || viewLayout === 'split') && (
+              <>
+                <Panel defaultSize={viewLayout === 'split' ? 30 : 50} minSize={15}>
+                  <YamlEditor token={token ?? ''} onUpdate={handleYamlChange} />
+                </Panel>
+                <PanelResizeHandle className="w-1 bg-[var(--color-border)] hover:bg-[var(--color-accent)] transition-colors cursor-col-resize" />
+              </>
             )}
-          </Panel>
-          <PanelResizeHandle className="w-1 bg-[var(--color-border)] hover:bg-[var(--color-accent)] transition-colors cursor-col-resize" />
-          <Panel defaultSize={50} minSize={20}>
-            <div className="flex flex-col h-full">
-              <div className="flex-1 overflow-hidden">
-                <PreviewFrame />
+
+            {/* Panel 2: Visual No-Code Form Wizard */}
+            {(viewLayout === 'visual' || viewLayout === 'split') && (
+              <>
+                <Panel defaultSize={viewLayout === 'split' ? 35 : 50} minSize={15}>
+                  <FormWizard />
+                </Panel>
+                <PanelResizeHandle className="w-1 bg-[var(--color-border)] hover:bg-[var(--color-accent)] transition-colors cursor-col-resize" />
+              </>
+            )}
+
+            {/* Panel 3: Live PDF/HTML Preview */}
+            <Panel defaultSize={viewLayout === 'split' ? 35 : 50} minSize={20}>
+              <div className="flex flex-col h-full">
+                <div className="flex-1 overflow-hidden">
+                  <PreviewFrame />
+                </div>
               </div>
-            </div>
-          </Panel>
-        </PanelGroup>
+            </Panel>
+          </PanelGroup>
+        )}
       </div>
       <PrivacyNotice />
     </div>

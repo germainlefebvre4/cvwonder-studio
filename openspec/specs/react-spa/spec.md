@@ -1,5 +1,9 @@
-## ADDED Requirements
+# Spec: react-spa
 
+## Purpose
+
+Defines the frontend Single Page Application (SPA) for CVWonder Studio. It includes the user landing page, CV template picker, live YAML editor (CodeMirror), interactive Visual No-Code Assistant, PDF/HTML preview rendering, and theme selections.
+## Requirements
 ### Requirement: SPA built with Vite and React
 The frontend SHALL be a pure single-page application (SPA) built with Vite (React + TypeScript). It SHALL produce a static `dist/` output that is embedded in the Go binary. The Vite dev server SHALL proxy `/api/*` and `/preview/*` to the Go backend at `VITE_API_URL` (default `http://localhost:8080`).
 
@@ -85,17 +89,34 @@ The landing page SHALL render at `/`. It SHALL include: a glassmorphism header (
 ---
 
 ### Requirement: Studio page has split editor/preview layout
-The studio page SHALL render at `/studio/:token`. It SHALL be full-viewport (`h-screen`, no scroll) with a header bar and a two-panel split: YAML editor (left) and preview iframe (right). The panels SHALL be resizable via `react-resizable-panels`.
+The studio page SHALL render at `/studio/:token` (or via `?session=:id`). It SHALL be full-viewport (`h-screen`, no scroll) with a header bar and resizable panels using `react-resizable-panels`. The layout SHALL support toggling between three editing modes:
+1. **Code Mode**: Shows the YAML editor (left) and the preview iframe (right).
+2. **Visual Mode**: Shows the No-Code Visual Assistant (left) and the preview iframe (right).
+3. **Split Mode**: Shows the YAML editor (left), No-Code Visual Assistant (center), and the preview iframe (right).
 
 #### Scenario: Studio page loads session data
 - **WHEN** the user navigates to `/studio/:token` with a valid token
-- **THEN** `GET /api/v1/sessions/:token` is called and the YAML editor is populated with `yaml_content`
+- **THEN** `GET /api/v1/sessions/:token` is called and the selected editor (YAML or Visual) is populated with data
 
 #### Scenario: Session not found redirects to landing
 - **WHEN** the user navigates to `/studio/:token` with an invalid token
 - **THEN** the user is redirected to `/`
 
----
+#### Scenario: Toggling layouts alters panels instantly
+- **WHEN** the user clicks the "Visual Assistant" view toggle in the header
+- **THEN** the left panel switches from the CodeMirror editor to the form-based Visual Assistant while preserving the preview pane
+
+#### Scenario: Split mode shows both editors and preview
+- **WHEN** the user selects the "Split Mode" in the header
+- **THEN** the page renders three panels in a row: YAML code, Visual Form, and Live Preview
+
+#### Scenario: Visual Form edits trigger backend update and preview refresh
+- **WHEN** the user modifies an input in the Visual Assistant form
+- **THEN** the modified YAML is saved to the backend database via a debounced API call, and a new preview is requested to update the rendered preview frame
+
+#### Scenario: Switching layout modes resets panel size calibration
+- **WHEN** the user switches layout modes (e.g. from Split to Code, and back to Split)
+- **THEN** the panel group layout is re-initialized, ensuring that the panel dividers are correctly calibrated and resizing one divider does not cause layout distortion or unexpected shift of the other dividers
 
 ### Requirement: YAML editor uses CodeMirror 6
 The YAML editor SHALL use `@uiw/react-codemirror` with `@codemirror/lang-yaml`. It SHALL provide client-side validation via AJV against the bundled JSON schema (`/schemas/cvwonder.schema.json`). Validation errors SHALL appear as inline diagnostics in the editor gutter. The editor SHALL debounce YAML changes by 2000ms before triggering preview generation.
@@ -147,3 +168,4 @@ The studio URL SHALL include the session token as a path parameter (`/studio/:to
 #### Scenario: User can return to session via URL
 - **WHEN** a user copies the studio URL and reopens it
 - **THEN** the session YAML and theme are restored from the backend
+

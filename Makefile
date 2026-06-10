@@ -9,6 +9,7 @@ include .env
 export $(shell grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env | sed 's/=.*//')
 endif
 
+MKFILE_PATH := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 ##@ Docker
 
@@ -20,8 +21,15 @@ PLATFORMS ?= linux/amd64#,linux/arm/v7,linux/arm64/v8
     @:
 
 # ── Development ──────────────────────────────────────────────────────────────
-dev: ## Start full dev stack (docker-compose)
-	docker-compose up --build
+dev:
+	@echo "Starting development mode..."
+	@echo "Frontend: http://localhost:5173"
+	@echo "Backend API: http://localhost:8080"
+	@echo "Press Ctrl+C to stop both servers"
+	@trap 'kill 0' SIGINT; \
+	cd $(MKFILE_PATH)/frontend && npm install && npm run dev & \
+	cd $(MKFILE_PATH)/backend && go run ./cmd/api & \
+	wait
 
 dev-backend: ## Start Go backend with air hot-reload
 	cd backend && go run ./cmd/api

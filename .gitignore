@@ -62,3 +62,4 @@ docs/github-pages/yarn-error.log*
 # CI
 event.json
 act.secrets
+.gemini/
